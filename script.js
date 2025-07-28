@@ -4379,4 +4379,24 @@ function checkPWAInstallation() {
         // Agregar clase para estilos específicos de PWA
         document.body.classList.add('pwa-installed');
     }
+    
+    // Verificar si el navegador soporta PWA
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+        console.log('✅ PWA soportado');
+        
+        // Mostrar botón de instalación si no está instalada
+        const installBtn = document.getElementById('installAppBtn');
+        if (installBtn && !isInstalled) {
+            // Verificar si ya se puede instalar
+            if (window.deferredPrompt) {
+                installBtn.style.display = 'block';
+            }
+        }
+    } else {
+        console.log('❌ PWA no soportado');
+        const installBtn = document.getElementById('installAppBtn');
+        if (installBtn) {
+            installBtn.style.display = 'none';
+        }
+    }
 }

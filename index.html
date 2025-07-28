@@ -741,11 +741,21 @@
                     window.deferredPrompt.userChoice.then((choiceResult) => {
                         if (choiceResult.outcome === 'accepted') {
                             console.log('Usuario aceptó instalar la app');
+                            // Ocultar el botón después de la instalación
+                            installButton.style.display = 'none';
                         }
                         window.deferredPrompt = null;
-                        installButton.style.display = 'none';
                     });
                 });
+            }
+        });
+        
+        // Detectar si la app ya está instalada
+        window.addEventListener('appinstalled', (e) => {
+            console.log('App instalada exitosamente');
+            const installButton = document.getElementById('installAppBtn');
+            if (installButton) {
+                installButton.style.display = 'none';
             }
         });
     </script>
