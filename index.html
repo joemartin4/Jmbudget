@@ -85,6 +85,12 @@
                             <i class="fas fa-bell"></i>
                             <span id="notificationsCount" class="notifications-count">0</span>
                         </button>
+                        <button id="installAppBtn" class="btn-install" title="Instalar App" style="display: none;">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button id="themeToggleBtn" class="btn-theme" title="Cambiar Tema">
+                            <i class="fas fa-moon"></i>
+                        </button>
                     </div>
                     <div class="user-actions">
                         <div class="menu-container">
@@ -688,6 +694,61 @@
 
     <!-- Script principal -->
     <script src="script.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        // Registrar Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado exitosamente:', registration.scope);
+                        
+                        // Verificar actualizaciones
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // Nueva versión disponible
+                                    if (confirm('Hay una nueva versión disponible. ¿Quieres actualizar ahora?')) {
+                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error al registrar Service Worker:', error);
+                    });
+            });
+        }
+        
+        // Detectar si la app está instalada
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevenir que se muestre automáticamente
+            e.preventDefault();
+            
+            // Guardar el evento para mostrarlo más tarde
+            window.deferredPrompt = e;
+            
+            // Mostrar botón de instalación personalizado si existe
+            const installButton = document.getElementById('installAppBtn');
+            if (installButton) {
+                installButton.style.display = 'block';
+                installButton.addEventListener('click', () => {
+                    window.deferredPrompt.prompt();
+                    window.deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('Usuario aceptó instalar la app');
+                        }
+                        window.deferredPrompt = null;
+                        installButton.style.display = 'none';
+                    });
+                });
+            }
+        });
+    </script>
     
     <!-- Script de carga y manejo de errores -->
     <script>

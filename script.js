@@ -1170,6 +1170,10 @@ function initializeApp() {
         initializeNotifications();
     }, 100);
     
+    // Inicializar tema y PWA
+    initializeTheme();
+    checkPWAInstallation();
+    
     // Inicializar categorías por defecto si no existen
     initializeDefaultCategories();
     
@@ -4302,4 +4306,77 @@ function validateBackupStructure(data) {
         isValid: errors.length === 0,
         errors: errors
     };
+}
+
+// Funciones para el modo oscuro
+function initializeTheme() {
+    // Cargar tema guardado o usar preferencia del sistema
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme) {
+        setTheme(savedTheme);
+    } else if (systemPrefersDark) {
+        setTheme('dark');
+    } else {
+        setTheme('light');
+    }
+    
+    // Configurar event listener para el botón de tema
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme);
+    }
+    
+    // Escuchar cambios en la preferencia del sistema
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (!localStorage.getItem('theme')) {
+            setTheme(e.matches ? 'dark' : 'light');
+        }
+    });
+}
+
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    
+    // Actualizar icono del botón
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    if (themeToggleBtn) {
+        const icon = themeToggleBtn.querySelector('i');
+        if (icon) {
+            icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
+    }
+    
+    // Actualizar título del botón
+    if (themeToggleBtn) {
+        themeToggleBtn.title = theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro';
+    }
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    
+    // Agregar al historial
+    addToHistory('Tema cambiado', `Cambió a modo ${newTheme === 'dark' ? 'oscuro' : 'claro'}`, 'theme');
+}
+
+// Función para detectar si la app está instalada como PWA
+function checkPWAInstallation() {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isInstalled = window.navigator.standalone || isStandalone;
+    
+    if (isInstalled) {
+        // Ocultar botón de instalación si ya está instalada
+        const installBtn = document.getElementById('installAppBtn');
+        if (installBtn) {
+            installBtn.style.display = 'none';
+        }
+        
+        // Agregar clase para estilos específicos de PWA
+        document.body.classList.add('pwa-installed');
+    }
 }
