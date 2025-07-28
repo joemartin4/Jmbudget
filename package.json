@@ -1,0 +1,57 @@
+{
+  "name": "jm-budget",
+  "version": "1.0.0",
+  "description": "Aplicación web para gestión de presupuesto familiar con categorías, transacciones y reportes detallados",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000",
+    "serve": "npx http-server -p 8000 -c-1",
+    "build": "echo 'No build step required - static files only'",
+    "deploy": "echo 'Deploy to your preferred hosting service'",
+    "test": "echo 'No tests configured yet'",
+    "lint": "echo 'No linting configured yet'"
+  },
+  "keywords": [
+    "budget",
+    "finance",
+    "family",
+    "expenses",
+    "income",
+    "categories",
+    "reports",
+    "charts",
+    "pwa",
+    "web-app"
+  ],
+  "author": "JM Budget Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/jm-budget.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/jm-budget/issues"
+  },
+  "homepage": "https://yourusername.github.io/jm-budget",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ],
+  "pwa": {
+    "name": "JM Budget",
+    "short_name": "JM Budget",
+    "description": "Gestión de Presupuesto Familiar",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#f8f9fa",
+    "theme_color": "#007aff"
+  }
+} 
