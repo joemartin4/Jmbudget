@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Aplicación web para gestión de presupuesto familiar con categorías, transacciones y reportes detallados">
+    <meta name="keywords" content="presupuesto, finanzas, hogar, gastos, ingresos, categorías">
+    <meta name="author" content="JM Budget">
+    <meta name="robots" content="index, follow">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    
+    <title>JM Budget - Gestión de Presupuesto Familiar</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="styles.css" as="style">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    
+    <!-- Configuración de la aplicación -->
+    <script src="config.js"></script>
+</head>
+<body>
+    <!-- Sistema de Login -->
+    <div id="loginContainer" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <i class="fas fa-wallet"></i>
+                <h1>JM Budget</h1>
+                <p>Gestión de Presupuesto Familiar</p>
+            </div>
+            
+            <div class="login-form">
+                <div class="form-group">
+                    <label for="username">Usuario:</label>
+                    <input type="text" id="username" placeholder="Ingresa tu nombre de usuario" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Contraseña:</label>
+                    <input type="password" id="password" placeholder="Ingresa tu contraseña" required>
+                </div>
+                
+                <div class="login-actions">
+                    <button type="button" id="loginBtn" class="btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                    </button>
+                    <button type="button" id="registerBtn" class="btn-secondary">
+                        <i class="fas fa-user-plus"></i> Registrarse
+                    </button>
+                </div>
+                
+                <div class="login-info">
+                    <p><i class="fas fa-info-circle"></i> Los datos se guardan localmente en tu navegador</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido Principal de la Aplicación -->
+    <div id="mainApp" class="main-app" style="display: none;">
+        <!-- Header con información del usuario -->
+        <header class="header">
+            <div class="header-content">
+                <div class="app-title">
+                    <i class="fas fa-wallet"></i>
+                    <h1>JM Budget</h1>
+                </div>
+                <div class="user-info">
+                    <span id="currentUser"></span>
+                    <div class="notifications-container">
+                        <div id="notificationsList" class="notifications-list"></div>
+                        <button id="notificationsBtn" class="btn-notifications" title="Notificaciones">
+                            <i class="fas fa-bell"></i>
+                            <span id="notificationsCount" class="notifications-count">0</span>
+                        </button>
+                    </div>
+                    <div class="user-actions">
+                        <div class="menu-container">
+                            <button id="menuBtn" class="btn-menu" title="Menú de opciones">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                            <div id="menuDropdown" class="menu-dropdown">
+                                <button class="menu-item" id="collaborationBtn" title="Gestionar colaboración">
+                                    <i class="fas fa-users"></i>
+                                    <span>Gestionar Colaboración</span>
+                                </button>
+                                <button class="menu-item" id="importBtn" title="Importar datos">
+                                    <i class="fas fa-file-import"></i>
+                                    <span>Importar Datos</span>
+                                </button>
+                                <button class="menu-item" id="backupBtn" title="Crear backup">
+                                    <i class="fas fa-download"></i>
+                                    <span>Crear Backup</span>
+                                </button>
+                                <button class="menu-item" id="resetCategoriesBtn" title="Restablecer categorías por defecto">
+                                    <i class="fas fa-refresh"></i>
+                                    <span>Restablecer Categorías</span>
+                                </button>
+                                <div class="menu-divider"></div>
+                                <button class="menu-item logout-item" id="logoutBtn" title="Cerrar sesión">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <span>Cerrar Sesión</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navegación por pestañas -->
+        <nav class="tab-navigation">
+            <button class="tab-btn active" data-tab="presupuesto">
+                <i class="fas fa-chart-pie"></i> Presupuesto
+            </button>
+            <button class="tab-btn" data-tab="transacciones">
+                <i class="fas fa-exchange-alt"></i> Transacciones
+            </button>
+            <button class="tab-btn" data-tab="reportes">
+                <i class="fas fa-chart-bar"></i> Reportes
+            </button>
+        </nav>
+
+        <!-- Contenido principal -->
+        <main class="main-content">
+            <!-- Sección Presupuesto -->
+            <section id="presupuesto" class="tab-content active">
+                <div class="section-header">
+                    <h2>Presupuesto Mensual</h2>
+                    <div class="budget-controls">
+                        <div class="month-selector">
+                            <label for="budgetMonth">Mes:</label>
+                            <select id="budgetMonth" class="month-select">
+                                <option value="">Mes actual</option>
+                            </select>
+                        </div>
+                        <div class="budget-actions">
+                            <button class="btn-secondary" id="selectCategoryBtn">
+                                <i class="fas fa-list"></i> Elegir Categoría
+                            </button>
+                            <button class="btn-primary" id="addCategoryBtn">
+                                <i class="fas fa-plus"></i> Nueva Categoría
+                            </button>
+                            <button class="btn-primary" id="addIncomeBtn">
+                                <i class="fas fa-plus"></i> Nuevo Ingreso
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <h3 data-icon="budget">Presupuesto Total</h3>
+                        <div class="amount" id="totalBudget">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="spent">Gastado</h3>
+                        <div class="amount spent" id="totalSpent">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="remaining">Restante</h3>
+                        <div class="amount remaining" id="totalRemaining">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="income">Ingresos</h3>
+                        <div class="amount income" id="totalIncomes">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="balance">Balance</h3>
+                        <div class="amount" id="totalBalance">$0</div>
+                    </div>
+                </div>
+                
+                <div id="incomesContainer"></div>
+                
+                <h3 id="gastosRecurrentesTitle" style="margin-bottom: 20px; color: #333; font-size: 18px; font-weight: 600;">Gastos Recurrentes</h3>
+                <div id="categoriesContainer"></div>
+            </section>
+
+            <!-- Sección Transacciones -->
+            <section id="transacciones" class="tab-content">
+                <div class="section-header">
+                    <h2>Transacciones</h2>
+                    <button class="btn-primary" id="addTransactionBtn">
+                        <i class="fas fa-plus"></i> Nueva Transacción
+                    </button>
+                </div>
+                
+                <div class="filters">
+                    <select id="monthFilter">
+                        <option value="">Todos los meses</option>
+                    </select>
+                    <select id="categoryFilter">
+                        <option value="">Todas las categorías</option>
+                    </select>
+                    <select id="typeFilter">
+                        <option value="">Todos los tipos</option>
+                        <option value="ingreso">Ingresos</option>
+                        <option value="gasto">Gastos</option>
+                    </select>
+                </div>
+                
+                <div id="transactionsContainer"></div>
+            </section>
+
+            <!-- Sección Reportes -->
+            <section id="reportes" class="tab-content">
+                <div class="section-header">
+                    <h2>Reportes y Análisis</h2>
+                    <div class="report-controls">
+                        <div class="report-filters">
+                            <select id="reportMonth">
+                                <option value="">Todos los meses</option>
+                            </select>
+                            <select id="reportType">
+                                <option value="overview">Vista General</option>
+                                <option value="trends">Tendencias</option>
+                                <option value="categories">Análisis por Categoría</option>
+                                <option value="comparison">Comparación Mensual</option>
+                            </select>
+                            <button id="exportReportBtn" class="btn-secondary">
+                                <i class="fas fa-download"></i> Exportar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <h3 data-icon="income">Ingresos del Mes</h3>
+                        <div class="amount income" id="monthlyIncome">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="expense">Gastos del Mes</h3>
+                        <div class="amount expense" id="monthlyExpenses">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="balance">Balance</h3>
+                        <div class="amount" id="monthlyBalance">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="trend">Tendencia</h3>
+                        <div class="amount" id="monthlyTrend">$0</div>
+                    </div>
+                </div>
+                
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <h3>Gastos por Categoría</h3>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Evolución Mensual</h3>
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Tendencia de Gastos</h3>
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Análisis Detallado por Categoría</h3>
+                        <canvas id="detailedCategoryChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="report-details">
+                    <div class="report-section">
+                        <h3>Top 5 Categorías con Mayor Gasto</h3>
+                        <div id="topCategoriesList"></div>
+                    </div>
+                    <div class="report-section">
+                        <h3>Comparación con Mes Anterior</h3>
+                        <div id="monthComparison"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal para Nueva/Editar Categoría -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('categoryModal')">&times;</span>
+            <h2 id="categoryModalTitle">Nueva Categoría</h2>
+            <form id="categoryForm">
+                <div class="form-group">
+                    <label for="categoryName">Categoría:</label>
+                    <div class="select-with-add">
+                        <select id="categoryName" required>
+                            <option value="">Selecciona una categoría</option>
+                        </select>
+                        <button type="button" class="btn-icon" id="addCategoryBtn" title="Agregar nueva categoría">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="categorySubcategory">Subcategoría:</label>
+                    <div class="select-with-add">
+                        <select id="categorySubcategory" required>
+                            <option value="">Selecciona una subcategoría</option>
+                        </select>
+                        <button type="button" class="btn-icon" id="addSubcategoryBtn" title="Agregar nueva subcategoría">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="categoryBudget">Presupuesto Mensual:</label>
+                    <input type="number" id="categoryBudget" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="categoryRecurringFrequency">Frecuencia de Recurrencia:</label>
+                    <select id="categoryRecurringFrequency" required>
+                        <option value="monthly">Mensual</option>
+                        <option value="weekly">Semanal</option>
+                        <option value="biweekly">Quincenal (cada 15 días)</option>
+                        <option value="quarterly">Trimestral</option>
+                        <option value="semiannual">Semestral</option>
+                        <option value="annual">Anual</option>
+                        <option value="custom">Personalizada</option>
+                    </select>
+                </div>
+                <div class="form-group" id="recurringDateGroup">
+                    <label for="categoryRecurringDate">Fecha de Inicio:</label>
+                    <input type="date" id="categoryRecurringDate" required>
+                </div>
+                <div class="form-group" id="customFrequencyGroup" style="display: none;">
+                    <label for="categoryCustomDays">Cada cuántos días:</label>
+                    <input type="number" id="categoryCustomDays" min="1" max="365" placeholder="Ej: 30">
+                </div>
+                <div class="form-group">
+                    <label for="categoryColor">Color:</label>
+                    <input type="color" id="categoryColor" value="#007aff">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Guardar</button>
+                    <button type="button" class="btn-secondary" onclick="closeModal('categoryModal')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Nueva/Editar Transacción -->
+    <div id="transactionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('transactionModal')">&times;</span>
+            <h2 id="transactionModalTitle">Nueva Transacción</h2>
+            <form id="transactionForm">
+                <div class="form-group">
+                    <label for="transactionDescription">Descripción:</label>
+                    <input type="text" id="transactionDescription" required>
+                </div>
+                <div class="form-group">
+                    <label for="transactionAmount">Monto:</label>
+                    <input type="number" id="transactionAmount" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="transactionType">Tipo:</label>
+                    <select id="transactionType" required>
+                        <option value="gasto">Gasto</option>
+                        <option value="ingreso">Ingreso</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="transactionCategory">Categoría:</label>
+                    <select id="transactionCategory" required>
+                        <option value="">Selecciona una categoría</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="transactionDate">Fecha:</label>
+                    <input type="date" id="transactionDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="transactionComment">Comentario (opcional):</label>
+                    <textarea id="transactionComment" placeholder="Agrega un comentario sobre esta transacción..." rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Guardar</button>
+                    <button type="button" class="btn-secondary" onclick="closeModal('transactionModal')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Seleccionar Categoría Existente -->
+    <div id="selectCategoryModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('selectCategoryModal')">&times;</span>
+            <h2>Elegir Categoría Existente</h2>
+            <form id="selectCategoryForm">
+                <div class="form-group">
+                    <label for="selectCategoryName">Categoría:</label>
+                    <select id="selectCategoryName" required>
+                        <option value="">Selecciona una categoría</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="selectSubcategoryName">Subcategoría:</label>
+                    <select id="selectSubcategoryName" required>
+                        <option value="">Selecciona una subcategoría</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="selectCategoryBudget">Presupuesto Mensual:</label>
+                    <input type="number" id="selectCategoryBudget" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="selectCategoryRecurringFrequency">Frecuencia de Recurrencia:</label>
+                    <select id="selectCategoryRecurringFrequency" required>
+                        <option value="monthly">Mensual</option>
+                        <option value="weekly">Semanal</option>
+                        <option value="biweekly">Quincenal (cada 15 días)</option>
+                        <option value="quarterly">Trimestral</option>
+                        <option value="semiannual">Semestral</option>
+                        <option value="annual">Anual</option>
+                        <option value="custom">Personalizada</option>
+                    </select>
+                </div>
+                <div class="form-group" id="selectRecurringDateGroup">
+                    <label for="selectCategoryRecurringDate">Fecha de Inicio:</label>
+                    <input type="date" id="selectCategoryRecurringDate" required>
+                </div>
+                <div class="form-group" id="selectCustomFrequencyGroup" style="display: none;">
+                    <label for="selectCategoryCustomDays">Cada cuántos días:</label>
+                    <input type="number" id="selectCategoryCustomDays" min="1" max="365" placeholder="Ej: 30">
+                </div>
+                <div class="form-group">
+                    <label for="selectCategoryColor">Color:</label>
+                    <input type="color" id="selectCategoryColor" value="#007aff">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Agregar al Presupuesto</button>
+                    <button type="button" class="btn-secondary" onclick="closeModal('selectCategoryModal')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Gestión de Colaboración -->
+    <div id="collaborationModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('collaborationModal')">&times;</span>
+            <h2>Gestión de Colaboración</h2>
+            
+            <div class="collaboration-tabs">
+                <button class="collab-tab-btn active" data-tab="invite">Invitar</button>
+                <button class="collab-tab-btn" data-tab="members">Miembros</button>
+                <button class="collab-tab-btn" data-tab="requests">Solicitudes</button>
+                <button class="collab-tab-btn" data-tab="history">Historial</button>
+            </div>
+            
+            <!-- Pestaña Invitar -->
+            <div id="invite-tab" class="collab-tab-content active">
+                <div class="form-group">
+                    <label for="inviteEmail">Email del colaborador:</label>
+                    <input type="email" id="inviteEmail" placeholder="ejemplo@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="inviteRole">Rol:</label>
+                    <select id="inviteRole" required>
+                        <option value="collaborator">Colaborador</option>
+                        <option value="viewer">Solo lectura</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="inviteMessage">Mensaje (opcional):</label>
+                    <textarea id="inviteMessage" placeholder="Hola, te invito a colaborar en nuestro presupuesto familiar..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-primary" onclick="sendInvitation()">
+                        <i class="fas fa-paper-plane"></i> Enviar Invitación
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Pestaña Miembros -->
+            <div id="members-tab" class="collab-tab-content">
+                <div id="membersList">
+                    <p class="no-members">No hay miembros colaborando aún.</p>
+                </div>
+            </div>
+            
+            <!-- Pestaña Solicitudes -->
+            <div id="requests-tab" class="collab-tab-content">
+                <div id="requestsList">
+                    <p class="no-requests">No hay solicitudes pendientes.</p>
+                </div>
+            </div>
+            
+            <!-- Pestaña Historial -->
+            <div id="history-tab" class="collab-tab-content">
+                <div class="history-filters">
+                    <select id="historyTypeFilter">
+                        <option value="">Todos los cambios</option>
+                        <option value="transaction">Transacciones</option>
+                        <option value="category">Categorías</option>
+                        <option value="collaboration">Colaboración</option>
+                    </select>
+                    <select id="historyUserFilter">
+                        <option value="">Todos los usuarios</option>
+                    </select>
+                </div>
+                <div id="historyList">
+                    <p class="no-history">No hay cambios registrados aún.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para Importación -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('importModal')">&times;</span>
+            <h2>Importar Datos</h2>
+            
+            <div class="import-tabs">
+                <button class="import-tab-btn active" data-tab="instructions">Instrucciones</button>
+                <button class="import-tab-btn" data-tab="upload">Subir Archivo</button>
+                <button class="import-tab-btn" data-tab="preview">Vista Previa</button>
+            </div>
+            
+            <!-- Pestaña Instrucciones -->
+            <div id="instructions-tab" class="import-tab-content active">
+                <div class="import-instructions">
+                    <h3>📋 Formato Requerido</h3>
+                    <p>Tu archivo debe tener las siguientes columnas:</p>
+                    <ul>
+                        <li><strong>Descripción</strong>: Nombre de la transacción</li>
+                        <li><strong>Monto</strong>: Cantidad (positivo para ingresos, negativo para gastos)</li>
+                        <li><strong>Tipo</strong>: "ingreso" o "gasto"</li>
+                        <li><strong>Categoría</strong>: Categoría principal</li>
+                        <li><strong>Subcategoría</strong>: Subcategoría (opcional)</li>
+                        <li><strong>Fecha</strong>: Fecha en formato YYYY-MM-DD</li>
+                        <li><strong>Comentario</strong>: Comentario opcional</li>
+                    </ul>
+                    
+                    <h3>📊 Ejemplo de Datos</h3>
+                    <div class="example-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Descripción</th>
+                                    <th>Monto</th>
+                                    <th>Tipo</th>
+                                    <th>Categoría</th>
+                                    <th>Subcategoría</th>
+                                    <th>Fecha</th>
+                                    <th>Comentario</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Supermercado</td>
+                                    <td>-150.50</td>
+                                    <td>gasto</td>
+                                    <td>Alimentación y Bebidas</td>
+                                    <td>Supermercado</td>
+                                    <td>2024-01-15</td>
+                                    <td>Compra semanal</td>
+                                </tr>
+                                <tr>
+                                    <td>Salario</td>
+                                    <td>2500.00</td>
+                                    <td>ingreso</td>
+                                    <td>Ingresos</td>
+                                    <td>Salario</td>
+                                    <td>2024-01-01</td>
+                                    <td>Pago mensual</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <h3>💡 Consejos</h3>
+                    <ul>
+                        <li>Exporta tu archivo como CSV desde Excel, Numbers o Google Sheets</li>
+                        <li>O importa un backup JSON de JM Budget</li>
+                        <li>Asegúrate de que las fechas estén en formato YYYY-MM-DD</li>
+                        <li>Los montos negativos se importarán como gastos</li>
+                        <li>Las categorías y subcategorías se crearán automáticamente si no existen</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Pestaña Subir Archivo -->
+            <div id="upload-tab" class="import-tab-content">
+                <div class="upload-area">
+                    <div class="file-drop-zone" id="fileDropZone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h3>Arrastra tu archivo aquí</h3>
+                        <p>o haz clic para seleccionar</p>
+                        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.json" style="display: none;">
+                    </div>
+                    <div class="file-info" id="fileInfo" style="display: none;">
+                        <div class="file-details">
+                            <i class="fas fa-file"></i>
+                            <span id="fileName"></span>
+                            <span id="fileSize"></span>
+                        </div>
+                        <button id="processFileBtn" class="btn-primary">
+                            <i class="fas fa-cog"></i> Procesar Archivo
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pestaña Vista Previa -->
+            <div id="preview-tab" class="import-tab-content">
+                <div class="preview-controls">
+                    <div class="preview-stats">
+                        <span id="totalRows">Total: 0 filas</span>
+                        <span id="validRows">Válidas: 0</span>
+                        <span id="invalidRows">Con errores: 0</span>
+                    </div>
+                    <div class="preview-actions">
+                        <button id="importDataBtn" class="btn-primary" disabled>
+                            <i class="fas fa-download"></i> Importar Datos
+                        </button>
+                        <button id="cancelImportBtn" class="btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                    </div>
+                </div>
+                <div class="preview-table">
+                    <div id="previewContent">
+                        <p class="no-preview">Sube un archivo para ver la vista previa</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Nuevo Ingreso Recurrente -->
+    <div id="incomeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('incomeModal')">&times;</span>
+            <h2 id="incomeModalTitle">Nuevo Ingreso Recurrente</h2>
+            <form id="incomeForm">
+                <div class="form-group">
+                    <label for="incomeName">Nombre del ingreso:</label>
+                    <input type="text" id="incomeName" required>
+                </div>
+                <div class="form-group">
+                    <label for="incomeAmount">Monto:</label>
+                    <input type="number" id="incomeAmount" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="incomeFrequency">Frecuencia:</label>
+                    <select id="incomeFrequency" required>
+                        <option value="monthly">Mensual</option>
+                        <option value="weekly">Semanal</option>
+                        <option value="biweekly">Quincenal (cada 15 días)</option>
+                        <option value="quarterly">Trimestral</option>
+                        <option value="semiannual">Semestral</option>
+                        <option value="annual">Anual</option>
+                        <option value="custom">Personalizada</option>
+                    </select>
+                </div>
+                <div class="form-group" id="incomeDateGroup">
+                    <label for="incomeStartDate">Fecha de inicio:</label>
+                    <input type="date" id="incomeStartDate" required>
+                </div>
+                <div class="form-group" id="incomeCustomFrequencyGroup" style="display: none;">
+                    <label for="incomeCustomDays">Cada cuántos días:</label>
+                    <input type="number" id="incomeCustomDays" min="1" max="365" placeholder="Ej: 30">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Guardar</button>
+                    <button type="button" class="btn-secondary" onclick="closeModal('incomeModal')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script principal -->
+    <script src="script.js"></script>
+    
+    <!-- Script de carga y manejo de errores -->
+    <script>
+        // Verificar que la aplicación se cargue correctamente
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 JM Budget cargado correctamente');
+            
+            // Verificar dependencias críticas
+            if (typeof Chart === 'undefined') {
+                console.warn('⚠️ Chart.js no se cargó correctamente');
+                // Mostrar mensaje al usuario
+                const warning = document.createElement('div');
+                warning.style.cssText = 'position:fixed;top:20px;right:20px;background:#ff9500;color:white;padding:10px;border-radius:8px;z-index:10000;';
+                warning.innerHTML = '⚠️ Algunas funciones pueden no estar disponibles';
+                document.body.appendChild(warning);
+                setTimeout(() => warning.remove(), 5000);
+            }
+            
+            // Verificar localStorage
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                console.log('✅ localStorage disponible');
+            } catch (e) {
+                console.error('❌ localStorage no disponible');
+                alert('Error: localStorage no está disponible. La aplicación no puede guardar datos.');
+            }
+            
+            // Verificar conexión a internet para CDNs
+            if (!navigator.onLine) {
+                console.warn('⚠️ Sin conexión a internet - algunas funciones pueden no estar disponibles');
+            }
+        });
+        
+        // Manejo de errores globales
+        window.addEventListener('error', function(e) {
+            console.error('❌ Error en la aplicación:', e.error);
+        });
+        
+        // Manejo de errores de recursos no cargados
+        window.addEventListener('load', function() {
+            console.log('📱 Aplicación lista para usar');
+        });
+    </script>
+</body>
+</html> 
