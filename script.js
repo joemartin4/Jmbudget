@@ -104,12 +104,23 @@ function loadUserData() {
     const userData = users[currentUser] || {
         categories: [],
         transactions: [],
-        categoryGroups: {}
+        categoryGroups: {},
+        incomes: [],
+        notifications: []
     };
     
     categories = userData.categories || [];
     transactions = userData.transactions || [];
     categoryGroups = userData.categoryGroups || {};
+    incomes = userData.incomes || [];
+    notifications = userData.notifications || [];
+    
+    console.log('📥 Datos cargados para usuario:', currentUser);
+    console.log('📊 Resumen de datos cargados:');
+    console.log('  - Categorías:', categories.length);
+    console.log('  - Transacciones:', transactions.length);
+    console.log('  - Ingresos:', incomes.length);
+    console.log('  - Notificaciones:', notifications.length);
 }
 
 function saveUserData() {
@@ -118,11 +129,25 @@ function saveUserData() {
     const userData = {
         categories: categories,
         transactions: transactions,
-        categoryGroups: categoryGroups
+        categoryGroups: categoryGroups,
+        incomes: incomes,
+        notifications: notifications
     };
     
     users[currentUser] = userData;
-    localStorage.setItem('budgetUsers', JSON.stringify(users));
+    
+    try {
+        localStorage.setItem('budgetUsers', JSON.stringify(users));
+        console.log('✅ Datos guardados exitosamente para usuario:', currentUser);
+        console.log('📊 Resumen de datos guardados:');
+        console.log('  - Categorías:', categories.length);
+        console.log('  - Transacciones:', transactions.length);
+        console.log('  - Ingresos:', incomes.length);
+        console.log('  - Notificaciones:', notifications.length);
+    } catch (error) {
+        console.error('❌ Error al guardar datos:', error);
+        alert('Error al guardar los datos. Verifica el espacio disponible en tu navegador.');
+    }
 }
 
 function registerUser(username, password) {
@@ -137,7 +162,9 @@ function registerUser(username, password) {
     users[username] = {
         categories: [],
         transactions: [],
-        categoryGroups: {}
+        categoryGroups: {},
+        incomes: [],
+        notifications: []
     };
     
     localStorage.setItem('budgetUsers', JSON.stringify(users));
@@ -1174,6 +1201,9 @@ function initializeApp() {
     initializeTheme();
     checkPWAInstallation();
     
+    // Configurar guardado automático
+    setupAutoSave();
+    
     // Inicializar categorías por defecto si no existen
     initializeDefaultCategories();
     
@@ -1609,9 +1639,18 @@ function handleCategorySubmit(e) {
     }
 
     saveData();
+    addToHistory('Categoría', categoryId ? `Editó categoría: ${document.getElementById('categoryName').value}` : `Agregó categoría: ${document.getElementById('categoryName').value}`, 'category');
     clearCaches(); // Limpiar caches cuando se actualicen datos
     updateUI();
     closeModal('categoryModal');
+    
+    // Mostrar confirmación
+    const categoryName = document.getElementById('categoryName').value;
+    showVisualNotification(
+        categoryId ? 'Categoría actualizada' : 'Categoría agregada',
+        `La categoría "${categoryName}" se ha ${categoryId ? 'actualizado' : 'agregado'} correctamente.`,
+        'budget'
+    );
 }
 
 function handleTransactionSubmit(e) {
@@ -1717,6 +1756,13 @@ function handleTransactionSubmit(e) {
     updateUI();
     closeModal('transactionModal');
     transactionForm.reset();
+    
+    // Mostrar confirmación
+    showVisualNotification(
+        editId ? 'Transacción actualizada' : 'Transacción agregada',
+        `La transacción "${description}" se ha ${editId ? 'actualizado' : 'agregado'} correctamente.`,
+        'budget'
+    );
 }
 
 function updateCategoryDropdowns() {
@@ -3250,10 +3296,11 @@ function importUserData(file) {
 // Función para cargar ingresos recurrentes
 function loadIncomes() {
     try {
-        const savedIncomes = localStorage.getItem(`incomes_${currentUser}`);
-        incomes = savedIncomes ? JSON.parse(savedIncomes) : [];
+        // Los ingresos ya se cargan en loadUserData()
+        // Esta función se mantiene por compatibilidad
+        console.log('📥 Ingresos cargados:', incomes.length);
     } catch (error) {
-        console.error('Error al cargar ingresos recurrentes:', error);
+        console.error('❌ Error al cargar ingresos recurrentes:', error);
         incomes = [];
     }
 }
@@ -3261,9 +3308,12 @@ function loadIncomes() {
 // Función para guardar ingresos recurrentes
 function saveIncomes() {
     try {
-        localStorage.setItem(`incomes_${currentUser}`, JSON.stringify(incomes));
+        // Guardar en el sistema centralizado
+        saveUserData();
+        console.log('✅ Ingresos guardados exitosamente');
     } catch (error) {
-        console.error('Error al guardar ingresos recurrentes:', error);
+        console.error('❌ Error al guardar ingresos recurrentes:', error);
+        alert('Error al guardar los ingresos. Verifica el espacio disponible en tu navegador.');
     }
 }
 
@@ -3311,9 +3361,17 @@ function handleIncomeSubmit(e) {
     }
     
     saveIncomes();
+    addToHistory('Ingreso recurrente', editId ? `Editó ingreso: ${name}` : `Agregó ingreso: ${name}`, 'income');
     clearCaches();
     updateUI();
     closeModal('incomeModal');
+    
+    // Mostrar confirmación
+    showVisualNotification(
+        editId ? 'Ingreso actualizado' : 'Ingreso agregado',
+        `El ingreso "${name}" se ha ${editId ? 'actualizado' : 'agregado'} correctamente.`,
+        'recurring'
+    );
 }
 
 // Función para calcular el total de ingresos ajustados
@@ -4399,4 +4457,43 @@ function checkPWAInstallation() {
             installBtn.style.display = 'none';
         }
     }
+}
+
+// Función de guardado automático periódico
+function setupAutoSave() {
+    // Guardar automáticamente cada 30 segundos si hay cambios
+    setInterval(() => {
+        if (currentUser && (categories.length > 0 || transactions.length > 0 || incomes.length > 0)) {
+            try {
+                saveUserData();
+                console.log('💾 Guardado automático realizado');
+            } catch (error) {
+                console.error('❌ Error en guardado automático:', error);
+            }
+        }
+    }, 30000); // 30 segundos
+    
+    // Guardar antes de que el usuario salga de la página
+    window.addEventListener('beforeunload', () => {
+        if (currentUser) {
+            try {
+                saveUserData();
+                console.log('💾 Guardado antes de salir');
+            } catch (error) {
+                console.error('❌ Error al guardar antes de salir:', error);
+            }
+        }
+    });
+    
+    // Guardar cuando la página pierde el foco
+    window.addEventListener('blur', () => {
+        if (currentUser) {
+            try {
+                saveUserData();
+                console.log('💾 Guardado al perder foco');
+            } catch (error) {
+                console.error('❌ Error al guardar al perder foco:', error);
+            }
+        }
+    });
 }
