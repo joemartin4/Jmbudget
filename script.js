@@ -4118,21 +4118,38 @@ function updateNotificationsDisplay() {
         return;
     }
     
-    container.innerHTML = notifications.map(notification => `
-        <div class="notification-item ${notification.read ? '' : 'unread'}" data-id="${notification.id}">
+    // Agregar botón para marcar todas como leídas si hay notificaciones no leídas
+    let headerHtml = '';
+    if (unreadCount > 0) {
+        headerHtml = `
+            <div class="notifications-header">
+                <span>${unreadCount} no leída${unreadCount > 1 ? 's' : ''}</span>
+                <button class="btn-mark-all-read" onclick="markAllNotificationsAsRead()">
+                    <i class="fas fa-check-double"></i> Marcar todas como leídas
+                </button>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = headerHtml + notifications.map(notification => `
+        <div class="notification-item ${notification.read ? 'read' : 'unread'}" data-id="${notification.id}">
             <div class="notification-header">
                 <h4 class="notification-title">${notification.title}</h4>
                 <span class="notification-time">${getTimeAgo(notification.timestamp)}</span>
             </div>
             <p class="notification-message">${notification.message}</p>
-            <span class="notification-type ${notification.type}">${getNotificationTypeText(notification.type)}</span>
+            <div class="notification-footer">
+                <span class="notification-type ${notification.type}">${getNotificationTypeText(notification.type)}</span>
+                ${!notification.read ? '<span class="unread-indicator"><i class="fas fa-circle"></i></span>' : ''}
+            </div>
         </div>
     `).join('');
     
     // Agregar event listeners para marcar como leídas
     container.querySelectorAll('.notification-item').forEach(item => {
         item.addEventListener('click', () => {
-            const notificationId = parseInt(item.dataset.id);
+            const notificationId = item.dataset.id;
+            console.log('Clic en notificación, ID:', notificationId);
             markNotificationAsRead(notificationId);
         });
     });
@@ -4142,11 +4159,20 @@ function updateNotificationsDisplay() {
 }
 
 function markNotificationAsRead(notificationId) {
-    const notification = notifications.find(n => n.id === notificationId);
+    console.log('Marcando notificación como leída:', notificationId, 'Tipo:', typeof notificationId);
+    console.log('Notificaciones disponibles:', notifications.map(n => ({ id: n.id, title: n.title, read: n.read })));
+    
+    // Convertir a número si es string
+    const id = typeof notificationId === 'string' ? parseFloat(notificationId) : notificationId;
+    
+    const notification = notifications.find(n => n.id === id);
     if (notification) {
+        console.log('Notificación encontrada, marcando como leída:', notification.title);
         notification.read = true;
         saveNotifications();
         updateNotificationsDisplay();
+    } else {
+        console.log('No se encontró la notificación con ID:', id);
     }
 }
 
@@ -4316,13 +4342,34 @@ function clearOldNotifications() {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
+    const originalCount = notifications.length;
     notifications = notifications.filter(notification => {
         const notificationDate = new Date(notification.timestamp);
         return notificationDate > thirtyDaysAgo;
     });
     
-    saveNotifications();
-    updateNotificationsDisplay();
+    if (originalCount !== notifications.length) {
+        console.log(`Limpiadas ${originalCount - notifications.length} notificaciones antiguas`);
+        saveNotifications();
+        updateNotificationsDisplay();
+    }
+}
+
+// Función para marcar todas las notificaciones como leídas
+function markAllNotificationsAsRead() {
+    let hasChanges = false;
+    notifications.forEach(notification => {
+        if (!notification.read) {
+            notification.read = true;
+            hasChanges = true;
+        }
+    });
+    
+    if (hasChanges) {
+        console.log('Marcando todas las notificaciones como leídas');
+        saveNotifications();
+        updateNotificationsDisplay();
+    }
 }
 
 function getAvailableMonths() {
