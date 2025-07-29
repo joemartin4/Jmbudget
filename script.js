@@ -4013,6 +4013,10 @@ function initializeNotifications() {
     try {
         console.log('Inicializando sistema de notificaciones...');
         loadNotifications();
+        
+        // Limpiar notificaciones antiguas al inicializar
+        clearOldNotifications();
+        
         setupNotificationEventListeners();
         checkForNotifications();
         setupRecurringReminders();
@@ -4041,6 +4045,19 @@ function saveNotifications() {
 }
 
 function addNotification(title, message, type = 'general', priority = 'normal') {
+    // Verificar si ya existe una notificación similar no leída
+    const existingNotification = notifications.find(n => 
+        n.title === title && 
+        n.type === type && 
+        !n.read &&
+        new Date().getTime() - new Date(n.timestamp).getTime() < 24 * 60 * 60 * 1000 // 24 horas
+    );
+    
+    if (existingNotification) {
+        console.log('Notificación similar ya existe, no se agrega duplicado:', title);
+        return;
+    }
+    
     const notification = {
         id: Date.now() + Math.random(),
         title: title,
@@ -4053,10 +4070,14 @@ function addNotification(title, message, type = 'general', priority = 'normal') 
     
     notifications.unshift(notification);
     
-    // Mantener solo las últimas 50 notificaciones
-    if (notifications.length > 50) {
-        notifications = notifications.slice(0, 50);
+    // Mantener solo las últimas 30 notificaciones y limpiar las muy antiguas
+    if (notifications.length > 30) {
+        notifications = notifications.slice(0, 30);
     }
+    
+    // Limpiar notificaciones muy antiguas (más de 7 días)
+    const weekAgo = new Date().getTime() - (7 * 24 * 60 * 60 * 1000);
+    notifications = notifications.filter(n => new Date(n.timestamp).getTime() > weekAgo);
     
     saveNotifications();
     updateNotificationsDisplay();
@@ -4135,7 +4156,12 @@ function updateNotificationsDisplay() {
         <div class="notification-item ${notification.read ? 'read' : 'unread'}" data-id="${notification.id}">
             <div class="notification-header">
                 <h4 class="notification-title">${notification.title}</h4>
-                <span class="notification-time">${getTimeAgo(notification.timestamp)}</span>
+                <div class="notification-actions">
+                    <span class="notification-time">${getTimeAgo(notification.timestamp)}</span>
+                    <button class="btn-delete-notification" onclick="deleteNotification('${notification.id}')" title="Eliminar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
             <p class="notification-message">${notification.message}</p>
             <div class="notification-footer">
@@ -4339,17 +4365,41 @@ function setupRecurringReminders() {
 
 // Función para limpiar notificaciones antiguas
 function clearOldNotifications() {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
     const originalCount = notifications.length;
     notifications = notifications.filter(notification => {
         const notificationDate = new Date(notification.timestamp);
-        return notificationDate > thirtyDaysAgo;
+        return notificationDate > sevenDaysAgo;
     });
     
     if (originalCount !== notifications.length) {
         console.log(`Limpiadas ${originalCount - notifications.length} notificaciones antiguas`);
+        saveNotifications();
+        updateNotificationsDisplay();
+    }
+}
+
+// Función para eliminar una notificación específica
+function deleteNotification(notificationId) {
+    const id = typeof notificationId === 'string' ? parseFloat(notificationId) : notificationId;
+    const originalCount = notifications.length;
+    
+    notifications = notifications.filter(n => n.id !== id);
+    
+    if (notifications.length !== originalCount) {
+        console.log('Notificación eliminada:', notificationId);
+        saveNotifications();
+        updateNotificationsDisplay();
+    }
+}
+
+// Función para limpiar todas las notificaciones
+function clearAllNotifications() {
+    if (notifications.length > 0) {
+        console.log('Limpiando todas las notificaciones');
+        notifications = [];
         saveNotifications();
         updateNotificationsDisplay();
     }
