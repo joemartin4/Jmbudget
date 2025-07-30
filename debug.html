@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug CSS - JM Budget</title>
+    <link rel="stylesheet" href="styles.css?v=1.0.1">
+    <style>
+        .debug-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <h1>Debug CSS - JM Budget</h1>
+    
+    <div id="debugInfo" class="debug-info">
+        <h3>Información de Debug</h3>
+        <div id="cssInfo"></div>
+        <div id="errorInfo"></div>
+    </div>
+    
+    <div class="login-container">
+        <div class="login-card">
+            <h2>Test de Estilos</h2>
+            <p>Si ves esto con estilos, el CSS funciona correctamente.</p>
+            <button class="btn-primary">Botón Primario</button>
+            <button class="btn-secondary">Botón Secundario</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const cssInfo = document.getElementById('cssInfo');
+            const errorInfo = document.getElementById('errorInfo');
+            
+            // Verificar archivos CSS
+            const cssFiles = document.styleSheets;
+            let cssLoaded = false;
+            
+            cssInfo.innerHTML = '<h4>Archivos CSS detectados:</h4>';
+            
+            for (let i = 0; i < cssFiles.length; i++) {
+                try {
+                    const href = cssFiles[i].href;
+                    if (href && href.includes('styles.css')) {
+                        cssLoaded = true;
+                        cssInfo.innerHTML += `<p class="success">✅ CSS cargado: ${href}</p>`;
+                    } else {
+                        cssInfo.innerHTML += `<p>📄 CSS ${i}: ${href || 'inline styles'}</p>`;
+                    }
+                } catch (e) {
+                    cssInfo.innerHTML += `<p class="error">❌ Error CSS ${i}: ${e.message}</p>`;
+                }
+            }
+            
+            if (!cssLoaded) {
+                errorInfo.innerHTML = `
+                    <h4 class="error">❌ Problemas detectados:</h4>
+                    <ul>
+                        <li>El archivo styles.css no se cargó correctamente</li>
+                        <li>Verifica que el archivo existe en el servidor</li>
+                        <li>Verifica la consola del navegador para errores</li>
+                    </ul>
+                `;
+            } else {
+                errorInfo.innerHTML = `
+                    <h4 class="success">✅ CSS cargado correctamente</h4>
+                    <p>Si no ves los estilos, puede ser un problema de cache del navegador.</p>
+                    <p>Intenta: Ctrl+F5 (Windows) o Cmd+Shift+R (Mac)</p>
+                `;
+            }
+            
+            // Verificar elementos específicos
+            const loginContainer = document.querySelector('.login-container');
+            const computedStyle = window.getComputedStyle(loginContainer);
+            
+            cssInfo.innerHTML += `
+                <h4>Verificación de estilos:</h4>
+                <p>Login container display: ${computedStyle.display}</p>
+                <p>Login container background: ${computedStyle.background}</p>
+            `;
+        });
+    </script>
+</body>
+</html> 

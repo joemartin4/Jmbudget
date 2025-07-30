@@ -1,5 +1,5 @@
 // Service Worker para JM Budget App
-const CACHE_NAME = 'jm-budget-v1.0.0';
+const CACHE_NAME = 'jm-budget-v1.0.1';
 const urlsToCache = [
   './',
   './index.html',
@@ -55,6 +55,13 @@ self.addEventListener('fetch', event => {
   // Solo manejar peticiones GET
   if (event.request.method !== 'GET') {
     return;
+  }
+
+  // En modo desarrollo (localhost), no usar cache para archivos JS y CSS
+  if (event.request.url.includes('localhost') || event.request.url.includes('127.0.0.1')) {
+    if (event.request.url.includes('.js') || event.request.url.includes('.css')) {
+      return fetch(event.request);
+    }
   }
 
   // Excluir peticiones de analytics y otros servicios externos

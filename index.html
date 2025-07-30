@@ -9,7 +9,7 @@
     <meta name="robots" content="index, follow">
     
     <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
@@ -22,11 +22,20 @@
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style">
     
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=1.0.1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="chart-config.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Configuración global de Firebase -->
+    <script src="firebase-config.js"></script>
     
     <!-- Configuración de la aplicación -->
     <script src="config.js"></script>
@@ -79,25 +88,26 @@
                 </div>
                 <div class="user-info">
                     <span id="currentUser"></span>
-                    <div class="notifications-container">
-                        <div id="notificationsList" class="notifications-list"></div>
-                        <button id="notificationsBtn" class="btn-notifications" title="Notificaciones">
-                            <i class="fas fa-bell"></i>
-                            <span id="notificationsCount" class="notifications-count">0</span>
-                        </button>
-                        <button id="installAppBtn" class="btn-install" title="Instalar App" style="display: none;">
-                            <i class="fas fa-download"></i>
-                        </button>
-                        <button id="themeToggleBtn" class="btn-theme" title="Cambiar Tema">
-                            <i class="fas fa-moon"></i>
-                        </button>
-                    </div>
                     <div class="user-actions">
                         <div class="menu-container">
                             <button id="menuBtn" class="btn-menu" title="Menú de opciones">
                                 <i class="fas fa-bars"></i>
                             </button>
                             <div id="menuDropdown" class="menu-dropdown">
+                                <button class="menu-item" id="notificationsBtn" title="Notificaciones">
+                                    <i class="fas fa-bell"></i>
+                                    <span>Notificaciones</span>
+                                    <span id="notificationsCount" class="notifications-count">0</span>
+                                </button>
+                                <button class="menu-item" id="installAppBtn" title="Instalar App" style="display: none;">
+                                    <i class="fas fa-download"></i>
+                                    <span>Instalar App</span>
+                                </button>
+                                <button class="menu-item" id="themeToggleBtn" title="Cambiar Tema">
+                                    <i class="fas fa-moon"></i>
+                                    <span>Cambiar Tema</span>
+                                </button>
+                                <div class="menu-divider"></div>
                                 <button class="menu-item" id="collaborationBtn" title="Gestionar colaboración">
                                     <i class="fas fa-users"></i>
                                     <span>Gestionar Colaboración</span>
@@ -113,6 +123,22 @@
                                 <button class="menu-item" id="resetCategoriesBtn" title="Restablecer categorías por defecto">
                                     <i class="fas fa-refresh"></i>
                                     <span>Restablecer Categorías</span>
+                                </button>
+                                <button class="menu-item" id="debugTransactionsBtn" title="Depurar transacciones (solo desarrollo)">
+                                    <i class="fas fa-bug"></i>
+                                    <span>Debug Transacciones</span>
+                                </button>
+                                <button class="menu-item" id="resetTransactionsBtn" title="Limpiar transacciones (solo desarrollo)">
+                                    <i class="fas fa-trash"></i>
+                                    <span>Limpiar Transacciones</span>
+                                </button>
+                                <button class="menu-item" id="clearCacheBtn" title="Limpiar cache (solo desarrollo)">
+                                    <i class="fas fa-broom"></i>
+                                    <span>Limpiar Cache</span>
+                                </button>
+                                <button class="menu-item" id="cloudSyncBtn" title="Configurar sincronización en la nube">
+                                    <i class="fas fa-cloud"></i>
+                                    <span>Sincronización en la Nube</span>
                                 </button>
                                 <div class="menu-divider"></div>
                                 <button class="menu-item logout-item" id="logoutBtn" title="Cerrar sesión">
@@ -198,11 +224,13 @@
             <section id="transacciones" class="tab-content">
                 <div class="section-header">
                     <h2>Transacciones</h2>
-                    <button class="btn-primary" id="addTransactionBtn">
-                        <i class="fas fa-plus"></i> Nueva Transacción
-                    </button>
                 </div>
-                
+                <div class="subtab-navigation">
+                    <button class="subtab-btn active" data-subtab="gastos">Gastos</button>
+                    <button class="subtab-btn" data-subtab="ingresos">Ingresos</button>
+                    <button class="btn-primary subtab-action-btn" id="addGastoBtn" style="margin-left:auto;"> <i class="fas fa-plus"></i> Nuevo Gasto</button>
+                    <button class="btn-primary subtab-action-btn" id="addIngresoBtn" style="margin-left:auto; display:none;"> <i class="fas fa-plus"></i> Nuevo Ingreso</button>
+                </div>
                 <div class="filters">
                     <select id="monthFilter">
                         <option value="">Todos los meses</option>
@@ -210,14 +238,9 @@
                     <select id="categoryFilter">
                         <option value="">Todas las categorías</option>
                     </select>
-                    <select id="typeFilter">
-                        <option value="">Todos los tipos</option>
-                        <option value="ingreso">Ingresos</option>
-                        <option value="gasto">Gastos</option>
-                    </select>
                 </div>
-                
-                <div id="transactionsContainer"></div>
+                <div id="gastosContainer" class="transactions-subtab active"></div>
+                <div id="ingresosContainer" class="transactions-subtab"></div>
             </section>
 
             <!-- Sección Reportes -->
@@ -372,12 +395,8 @@
                     <label for="transactionAmount">Monto:</label>
                     <input type="number" id="transactionAmount" step="0.01" required>
                 </div>
-                <div class="form-group">
-                    <label for="transactionType">Tipo:</label>
-                    <select id="transactionType" required>
-                        <option value="gasto">Gasto</option>
-                        <option value="ingreso">Ingreso</option>
-                    </select>
+                <div class="form-group" style="display:none;">
+                    <input type="hidden" id="transactionType" value="gasto">
                 </div>
                 <div class="form-group">
                     <label for="transactionCategory">Categoría:</label>
@@ -691,13 +710,116 @@
         </div>
     </div>
 
+    <!-- Modal de Sincronización en la Nube -->
+    <div id="cloudSyncModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('cloudSyncModal')">&times;</span>
+            <h2>☁️ Sincronización en la Nube</h2>
+            
+            <!-- Estado de conexión -->
+            <div class="connection-status">
+                <div class="status-indicator" id="connectionStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Verificando conexión...</span>
+                </div>
+                <div class="last-sync-info">
+                    <small>Última sincronización: <span id="lastSyncTime">Nunca</span></small>
+                </div>
+            </div>
+            
+            <!-- Pestañas simplificadas -->
+            <div class="tab-container">
+                <button class="tab-button active" onclick="showTab('sync')">Sincronizar</button>
+                <button class="tab-button" onclick="showTab('restore')">Restaurar</button>
+                <button class="tab-button" onclick="showTab('history')">Historial</button>
+            </div>
+            
+            <!-- Pestaña de Sincronización -->
+            <div id="sync-tab" class="tab-content active">
+                <h3>📤 Sincronizar Datos</h3>
+                <div class="sync-options">
+                    <div class="sync-option">
+                        <input type="checkbox" id="autoSync" checked>
+                        <label for="autoSync">Sincronización automática</label>
+                        <small>Los datos se sincronizan automáticamente al guardar</small>
+                    </div>
+                    <div class="sync-option">
+                        <input type="checkbox" id="syncTransactions" checked>
+                        <label for="syncTransactions">Transacciones</label>
+                    </div>
+                    <div class="sync-option">
+                        <input type="checkbox" id="syncCategories" checked>
+                        <label for="syncCategories">Categorías</label>
+                    </div>
+                    <div class="sync-option">
+                        <input type="checkbox" id="syncBudgets" checked>
+                        <label for="syncBudgets">Presupuestos</label>
+                    </div>
+                </div>
+                <div class="sync-actions">
+                    <button onclick="syncToCloud()" class="btn btn-primary">
+                        <span class="btn-icon">📤</span>
+                        Sincronizar Ahora
+                    </button>
+                    <button onclick="syncFromCloud()" class="btn btn-secondary">
+                        <span class="btn-icon">📥</span>
+                        Sincronizar desde la Nube
+                    </button>
+                </div>
+                <div class="sync-progress" id="syncProgress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span id="progressText">Sincronizando...</span>
+                </div>
+            </div>
+            
+            <!-- Pestaña de Restauración -->
+            <div id="restore-tab" class="tab-content">
+                <h3>🔄 Restaurar Datos</h3>
+                <div class="restore-warning">
+                    <p>⚠️ <strong>Advertencia:</strong> Restaurar datos sobrescribirá los datos locales actuales.</p>
+                </div>
+                <div class="restore-options">
+                    <div class="restore-option">
+                        <input type="radio" id="restoreAll" name="restoreType" value="all" checked>
+                        <label for="restoreAll">Restaurar todo</label>
+                    </div>
+                    <div class="restore-option">
+                        <input type="radio" id="restoreSelective" name="restoreType" value="selective">
+                        <label for="restoreSelective">Restauración selectiva</label>
+                    </div>
+                </div>
+                <div class="restore-actions">
+                    <button onclick="restoreFromCloud()" class="btn btn-warning">
+                        <span class="btn-icon">🔄</span>
+                        Restaurar desde la Nube
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Pestaña de Historial -->
+            <div id="history-tab" class="tab-content">
+                <h3>📋 Historial de Sincronización</h3>
+                <div class="sync-history" id="syncHistory">
+                    <div class="history-item">
+                        <span class="history-date">Cargando historial...</span>
+                    </div>
+                </div>
+                <button onclick="loadSyncHistory()" class="btn btn-secondary">Actualizar Historial</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Script principal -->
+    <script src="storage.js"></script>
+    <script src="cloud-services.js"></script>
     <script src="script.js"></script>
     
     <!-- Service Worker Registration -->
     <script>
         // Registrar Service Worker para PWA
-        if ('serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
@@ -716,11 +838,36 @@
                                 }
                             });
                         });
+                        
+                        // Función para limpiar cache manualmente
+                        window.clearAppCache = function() {
+                            if ('caches' in window) {
+                                caches.keys().then(cacheNames => {
+                                    return Promise.all(
+                                        cacheNames.map(cacheName => {
+                                            console.log('Eliminando cache:', cacheName);
+                                            return caches.delete(cacheName);
+                                        })
+                                    );
+                                }).then(() => {
+                                    console.log('Cache limpiado exitosamente');
+                                    window.location.reload();
+                                });
+                            }
+                        };
+                        
+                        // En desarrollo, limpiar cache automáticamente si hay cambios
+                        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                            // Verificar si hay una nueva versión del Service Worker
+                            registration.update();
+                        }
                     })
                     .catch(error => {
                         console.error('Error al registrar Service Worker:', error);
                     });
             });
+        } else {
+            console.log('Service Worker no disponible (protocolo file:// o sin HTTPS)');
         }
         
         // Detectar si la app está instalada
@@ -765,6 +912,17 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 JM Budget cargado correctamente');
             
+            // Verificar carga de CSS
+            const cssFiles = document.styleSheets;
+            console.log('📁 Archivos CSS cargados:', cssFiles.length);
+            for (let i = 0; i < cssFiles.length; i++) {
+                try {
+                    console.log(`CSS ${i}:`, cssFiles[i].href || 'inline styles');
+                } catch (e) {
+                    console.warn(`CSS ${i}: Error al acceder - posible CORS`);
+                }
+            }
+            
             // Verificar dependencias críticas
             if (typeof Chart === 'undefined') {
                 console.warn('⚠️ Chart.js no se cargó correctamente');
@@ -795,6 +953,17 @@
         // Manejo de errores globales
         window.addEventListener('error', function(e) {
             console.error('❌ Error en la aplicación:', e.error);
+            console.error('Error details:', {
+                message: e.message,
+                filename: e.filename,
+                lineno: e.lineno,
+                colno: e.colno
+            });
+        });
+        
+        // Manejo de errores de promesas no capturadas
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('❌ Promesa rechazada no manejada:', e.reason);
         });
         
         // Manejo de errores de recursos no cargados

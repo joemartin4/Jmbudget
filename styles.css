@@ -346,6 +346,67 @@ header h1 i {
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* ===== ANIMACIONES MOBILE MEJORADAS ===== */
+@keyframes slideInUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% {
+        transform: translate3d(0,0,0);
+    }
+    40%, 43% {
+        transform: translate3d(0, -30px, 0);
+    }
+    70% {
+        transform: translate3d(0, -15px, 0);
+    }
+    90% {
+        transform: translate3d(0, -4px, 0);
+    }
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-10px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(10px);
+    }
+}
+
 /* Contenido principal */
 .main-content {
     max-width: 1200px;
@@ -2876,4 +2937,860 @@ textarea:focus {
 
 .income-actions .delete-income:hover {
     color: #ff3b30;
+} 
+
+.subtab-navigation {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.subtab-btn {
+    background: #f4f6fa;
+    border: none;
+    border-radius: 8px 8px 0 0;
+    padding: 10px 24px;
+    font-size: 15px;
+    color: #333;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.subtab-btn.active {
+    background: #007aff;
+    color: #fff;
+    font-weight: 600;
+}
+.transactions-subtab {
+    display: none;
+}
+.transactions-subtab.active {
+    display: block;
+}
+
+/* Estilos para el modal de sincronización en la nube */
+.cloud-sync-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+    flex-wrap: wrap;
+}
+
+.cloud-tab-btn {
+    padding: 10px 15px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    min-width: 80px;
+}
+
+.cloud-tab-btn.active {
+    border-bottom-color: #007aff;
+    color: #007aff;
+    font-weight: 600;
+}
+
+.cloud-tab-content {
+    display: none;
+    margin-bottom: 20px;
+}
+
+.cloud-tab-content.active {
+    display: block;
+}
+
+.form-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 4px solid #007aff;
+}
+
+.form-info p {
+    margin: 0 0 10px 0;
+    color: #666;
+}
+
+.form-info ol {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.form-info li {
+    margin-bottom: 5px;
+    color: #555;
+}
+
+.form-info a {
+    color: #007aff;
+    text-decoration: none;
+}
+
+.form-info a:hover {
+    text-decoration: underline;
+}
+
+.cloud-sync-status {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.cloud-sync-status h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 16px;
+}
+
+#syncStatus {
+    margin-bottom: 15px;
+}
+
+#syncStatus p {
+    margin: 0;
+    color: #666;
+}
+
+.sync-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.sync-actions button {
+    flex: 1;
+    min-width: 150px;
+}
+
+/* Estados de sincronización */
+.sync-status-success {
+    color: #28a745;
+}
+
+.sync-status-error {
+    color: #dc3545;
+}
+
+.sync-status-warning {
+    color: #ffc107;
+}
+
+.sync-status-info {
+    color: #17a2b8;
+}
+
+/* Nuevos estilos para la interfaz mejorada de sincronización */
+.connection-status {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #007bff;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #6c757d;
+    margin-right: 10px;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.connected {
+    background: #28a745;
+    animation: none;
+}
+
+.status-dot.error {
+    background: #dc3545;
+    animation: none;
+}
+
+.status-text {
+    font-weight: 500;
+    color: #333;
+}
+
+.last-sync-info {
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+/* Pestañas */
+.tab-container {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.tab-button {
+    padding: 12px 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    color: #333;
+}
+
+.tab-button.active {
+    border-bottom-color: #007bff;
+    color: #007bff;
+    background: #f8f9fa;
+}
+
+.tab-button:hover {
+    background: #f8f9fa;
+    color: #007bff;
+}
+
+.tab-content {
+    display: none;
+    color: #333;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-content h3 {
+    color: #333;
+    margin-bottom: 15px;
+}
+
+/* Opciones de sincronización */
+.sync-options {
+    margin-bottom: 20px;
+}
+
+.sync-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.sync-option input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.sync-option label {
+    font-weight: 500;
+    margin-right: 10px;
+    color: #333;
+}
+
+.sync-option small {
+    color: #6c757d;
+    font-size: 0.85em;
+}
+
+/* Botones con iconos */
+.btn-icon {
+    margin-right: 8px;
+}
+
+.sync-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* Barra de progreso */
+.sync-progress {
+    margin-top: 20px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #007bff;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+#progressText {
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+/* Restauración */
+.restore-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.restore-warning p {
+    color: #856404;
+    margin: 0;
+}
+
+.restore-options {
+    margin-bottom: 20px;
+}
+
+.restore-option {
+    margin-bottom: 10px;
+}
+
+.restore-option input[type="radio"] {
+    margin-right: 8px;
+}
+
+.restore-option label {
+    color: #333;
+}
+
+/* Historial */
+.sync-history {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.history-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-date {
+    font-weight: 500;
+    color: #333;
+}
+
+.history-status {
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+
+
+/* Responsive para sincronización */
+@media (max-width: 768px) {
+    .tab-container {
+        flex-wrap: wrap;
+    }
+    
+    .tab-button {
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    .sync-actions {
+        flex-direction: column;
+    }
+    
+    .sync-actions .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
+
+/* ===== MEJORAS MOBILE AVANZADAS ===== */
+
+/* Mejoras generales para dispositivos móviles */
+@media (max-width: 768px) {
+    /* Aumentar área de toque para botones */
+    .btn-primary, .btn-secondary, .btn-icon, .tab-btn, .menu-item {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px 16px;
+        touch-action: manipulation;
+    }
+    
+    /* Mejorar navegación por pestañas */
+    .tab-navigation {
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding: 0 10px;
+    }
+    
+    .tab-navigation::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .tab-btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin: 0 5px;
+        border-radius: 25px;
+        font-size: 14px;
+        padding: 12px 20px;
+    }
+    
+    /* Mejorar cards y contenedores */
+    .summary-cards {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        padding: 0 10px;
+    }
+    
+    .summary-card {
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Mejorar modales */
+    .modal-content {
+        margin: 20px;
+        border-radius: 15px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    /* Mejorar formularios */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 16px; /* Evita zoom en iOS */
+        padding: 15px;
+        border-radius: 10px;
+    }
+    
+    /* Mejorar transacciones */
+    .transaction-item {
+        border-radius: 12px;
+        margin-bottom: 10px;
+        padding: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* Mejorar categorías */
+    .category-card {
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+    
+    /* Mejorar menú dropdown */
+    .menu-dropdown {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 350px;
+        max-height: 80vh;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    /* Mejorar notificaciones */
+    .notifications-list {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 400px;
+        max-height: 80vh;
+        border-radius: 15px;
+    }
+    
+    /* Mejorar gráficos */
+    .chart-card {
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .chart-card canvas {
+        max-height: 300px;
+    }
+    
+    /* Mejorar filtros */
+    .filters {
+        flex-direction: column;
+        gap: 10px;
+        padding: 15px;
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .filters select {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+    }
+    
+    /* Mejorar controles de presupuesto */
+    .budget-controls {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .budget-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    
+    .budget-actions .btn {
+        width: 100%;
+        padding: 12px;
+        font-size: 14px;
+    }
+    
+    /* Mejorar header */
+    .header-content {
+        padding: 10px 15px;
+    }
+    
+    .app-title h1 {
+        font-size: 20px;
+    }
+    
+    /* Mejorar login */
+    .login-card {
+        margin: 20px;
+        border-radius: 20px;
+        padding: 30px 20px;
+    }
+    
+    .login-form input {
+        font-size: 16px;
+        padding: 15px;
+        border-radius: 10px;
+    }
+    
+    .login-actions {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .login-actions button {
+        width: 100%;
+        padding: 15px;
+        font-size: 16px;
+    }
+}
+
+/* Mejoras específicas para pantallas muy pequeñas */
+@media (max-width: 480px) {
+    .summary-cards {
+        padding: 0 5px;
+    }
+    
+    .summary-card {
+        padding: 15px;
+    }
+    
+    .summary-card h3 {
+        font-size: 16px;
+    }
+    
+    .amount {
+        font-size: 24px;
+    }
+    
+    .modal-content {
+        margin: 10px;
+        padding: 20px;
+    }
+    
+    .budget-actions {
+        grid-template-columns: 1fr;
+    }
+    
+    .transaction-item {
+        padding: 12px;
+    }
+    
+    .category-card {
+        padding: 12px;
+    }
+    
+    .tab-btn {
+        font-size: 13px;
+        padding: 10px 15px;
+    }
+    
+    .header-content {
+        padding: 8px 10px;
+    }
+    
+    .app-title h1 {
+        font-size: 18px;
+    }
+}
+
+/* Mejoras para tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .summary-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .budget-actions {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .modal-content {
+        margin: 40px;
+        max-width: 600px;
+    }
+}
+
+/* Mejoras de accesibilidad táctil */
+@media (hover: none) and (pointer: coarse) {
+    /* Aumentar áreas de toque */
+    .btn-icon {
+        min-width: 48px;
+        min-height: 48px;
+    }
+    
+    /* Mejorar feedback táctil */
+    .btn-primary:active,
+    .btn-secondary:active,
+    .tab-btn:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
+    }
+    
+    /* Mejorar scroll */
+    .tab-navigation,
+    .notifications-list,
+    .modal-content {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* ===== GESTOS TÁCTILES MEJORADOS ===== */
+@media (hover: none) and (pointer: coarse) {
+    /* Mejorar feedback visual para toques */
+    .summary-card:active,
+    .category-card:active,
+    .transaction-item:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+    }
+    
+    /* Mejorar botones de acción */
+    .btn-icon:active {
+        transform: scale(0.9);
+        background: rgba(0, 122, 255, 0.1);
+    }
+    
+    /* Mejorar navegación por pestañas */
+    .tab-btn:active {
+        background: rgba(0, 122, 255, 0.1);
+        transform: scale(0.95);
+    }
+    
+    /* Mejorar menú items */
+    .menu-item:active {
+        background: rgba(0, 122, 255, 0.1);
+        transform: scale(0.98);
+    }
+    
+    /* Mejorar formularios */
+    .form-group input:focus,
+    .form-group select:focus {
+        transform: scale(1.02);
+        transition: transform 0.2s ease;
+    }
+    
+    /* Mejorar modales */
+    .modal-content {
+        animation: scaleIn 0.3s ease-out;
+    }
+    
+    /* Mejorar notificaciones */
+    .visual-notification.show {
+        animation: slideInUp 0.4s ease-out;
+    }
+    
+    /* Mejorar cards con animación de entrada */
+    .summary-card,
+    .category-card,
+    .transaction-item {
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    /* Mejorar feedback de error */
+    .form-group input:invalid:focus {
+        animation: shake 0.5s ease-in-out;
+    }
+    
+    /* Mejorar feedback de éxito */
+    .btn-primary:active {
+        animation: bounce 0.6s ease-in-out;
+    }
+}
+
+/* ===== MEJORAS DE PERFORMANCE MOBILE ===== */
+@media (max-width: 768px) {
+    /* Optimizar animaciones para móviles */
+    * {
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+    }
+    
+    /* Mejorar scroll performance */
+    .main-content,
+    .tab-content,
+    .modal-content {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+    
+    /* Optimizar imágenes y gráficos */
+    .chart-card canvas {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+    
+    /* Mejorar carga de fuentes */
+    body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}
+
+/* ===== SKELETON LOADING ===== */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-card {
+    height: 120px;
+    margin-bottom: 15px;
+}
+
+.skeleton-text {
+    height: 16px;
+    margin-bottom: 8px;
+}
+
+.skeleton-text.short {
+    width: 60%;
+}
+
+.skeleton-text.medium {
+    width: 80%;
+}
+
+.skeleton-amount {
+    height: 24px;
+    width: 40%;
+    margin-top: 10px;
+}
+
+.skeleton-button {
+    height: 44px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+/* Skeleton para móviles */
+@media (max-width: 768px) {
+    .skeleton-card {
+        height: 100px;
+    }
+    
+    .skeleton-text {
+        height: 14px;
+    }
+    
+    .skeleton-amount {
+        height: 20px;
+    }
+    
+    .skeleton-button {
+        height: 48px;
+    }
+}
+
+/* ===== MEJORAS DE ACCESIBILIDAD MOBILE ===== */
+@media (max-width: 768px) {
+    /* Mejorar contraste para pantallas pequeñas */
+    .summary-card,
+    .category-card,
+    .transaction-item {
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    /* Mejorar legibilidad de texto */
+    .category-name,
+    .transaction-description h4,
+    .summary-card h3 {
+        font-weight: 600;
+        line-height: 1.4;
+    }
+    
+    /* Mejorar contraste de botones */
+    .btn-primary {
+        box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+    }
+    
+    .btn-secondary {
+        border: 2px solid #007aff;
+        color: #007aff;
+    }
+    
+    /* Mejorar indicadores visuales */
+    .status-dot {
+        box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+    }
+    
+    /* Mejorar feedback de estado */
+    .category-card.alert {
+        border-left: 4px solid #ffc107;
+    }
+    
+    .category-card.critical {
+        border-left: 4px solid #dc3545;
+    }
 } 

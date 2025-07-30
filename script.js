@@ -915,89 +915,65 @@ const defaultCategoryGroups = {
         'Especias y condimentos',
         'Productos de limpieza'
     ],
-    'Vivienda y Servicios': [
-        'Renta o hipoteca',
-        'Luz eléctrica',
-        'Agua potable',
-        'Gas natural',
-        'Internet y telefonía',
-        'TV por cable/streaming',
-        'Mantenimiento del hogar',
-        'Reparaciones',
-        'Seguro de hogar',
-        'Servicios de limpieza',
-        'Jardinería',
-        'Alarmas y seguridad'
-    ],
     'Transporte': [
         'Gasolina',
         'Transporte público',
-        'Uber/Didi/Taxi',
+        'Uber/Taxi',
         'Mantenimiento del auto',
         'Seguro del auto',
         'Estacionamiento',
         'Peajes',
-        'Licencias y multas',
-        'Cambio de aceite',
-        'Llantas y batería',
-        'Lavado de auto',
-        'Transporte escolar'
+        'Bicicleta',
+        'Reparaciones',
+        'Licencias y permisos'
     ],
-    'Salud y Bienestar': [
-        'Seguro médico',
+    'Vivienda': [
+        'Renta',
+        'Hipoteca',
+        'Servicios básicos',
+        'Mantenimiento',
+        'Seguro de hogar',
+        'Muebles y decoración',
+        'Jardinería',
+        'Limpieza',
+        'Reparaciones menores',
+        'Mejoras del hogar'
+    ],
+    'Salud': [
         'Consultas médicas',
         'Medicamentos',
+        'Seguro médico',
         'Dentista',
-        'Óptica y lentes',
+        'Óptica',
         'Gimnasio',
-        'Vitaminas y suplementos',
-        'Terapias y masajes',
-        'Exámenes de laboratorio',
+        'Vitaminas',
         'Emergencias médicas',
-        'Seguro de vida',
-        'Cuidado personal'
+        'Terapias',
+        'Exámenes médicos'
     ],
     'Educación': [
         'Colegiatura',
-        'Libros y útiles',
-        'Cursos extra',
-        'Tecnología educativa',
-        'Actividades deportivas',
-        'Música y arte',
+        'Libros y materiales',
+        'Cursos y talleres',
         'Transporte escolar',
         'Uniformes',
-        'Excursiones',
-        'Material de oficina',
+        'Actividades extracurriculares',
+        'Tecnología educativa',
         'Tutorías',
-        'Inscripciones'
+        'Eventos escolares',
+        'Becas y ayudas'
     ],
-    'Ropa y Calzado': [
-        'Ropa para adultos',
-        'Ropa para niños',
-        'Zapatos y tenis',
-        'Accesorios',
-        'Ropa deportiva',
-        'Ropa de trabajo',
-        'Ropa de cama',
-        'Toallas',
-        'Carteras y bolsos',
-        'Joyería y relojes',
-        'Ropa interior',
-        'Trajes formales'
-    ],
-    'Entretenimiento y Ocio': [
+    'Entretenimiento': [
         'Cine y teatro',
-        'Streaming (Netflix, etc.)',
+        'Conciertos',
+        'Deportes',
         'Videojuegos',
         'Libros y revistas',
-        'Conciertos y eventos',
-        'Deportes y hobbies',
-        'Juguetes para niños',
-        'Parques y atracciones',
-        'Juegos de mesa',
-        'Música y podcasts',
-        'Arte y manualidades',
-        'Vacaciones y viajes'
+        'Música y streaming',
+        'Hobbies',
+        'Viajes y vacaciones',
+        'Restaurantes',
+        'Actividades sociales'
     ],
     'Tecnología y Comunicación': [
         'Celulares y tablets',
@@ -1071,6 +1047,60 @@ const defaultCategoryGroups = {
     ]
 };
 
+// Categorías específicas para ingresos
+const defaultIncomeCategories = {
+    'Ingresos Laborales': [
+        'Salario fijo',
+        'Comisiones',
+        'Bonos',
+        'Horas extra',
+        'Propinas',
+        'Freelance',
+        'Consultoría',
+        'Trabajo temporal'
+    ],
+    'Ingresos por Inversiones': [
+        'Intereses bancarios',
+        'Dividendos',
+        'Ganancias de capital',
+        'Rendimientos de fondos',
+        'Criptomonedas',
+        'Bienes raíces',
+        'Préstamos personales',
+        'Inversiones en negocios'
+    ],
+    'Ingresos Pasivos': [
+        'Alquiler de propiedades',
+        'Royalties',
+        'Licencias',
+        'Afiliados',
+        'Publicidad',
+        'Venta de productos digitales',
+        'Membresías',
+        'Suscripciones'
+    ],
+    'Ingresos Extraordinarios': [
+        'Herencia',
+        'Premios y lotería',
+        'Reembolsos',
+        'Compensaciones',
+        'Venta de bienes',
+        'Donaciones recibidas',
+        'Seguros',
+        'Indemnizaciones'
+    ],
+    'Otros Ingresos': [
+        'Ventas ocasionales',
+        'Trabajos de temporada',
+        'Ingresos por hobbies',
+        'Ayudas gubernamentales',
+        'Becas',
+        'Subvenciones',
+        'Ingresos por eventos',
+        'Otros ingresos varios'
+    ]
+};
+
 // Elementos del DOM
 const tabButtons = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -1084,8 +1114,37 @@ const transactionForm = document.getElementById('transactionForm');
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM cargado, inicializando aplicación...');
-    loadDataSafely();
-    initializeLogin();
+    
+    try {
+        loadDataSafely();
+        initializeLogin();
+        
+        // En modo desarrollo, forzar actualización del Service Worker
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    registrations.forEach(registration => {
+                        registration.update();
+                    });
+                });
+            }
+            
+            // Atajo de teclado para limpiar cache (Ctrl+Shift+R o Cmd+Shift+R)
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+                    e.preventDefault();
+                    console.log('Limpiando cache con atajo de teclado...');
+                    if (window.clearAppCache) {
+                        window.clearAppCache();
+                    } else {
+                        window.location.reload();
+                    }
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error durante la inicialización:', error);
+    }
     
     // Event listeners para login
     const loginBtn = document.getElementById('loginBtn');
@@ -1136,6 +1195,42 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    const subtabBtns = document.querySelectorAll('.subtab-btn');
+    const gastosContainer = document.getElementById('gastosContainer');
+    const ingresosContainer = document.getElementById('ingresosContainer');
+    const addGastoBtn = document.getElementById('addGastoBtn');
+    const addIngresoBtn = document.getElementById('addIngresoBtn');
+
+    subtabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            subtabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (btn.dataset.subtab === 'gastos') {
+                gastosContainer.classList.add('active');
+                ingresosContainer.classList.remove('active');
+                addGastoBtn.style.display = '';
+                addIngresoBtn.style.display = 'none';
+            } else {
+                gastosContainer.classList.remove('active');
+                ingresosContainer.classList.add('active');
+                addGastoBtn.style.display = 'none';
+                addIngresoBtn.style.display = '';
+            }
+        });
+    });
+
+    // Mostrar por defecto el botón de gasto
+    addGastoBtn.style.display = '';
+    addIngresoBtn.style.display = 'none';
+
+    // Lógica para crear nueva transacción según tipo
+    addGastoBtn.addEventListener('click', function() {
+        openTransactionModal('gasto');
+    });
+    addIngresoBtn.addEventListener('click', function() {
+        openTransactionModal('ingreso');
+    });
 });
 
 function handleLogin() {
@@ -1187,6 +1282,24 @@ function initializeApp() {
     
     console.log('Inicializando aplicación para usuario:', currentUser);
     
+    // Verificar elementos críticos del DOM
+    const criticalElements = [
+        'addCategoryBtn',
+        'categoryForm',
+        'transactionForm',
+        'addGastoBtn',
+        'addIngresoBtn',
+        'gastosContainer',
+        'ingresosContainer'
+    ];
+    
+    const missingElements = criticalElements.filter(id => !document.getElementById(id));
+    if (missingElements.length > 0) {
+        console.warn('⚠️ Elementos faltantes del DOM:', missingElements);
+    } else {
+        console.log('✅ Todos los elementos críticos del DOM están presentes');
+    }
+    
     // Inicializar sistemas
     initializeCollaboration();
     initializeHistory();
@@ -1206,6 +1319,15 @@ function initializeApp() {
     
     // Inicializar categorías por defecto si no existen
     initializeDefaultCategories();
+    
+    // Asegurar que las categorías de ingresos estén disponibles
+    if (Object.keys(categoryGroups).length === 0) {
+        console.log('Inicializando categorías de ingresos...');
+        Object.keys(defaultIncomeCategories).forEach(categoryName => {
+            categoryGroups[categoryName] = [...defaultIncomeCategories[categoryName]];
+        });
+        saveCategoryGroups();
+    }
     
     // Establecer fecha actual en el formulario de transacciones
     document.getElementById('transactionDate').value = new Date().toISOString().split('T')[0];
@@ -1227,11 +1349,15 @@ function initializeApp() {
 }
 
 function setupEventListeners() {
+    console.log('🔧 Configurando event listeners...');
+    console.log('🔍 Verificando elementos del DOM...');
+    
     // Declarar todas las variables al inicio
     const addCategoryBtn = document.getElementById('addCategoryBtn');
-    const addTransactionBtn = document.getElementById('addTransactionBtn');
     const categoryForm = document.getElementById('categoryForm');
     const transactionForm = document.getElementById('transactionForm');
+    const addGastoBtn = document.getElementById('addGastoBtn');
+    const addIngresoBtn = document.getElementById('addIngresoBtn');
     
     // Navegación de pestañas
     if (tabButtons && tabButtons.length > 0) {
@@ -1251,10 +1377,19 @@ function setupEventListeners() {
         console.error('No se encontró el elemento addCategoryBtn');
     }
     
-    if (addTransactionBtn) {
-        addTransactionBtn.addEventListener('click', () => openModal('transactionModal'));
+    // El botón addTransactionBtn no existe en el HTML, se usan addGastoBtn y addIngresoBtn en su lugar
+    
+    // Botones de nuevo gasto e ingreso
+    if (addGastoBtn) {
+        addGastoBtn.addEventListener('click', () => openTransactionModal('gasto'));
     } else {
-        console.error('No se encontró el elemento addTransactionBtn');
+        console.error('No se encontró el elemento addGastoBtn');
+    }
+    
+    if (addIngresoBtn) {
+        addIngresoBtn.addEventListener('click', () => openTransactionModal('ingreso'));
+    } else {
+        console.error('No se encontró el elemento addIngresoBtn');
     }
     
     const selectCategoryBtn = document.getElementById('selectCategoryBtn');
@@ -1354,38 +1489,13 @@ function setupEventListeners() {
     // Filtros de transacciones
     const monthFilter = document.getElementById('monthFilter');
     const categoryFilter = document.getElementById('categoryFilter');
-    const typeFilter = document.getElementById('typeFilter');
-    const reportMonth = document.getElementById('reportMonth');
-    const budgetMonth = document.getElementById('budgetMonth');
     
     if (monthFilter) {
         monthFilter.addEventListener('change', filterTransactions);
-    } else {
-        console.error('No se encontró el elemento monthFilter');
     }
     
     if (categoryFilter) {
         categoryFilter.addEventListener('change', filterTransactions);
-    } else {
-        console.error('No se encontró el elemento categoryFilter');
-    }
-    
-    if (typeFilter) {
-        typeFilter.addEventListener('change', filterTransactions);
-    } else {
-        console.error('No se encontró el elemento typeFilter');
-    }
-    
-    if (reportMonth) {
-        reportMonth.addEventListener('change', updateReports);
-    } else {
-        console.error('No se encontró el elemento reportMonth');
-    }
-    
-    if (budgetMonth) {
-        budgetMonth.addEventListener('change', updateBudgetForMonth);
-    } else {
-        console.error('No se encontró el elemento budgetMonth');
     }
     
     // Configurar pestañas de colaboración
@@ -1432,6 +1542,59 @@ function setupEventListeners() {
         resetCategoriesBtn.addEventListener('click', resetToDefaultCategories);
     }
     
+    // Botones de depuración (solo para desarrollo)
+    const debugTransactionsBtn = document.getElementById('debugTransactionsBtn');
+    const resetTransactionsBtn = document.getElementById('resetTransactionsBtn');
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    
+    if (debugTransactionsBtn) {
+        debugTransactionsBtn.addEventListener('click', debugTransactions);
+    }
+    
+    if (resetTransactionsBtn) {
+        resetTransactionsBtn.addEventListener('click', resetTransactionData);
+    }
+    
+    if (clearCacheBtn) {
+        clearCacheBtn.addEventListener('click', () => {
+            if (window.clearAppCache) {
+                window.clearAppCache();
+            } else {
+                console.log('Función clearAppCache no disponible');
+                // Fallback: recargar la página
+                window.location.reload();
+            }
+        });
+    }
+    
+    // Botón de sincronización en la nube
+    const cloudSyncBtn = document.getElementById('cloudSyncBtn');
+    console.log('🔍 Buscando botón de sincronización en la nube:', cloudSyncBtn);
+    if (cloudSyncBtn) {
+        console.log('✅ Botón de sincronización encontrado, agregando event listener');
+        cloudSyncBtn.addEventListener('click', () => {
+            console.log('🔄 Abriendo modal de sincronización en la nube');
+            openModal('cloudSyncModal');
+            setupCloudSyncTabs();
+            updateSyncStatus();
+        });
+    } else {
+        console.error('❌ Botón de sincronización en la nube NO encontrado');
+        // Verificar si el elemento existe en el DOM
+        setTimeout(() => {
+            const retryCloudSyncBtn = document.getElementById('cloudSyncBtn');
+            console.log('🔄 Reintentando buscar botón de sincronización:', retryCloudSyncBtn);
+            if (retryCloudSyncBtn) {
+                console.log('✅ Botón encontrado en segundo intento');
+                retryCloudSyncBtn.addEventListener('click', () => {
+                    openModal('cloudSyncModal');
+                    setupCloudSyncTabs();
+                    updateSyncStatus();
+                });
+            }
+        }, 1000);
+    }
+    
     // Botón de backup
     const backupBtn = document.getElementById('backupBtn');
     if (backupBtn) {
@@ -1442,13 +1605,24 @@ function setupEventListeners() {
     const menuBtn = document.getElementById('menuBtn');
     const menuDropdown = document.getElementById('menuDropdown');
     
+    console.log('🔍 Buscando elementos del menú:');
+    console.log('Menu button:', menuBtn);
+    console.log('Menu dropdown:', menuDropdown);
+    
     if (menuBtn && menuDropdown) {
+        console.log('✅ Elementos del menú encontrados, configurando event listener');
         menuBtn.addEventListener('click', (e) => {
+            console.log('🔄 Clic en botón de menú');
             e.stopPropagation();
             menuDropdown.classList.toggle('show');
+            console.log('🔄 Clase show toggleada:', menuDropdown.classList.contains('show'));
         });
-        
-        // Cerrar menú al hacer clic fuera
+    } else {
+        console.error('❌ Elementos del menú NO encontrados');
+    }
+    
+    // Cerrar menú al hacer clic fuera (solo si los elementos existen)
+    if (menuBtn && menuDropdown) {
         document.addEventListener('click', (e) => {
             if (!menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
                 menuDropdown.classList.remove('show');
@@ -1753,16 +1927,27 @@ function handleTransactionSubmit(e) {
     
     saveData();
     clearCaches();
-    updateUI();
-    closeModal('transactionModal');
-    transactionForm.reset();
     
-    // Mostrar confirmación
+    // Mostrar confirmación visual
     showVisualNotification(
         editId ? 'Transacción actualizada' : 'Transacción agregada',
         `La transacción "${description}" se ha ${editId ? 'actualizado' : 'agregado'} correctamente.`,
         'budget'
     );
+    
+    // Cerrar modal y limpiar formulario
+    closeModal('transactionModal');
+    transactionForm.reset();
+    
+    // Actualizar UI completa
+    updateUI(true);
+    
+    // Forzar actualización específica de transacciones
+    setTimeout(() => {
+        console.log('Forzando actualización de transacciones...');
+        updateGastosIngresosDisplay();
+        filterTransactions(); // Aplicar filtros actuales
+    }, 200);
 }
 
 function updateCategoryDropdowns() {
@@ -1866,44 +2051,77 @@ function updateSelectSubcategoryDropdown() {
 
 function updateCategorySelect() {
     console.log('Actualizando dropdown de categorías para transacciones...');
-    console.log('Categorías disponibles:', Object.keys(categoryGroups));
     
-    const select = document.getElementById('transactionCategory');
-    if (!select) {
+    const categorySelect = document.getElementById('transactionCategory');
+    if (!categorySelect) {
         console.error('No se encontró el elemento transactionCategory');
         return;
     }
     
-    select.innerHTML = '<option value="">Seleccionar categoría</option>';
+    // Limpiar opciones existentes
+    categorySelect.innerHTML = '<option value="">Selecciona una categoría</option>';
     
-    // Mostrar todas las categorías disponibles (no solo las del presupuesto)
-    let totalOptions = 0;
-    Object.keys(categoryGroups).forEach(categoryName => {
-        categoryGroups[categoryName].forEach(subcategory => {
+    // Obtener el tipo de transacción actual
+    const transactionType = document.getElementById('transactionType').value;
+    
+    // Mostrar categorías según el tipo
+    if (transactionType === 'ingreso') {
+        // Mostrar categorías de ingresos
+        Object.keys(defaultIncomeCategories).forEach(categoryName => {
             const option = document.createElement('option');
-            option.value = `${categoryName} - ${subcategory}`;
-            option.textContent = `${categoryName} - ${subcategory}`;
-            select.appendChild(option);
-            totalOptions++;
+            option.value = categoryName;
+            option.textContent = categoryName;
+            categorySelect.appendChild(option);
         });
-    });
+        console.log(`Categorías de ingresos cargadas: ${categorySelect.options.length - 1}`);
+    } else {
+        // Mostrar categorías de gastos (excluyendo las de ingresos)
+        Object.keys(categoryGroups).forEach(categoryName => {
+            // Excluir categorías de ingresos del dropdown de gastos
+            if (!defaultIncomeCategories[categoryName]) {
+                const option = document.createElement('option');
+                option.value = categoryName;
+                option.textContent = categoryName;
+                categorySelect.appendChild(option);
+            }
+        });
+        console.log(`Categorías de gastos cargadas: ${categorySelect.options.length - 1}`);
+    }
     
-    console.log(`Dropdown de transacciones actualizado con ${totalOptions} opciones`);
+    console.log(`Categorías cargadas para ${transactionType}:`, categorySelect.options.length - 1);
 }
 
 function updateCategoryFilters() {
+    console.log('Actualizando filtros de categorías...');
+    
     const categoryFilter = document.getElementById('categoryFilter');
+    if (!categoryFilter) {
+        console.error('No se encontró el elemento categoryFilter');
+        return;
+    }
+    
     categoryFilter.innerHTML = '<option value="">Todas las categorías</option>';
     
     // Mostrar todas las categorías disponibles para el filtro
     Object.keys(categoryGroups).forEach(categoryName => {
-        categoryGroups[categoryName].forEach(subcategory => {
-            const option = document.createElement('option');
-            option.value = `${categoryName} - ${subcategory}`;
-            option.textContent = `${categoryName} - ${subcategory}`;
-            categoryFilter.appendChild(option);
-        });
+        // Para categorías principales, mostrar solo el nombre
+        const option = document.createElement('option');
+        option.value = categoryName;
+        option.textContent = categoryName;
+        categoryFilter.appendChild(option);
+        
+        // Para subcategorías, mostrar con formato "Categoría - Subcategoría"
+        if (categoryGroups[categoryName] && Array.isArray(categoryGroups[categoryName])) {
+            categoryGroups[categoryName].forEach(subcategory => {
+                const subOption = document.createElement('option');
+                subOption.value = `${categoryName} - ${subcategory}`;
+                subOption.textContent = `${categoryName} - ${subcategory}`;
+                categoryFilter.appendChild(subOption);
+            });
+        }
     });
+    
+    console.log(`Filtros de categorías actualizados: ${categoryFilter.options.length - 1} opciones`);
 }
 
 function getDefaultColor(categoryName) {
@@ -2035,7 +2253,7 @@ function updateUI(forceUpdate = false) {
     
     updateBudgetSummary();
     updateIncomesDisplay();
-    updateTransactionsDisplay();
+    updateGastosIngresosDisplay();
     updateReports();
     
     // Actualizar dropdowns solo si es necesario
@@ -2114,14 +2332,16 @@ function updateBudgetSummary() {
     
     // Actualizar el título para mostrar el mes seleccionado
     const budgetTitle = document.querySelector('#presupuesto .section-header h2');
-    if (selectedMonth) {
-        const monthName = new Date(selectedMonth + '-01').toLocaleDateString('es-ES', { 
-            year: 'numeric', 
-            month: 'long' 
-        });
-        budgetTitle.textContent = `Presupuesto - ${monthName}`;
-    } else {
-        budgetTitle.textContent = 'Presupuesto Mensual';
+    if (budgetTitle) {
+        if (selectedMonth) {
+            const monthName = new Date(selectedMonth + '-01').toLocaleDateString('es-ES', { 
+                year: 'numeric', 
+                month: 'long' 
+            });
+            budgetTitle.textContent = `Presupuesto - ${monthName}`;
+        } else {
+            budgetTitle.textContent = 'Presupuesto Mensual';
+        }
     }
     
     // ALERTA VISUAL EN TARJETA DE GASTADO
@@ -2356,78 +2576,96 @@ function updateCategoriesDisplay(categoriesToShow = null) {
     });
 }
 
-function updateTransactionsDisplay(transactionsToShow = null) {
-    const container = document.getElementById('transactionsContainer');
-    container.innerHTML = '';
-
-    // Usar transacciones proporcionadas o todas las transacciones
-    const transactionsToDisplay = transactionsToShow || transactions;
-
-    if (transactionsToDisplay.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No hay transacciones registradas.</p>';
+function updateGastosIngresosDisplay(transactionsToShow = null) {
+    console.log('Actualizando visualización de transacciones...');
+    console.log('Transacciones totales:', transactions.length);
+    
+    const gastosContainer = document.getElementById('gastosContainer');
+    const ingresosContainer = document.getElementById('ingresosContainer');
+    
+    if (!gastosContainer || !ingresosContainer) {
+        console.error('No se encontraron los contenedores de transacciones');
         return;
     }
+    
+    // Limpiar contenedores
+    gastosContainer.innerHTML = '';
+    ingresosContainer.innerHTML = '';
+    
+    const transactionsToDisplay = transactionsToShow || transactions;
+    console.log('Transacciones a mostrar:', transactionsToDisplay.length);
+    
+    // Filtrar transacciones por tipo
+    const gastos = transactionsToDisplay.filter(t => t.type === 'gasto');
+    const ingresos = transactionsToDisplay.filter(t => t.type === 'ingreso');
+    
+    console.log('Gastos encontrados:', gastos.length);
+    console.log('Ingresos encontrados:', ingresos.length);
+    
+    // Mostrar gastos
+    if (gastos.length === 0) {
+        gastosContainer.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No hay gastos registrados.</p>';
+    } else {
+        gastos.forEach(transaction => {
+            const transactionItem = createTransactionItem(transaction);
+            gastosContainer.appendChild(transactionItem);
+        });
+    }
+    
+    // Mostrar ingresos
+    if (ingresos.length === 0) {
+        ingresosContainer.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No hay ingresos registrados.</p>';
+    } else {
+        ingresos.forEach(transaction => {
+            const transactionItem = createTransactionItem(transaction);
+            ingresosContainer.appendChild(transactionItem);
+        });
+    }
+    
+    console.log('Visualización de transacciones actualizada');
+}
 
-    transactionsToDisplay.forEach(transaction => {
-        const transactionItem = document.createElement('div');
-        transactionItem.className = 'transaction-item';
-        
-        const date = new Date(transaction.date).toLocaleDateString('es-ES');
-        const amountClass = transaction.type === 'ingreso' ? 'income' : 'expense';
-        const amountPrefix = transaction.type === 'ingreso' ? '+' : '-';
-        
-        // Información del autor si existe
-        const authorInfo = transaction.lastModifiedBy ? 
-            `<div class="transaction-author">por ${transaction.lastModifiedBy}</div>` : '';
-        
-        // Comentario si existe
-        const commentHtml = transaction.comment ? 
-            `<div class="transaction-comment">
-                <div class="transaction-comment-author">${transaction.lastModifiedBy || 'Usuario'}</div>
-                ${transaction.comment}
-            </div>` : '';
-        
-        transactionItem.innerHTML = `
-            <div class="transaction-description">
-                <h4>${transaction.description}</h4>
-                <div class="transaction-details">
-                    ${transaction.category} • ${date}
-                </div>
-                ${authorInfo}
-                ${commentHtml}
+function createTransactionItem(transaction) {
+    const transactionItem = document.createElement('div');
+    transactionItem.className = 'transaction-item';
+    const date = new Date(transaction.date).toLocaleDateString('es-ES');
+    const amountClass = transaction.type === 'ingreso' ? 'income' : 'expense';
+    const amountPrefix = transaction.type === 'ingreso' ? '+' : '-';
+    const authorInfo = transaction.lastModifiedBy ? `<div class="transaction-author">por ${transaction.lastModifiedBy}</div>` : '';
+    const commentHtml = transaction.comment ? `<div class="transaction-comment"><div class="transaction-comment-author">${transaction.lastModifiedBy || 'Usuario'}</div>${transaction.comment}</div>` : '';
+    transactionItem.innerHTML = `
+        <div class="transaction-description">
+            <h4>${transaction.description}</h4>
+            <div class="transaction-details">
+                ${transaction.category} • ${date}
             </div>
-            <div class="transaction-buttons">
-                <div class="transaction-amount ${amountClass}">
-                    ${amountPrefix}${formatCurrency(transaction.amount)}
-                </div>
-                <div class="transaction-actions">
-                    <button class="btn-icon edit-transaction" data-id="${transaction.id}" title="Editar transacción">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-icon delete-transaction" data-id="${transaction.id}" title="Eliminar transacción">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
+            ${authorInfo}
+            ${commentHtml}
+        </div>
+        <div class="transaction-buttons">
+            <div class="transaction-amount ${amountClass}">
+                ${amountPrefix}${formatCurrency(transaction.amount)}
             </div>
-        `;
-        
-        container.appendChild(transactionItem);
+            <div class="transaction-actions">
+                <button class="btn-icon edit-transaction" data-id="${transaction.id}" title="Editar transacción">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon delete-transaction" data-id="${transaction.id}" title="Eliminar transacción">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    // Event listeners para editar/eliminar
+    transactionItem.querySelector('.edit-transaction').addEventListener('click', (e) => {
+        const transactionId = parseInt(e.currentTarget.dataset.id);
+        editTransaction(transactionId);
     });
-    
-    // Agregar event listeners para los botones de editar y eliminar transacciones
-    document.querySelectorAll('.edit-transaction').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const transactionId = parseInt(e.currentTarget.dataset.id);
-            editTransaction(transactionId);
-        });
+    transactionItem.querySelector('.delete-transaction').addEventListener('click', (e) => {
+        const transactionId = parseInt(e.currentTarget.dataset.id);
+        deleteTransaction(transactionId);
     });
-    
-    document.querySelectorAll('.delete-transaction').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const transactionId = parseInt(e.currentTarget.dataset.id);
-            deleteTransaction(transactionId);
-        });
-    });
+    return transactionItem;
 }
 
 // Cache para transacciones filtradas
@@ -2435,37 +2673,41 @@ let filteredTransactionsCache = null;
 let lastFilterState = '';
 
 function filterTransactions() {
+    console.log('Aplicando filtros de transacciones...');
+    
     const monthFilter = document.getElementById('monthFilter').value;
     const categoryFilter = document.getElementById('categoryFilter').value;
-    const typeFilter = document.getElementById('typeFilter').value;
     
-    const currentFilterState = `${monthFilter}-${categoryFilter}-${typeFilter}`;
+    const currentFilterState = `${monthFilter}-${categoryFilter}`;
     
-    // Usar cache si los filtros no han cambiado
     if (currentFilterState === lastFilterState && filteredTransactionsCache) {
+        console.log('Usando cache de filtros');
         return;
     }
     
     lastFilterState = currentFilterState;
     
-    // Aplicar filtros
-    let filtered = transactions;
+    let filtered = [...transactions]; // Crear copia para no modificar el original
+    
+    console.log('Transacciones antes de filtrar:', filtered.length);
     
     if (monthFilter) {
         filtered = filtered.filter(t => t.date.startsWith(monthFilter));
+        console.log('Transacciones después de filtro de mes:', filtered.length);
     }
+    
     if (categoryFilter) {
         filtered = filtered.filter(t => t.category === categoryFilter);
-    }
-    if (typeFilter) {
-        filtered = filtered.filter(t => t.type === typeFilter);
+        console.log('Transacciones después de filtro de categoría:', filtered.length);
     }
     
     // Ordenar por fecha (más reciente primero)
     filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
     
     filteredTransactionsCache = filtered;
-    updateTransactionsDisplay(filtered);
+    console.log('Transacciones filtradas finales:', filtered.length);
+    
+    updateGastosIngresosDisplay(filtered);
 }
 
 function updateReports() {
@@ -2893,6 +3135,22 @@ function initializeDefaultCategories() {
         }
     });
     
+    // Agregar categorías de ingresos al sistema de categorías
+    Object.keys(defaultIncomeCategories).forEach(categoryName => {
+        if (!categoryGroups[categoryName]) {
+            categoryGroups[categoryName] = [...defaultIncomeCategories[categoryName]];
+            console.log(`Agregada categoría de ingreso: ${categoryName} con ${defaultIncomeCategories[categoryName].length} subcategorías`);
+        } else {
+            // Agregar subcategorías que no existan
+            defaultIncomeCategories[categoryName].forEach(subcategory => {
+                if (!categoryGroups[categoryName].includes(subcategory)) {
+                    categoryGroups[categoryName].push(subcategory);
+                    console.log(`Agregada subcategoría de ingreso: ${subcategory} a ${categoryName}`);
+                }
+            });
+        }
+    });
+    
     saveCategoryGroups();
     console.log('Categorías después de inicializar:', Object.keys(categoryGroups));
     
@@ -3059,25 +3317,16 @@ function deleteCategory(categoryId) {
 function editTransaction(transactionId) {
     const transaction = transactions.find(t => t.id === transactionId);
     if (!transaction) return;
-    
-    // Llenar el formulario con los datos de la transacción
     document.getElementById('transactionDescription').value = transaction.description;
     document.getElementById('transactionAmount').value = transaction.amount;
     document.getElementById('transactionType').value = transaction.type;
     document.getElementById('transactionCategory').value = transaction.category;
     document.getElementById('transactionDate').value = transaction.date;
     document.getElementById('transactionComment').value = transaction.comment || '';
-    
-    // Marcar el formulario como modo edición
-    document.getElementById('transactionForm').dataset.editId = transactionId;
-    
-    // Cambiar el título del modal
-    document.getElementById('transactionModalTitle').textContent = 'Editar Transacción';
-    
-    // Cambiar el texto del botón
-    const submitBtn = document.querySelector('#transactionForm .btn-primary');
+    transactionForm.dataset.editId = transactionId;
+    document.getElementById('transactionModalTitle').textContent = transaction.type === 'gasto' ? 'Editar Gasto' : 'Editar Ingreso';
+    const submitBtn = transactionForm.querySelector('.btn-primary');
     submitBtn.textContent = 'Actualizar';
-    
     openModal('transactionModal');
 }
 
@@ -4594,3 +4843,877 @@ function setupAutoSave() {
         }
     });
 }
+
+// --- SUBTABS TRANSACCIONES ---
+document.addEventListener('DOMContentLoaded', function() {
+    const subtabBtns = document.querySelectorAll('.subtab-btn');
+    const gastosContainer = document.getElementById('gastosContainer');
+    const ingresosContainer = document.getElementById('ingresosContainer');
+    const addGastoBtn = document.getElementById('addGastoBtn');
+    const addIngresoBtn = document.getElementById('addIngresoBtn');
+
+    subtabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            subtabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (btn.dataset.subtab === 'gastos') {
+                gastosContainer.classList.add('active');
+                ingresosContainer.classList.remove('active');
+                addGastoBtn.style.display = '';
+                addIngresoBtn.style.display = 'none';
+            } else {
+                gastosContainer.classList.remove('active');
+                ingresosContainer.classList.add('active');
+                addGastoBtn.style.display = 'none';
+                addIngresoBtn.style.display = '';
+            }
+        });
+    });
+
+    // Mostrar por defecto el botón de gasto
+    addGastoBtn.style.display = '';
+    addIngresoBtn.style.display = 'none';
+
+    // Lógica para crear nueva transacción según tipo
+    addGastoBtn.addEventListener('click', function() {
+        openTransactionModal('gasto');
+    });
+    addIngresoBtn.addEventListener('click', function() {
+        openTransactionModal('ingreso');
+    });
+});
+
+function openTransactionModal(tipo) {
+    document.getElementById('transactionType').value = tipo;
+    document.getElementById('transactionModalTitle').textContent = tipo === 'gasto' ? 'Nuevo Gasto' : 'Nuevo Ingreso';
+    const submitBtn = document.getElementById('transactionForm').querySelector('.btn-primary');
+    submitBtn.textContent = 'Guardar';
+    document.getElementById('transactionForm').reset();
+    delete document.getElementById('transactionForm').dataset.editId;
+    
+    // Establecer fecha actual
+    document.getElementById('transactionDate').value = new Date().toISOString().split('T')[0];
+    
+    // Actualizar categorías según el tipo
+    updateCategorySelect();
+    
+    openModal('transactionModal');
+}
+
+// Función de depuración para verificar transacciones
+function debugTransactions() {
+    console.log('=== DEBUG TRANSACCIONES ===');
+    console.log('Transacciones totales:', transactions.length);
+    console.log('Transacciones:', transactions);
+    
+    const gastos = transactions.filter(t => t.type === 'gasto');
+    const ingresos = transactions.filter(t => t.type === 'ingreso');
+    
+    console.log('Gastos:', gastos.length, gastos);
+    console.log('Ingresos:', ingresos.length, ingresos);
+    
+    console.log('Categorías disponibles:', Object.keys(categoryGroups));
+    console.log('Categorías de ingresos:', Object.keys(defaultIncomeCategories));
+    console.log('=== FIN DEBUG ===');
+}
+
+// Función para limpiar y reinicializar datos (solo para desarrollo)
+function resetTransactionData() {
+    if (confirm('¿Estás seguro de que quieres limpiar todas las transacciones? Esto no se puede deshacer.')) {
+        transactions = [];
+        saveData();
+        updateUI(true);
+        console.log('Datos de transacciones limpiados');
+    }
+}
+
+// Funciones para configuración de servicios en la nube
+function setupCloudSyncTabs() {
+    const tabBtns = document.querySelectorAll('.cloud-tab-btn');
+    const tabContents = document.querySelectorAll('.cloud-tab-content');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabName = btn.dataset.tab;
+            
+            // Remover clase active de todos los botones y contenidos
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Agregar clase active al botón y contenido seleccionado
+            btn.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        });
+    });
+}
+
+function updateSyncStatus() {
+    const syncStatus = document.getElementById('syncStatus');
+    const currentService = window.cloudServices ? window.cloudServices.getCurrentService() : null;
+    
+    if (currentService) {
+        syncStatus.innerHTML = `
+            <p class="sync-status-success">
+                <i class="fas fa-check-circle"></i> 
+                Conectado a ${currentService.charAt(0).toUpperCase() + currentService.slice(1)}
+            </p>
+        `;
+    } else {
+        syncStatus.innerHTML = `
+            <p class="sync-status-info">
+                <i class="fas fa-info-circle"></i> 
+                No hay servicio configurado
+            </p>
+        `;
+    }
+}
+
+// Funciones de configuración de servicios
+function configureFirebase() {
+    const config = {
+        apiKey: document.getElementById('firebaseApiKey').value,
+        authDomain: document.getElementById('firebaseAuthDomain').value,
+        projectId: document.getElementById('firebaseProjectId').value,
+        storageBucket: document.getElementById('firebaseStorageBucket').value,
+        messagingSenderId: document.getElementById('firebaseMessagingSenderId').value,
+        appId: document.getElementById('firebaseAppId').value
+    };
+    
+    if (Object.values(config).some(value => !value)) {
+        alert('Por favor, completa todos los campos de configuración de Firebase.');
+        return;
+    }
+    
+    if (window.cloudServices) {
+        window.cloudServices.configureFirebase(config);
+        updateSyncStatus();
+        alert('✅ Firebase configurado exitosamente para todos los usuarios.\n\nEsta configuración se aplicará automáticamente a todos los usuarios que usen esta aplicación.');
+    } else {
+        alert('Error: Servicios en la nube no disponibles.');
+    }
+}
+
+// Función para configurar Firebase directamente desde la consola
+window.setupFirebase = function(apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId) {
+    const config = {
+        apiKey: apiKey,
+        authDomain: authDomain,
+        projectId: projectId,
+        storageBucket: storageBucket,
+        messagingSenderId: messagingSenderId,
+        appId: appId
+    };
+    
+    if (window.cloudServices) {
+        window.cloudServices.configureFirebase(config);
+        console.log('✅ Firebase configurado globalmente:', config);
+        return true;
+    } else {
+        console.error('❌ Servicios en la nube no disponibles');
+        return false;
+    }
+};
+
+function configureSupabase() {
+    const url = document.getElementById('supabaseUrl').value;
+    const anonKey = document.getElementById('supabaseAnonKey').value;
+    
+    if (!url || !anonKey) {
+        alert('Por favor, completa todos los campos de configuración de Supabase.');
+        return;
+    }
+    
+    if (window.cloudServices) {
+        window.cloudServices.configureSupabase(url, anonKey);
+        updateSyncStatus();
+        alert('Supabase configurado exitosamente.');
+    } else {
+        alert('Error: Servicios en la nube no disponibles.');
+    }
+}
+
+function configureDropbox() {
+    const accessToken = document.getElementById('dropboxAccessToken').value;
+    
+    if (!accessToken) {
+        alert('Por favor, ingresa el access token de Dropbox.');
+        return;
+    }
+    
+    if (window.cloudServices) {
+        window.cloudServices.configureDropbox(accessToken);
+        updateSyncStatus();
+        alert('Dropbox configurado exitosamente.');
+    } else {
+        alert('Error: Servicios en la nube no disponibles.');
+    }
+}
+
+function configureGoogleDrive() {
+    const accessToken = document.getElementById('googleDriveAccessToken').value;
+    
+    if (!accessToken) {
+        alert('Por favor, ingresa el access token de Google Drive.');
+        return;
+    }
+    
+    if (window.cloudServices) {
+        window.cloudServices.configureGoogleDrive(accessToken);
+        updateSyncStatus();
+        alert('Google Drive configurado exitosamente.');
+    } else {
+        alert('Error: Servicios en la nube no disponibles.');
+    }
+}
+
+// Funciones de prueba de conexión
+async function testFirebaseConnection() {
+    if (window.cloudServices) {
+        const result = await window.cloudServices.testConnection();
+        if (result.success) {
+            alert('✅ Conexión exitosa con Firebase');
+        } else {
+            alert(`❌ Error de conexión: ${result.message}`);
+        }
+    } else {
+        alert('Error: Servicios en la nube no disponibles.');
+    }
+}
+
+async function testSupabaseConnection() {
+    if (window.cloudServices) {
+        const result = await window.cloudServices.testConnection();
+        if (result.success) {
+            alert('✅ Conexión exitosa con Supabase');
+        } else {
+            alert(`❌ Error de conexión: ${result.message}`);
+        }
+    } else {
+        alert('Error: Servicios en la nube no disponibles.');
+    }
+}
+
+async function testDropboxConnection() {
+    if (window.cloudServices) {
+        const result = await window.cloudServices.testConnection();
+        if (result.success) {
+            alert('✅ Conexión exitosa con Dropbox');
+        } else {
+            alert(`❌ Error de conexión: ${result.message}`);
+        }
+    } else {
+        alert('Error: Servicios en la nube no disponibles.');
+    }
+}
+
+async function testGoogleDriveConnection() {
+    if (window.cloudServices) {
+        const result = await window.cloudServices.testConnection();
+        if (result.success) {
+            alert('✅ Conexión exitosa con Google Drive');
+        } else {
+            alert(`❌ Error de conexión: ${result.message}`);
+        }
+    } else {
+        alert('Error: Servicios en la nube no disponibles.');
+    }
+}
+
+// Funciones de sincronización
+async function syncNow() {
+    if (!currentUser) {
+        alert('Debes estar logueado para sincronizar datos.');
+        return;
+    }
+    
+    if (!window.cloudServices || !window.cloudServices.getCurrentService()) {
+        alert('No hay servicio en la nube configurado.');
+        return;
+    }
+    
+    try {
+        // Preparar datos para sincronización
+        const userData = {
+            categories: categories,
+            transactions: transactions,
+            categoryGroups: categoryGroups,
+            incomes: incomes,
+            notifications: notifications,
+            lastSync: new Date().toISOString()
+        };
+        
+        // Sincronizar con la nube
+        const result = await window.cloudServices.syncToCloud(userData, currentUser);
+        
+        if (result) {
+            alert('✅ Datos sincronizados exitosamente con la nube.');
+            updateSyncStatus();
+        } else {
+            alert('❌ Error al sincronizar datos con la nube.');
+        }
+    } catch (error) {
+        console.error('Error en sincronización:', error);
+        alert(`❌ Error de sincronización: ${error.message}`);
+    }
+}
+
+function viewSyncHistory() {
+    // Implementar vista de historial de sincronización
+    alert('Función de historial de sincronización en desarrollo.');
+}
+
+// Integración con el sistema de almacenamiento profesional
+async function saveDataWithProfessionalStorage() {
+    if (window.professionalStorage && currentUser) {
+        const userData = {
+            categories: categories,
+            transactions: transactions,
+            categoryGroups: categoryGroups,
+            incomes: incomes,
+            notifications: notifications
+        };
+        
+        // Guardar usando el sistema profesional
+        await window.professionalStorage.saveUserData(currentUser, userData);
+        
+        // Sincronizar con la nube si está disponible
+        if (window.cloudServices && window.cloudServices.getCurrentService()) {
+            await window.cloudServices.syncToCloud(userData, currentUser);
+        }
+    }
+}
+
+async function loadDataWithProfessionalStorage() {
+    if (window.professionalStorage && currentUser) {
+        const userData = await window.professionalStorage.loadUserData(currentUser);
+        
+        if (userData) {
+            categories = userData.categories || [];
+            transactions = userData.transactions || [];
+            categoryGroups = userData.categoryGroups || {};
+            incomes = userData.incomes || [];
+            notifications = userData.notifications || [];
+            
+            console.log('✅ Datos cargados usando sistema profesional de almacenamiento');
+            return true;
+        }
+    }
+    return false;
+}
+
+// ===== FUNCIONES MEJORADAS DE SINCRONIZACIÓN =====
+
+// Función para mostrar pestañas
+function showTab(tabName) {
+    // Ocultar todas las pestañas
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(tab => tab.classList.remove('active'));
+    
+    // Desactivar todos los botones
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(btn => btn.classList.remove('active'));
+    
+    // Mostrar la pestaña seleccionada
+    const selectedTab = document.getElementById(tabName + '-tab');
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+    
+    // Activar el botón correspondiente
+    const selectedButton = document.querySelector(`[onclick="showTab('${tabName}')"]`);
+    if (selectedButton) {
+        selectedButton.classList.add('active');
+    }
+    
+    // Cargar contenido específico de la pestaña
+    switch(tabName) {
+        case 'sync':
+            updateSyncStatus();
+            break;
+        case 'history':
+            loadSyncHistory();
+            break;
+    }
+}
+
+// ===== MEJORAS MOBILE AVANZADAS =====
+
+// Detectar si es dispositivo móvil
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           window.innerWidth <= 768;
+}
+
+// Mejorar navegación táctil
+function setupMobileNavigation() {
+    if (!isMobileDevice()) return;
+    
+    // Mejorar scroll horizontal en pestañas
+    const tabNavigation = document.querySelector('.tab-navigation');
+    if (tabNavigation) {
+        let isScrolling = false;
+        let startX = 0;
+        let scrollLeft = 0;
+        
+        tabNavigation.addEventListener('touchstart', (e) => {
+            isScrolling = true;
+            startX = e.touches[0].pageX - tabNavigation.offsetLeft;
+            scrollLeft = tabNavigation.scrollLeft;
+        });
+        
+        tabNavigation.addEventListener('touchmove', (e) => {
+            if (!isScrolling) return;
+            e.preventDefault();
+            const x = e.touches[0].pageX - tabNavigation.offsetLeft;
+            const walk = (x - startX) * 2;
+            tabNavigation.scrollLeft = scrollLeft - walk;
+        });
+        
+        tabNavigation.addEventListener('touchend', () => {
+            isScrolling = false;
+        });
+    }
+}
+
+// Mejorar feedback táctil
+function setupTouchFeedback() {
+    if (!isMobileDevice()) return;
+    
+    // Añadir feedback táctil a botones
+    const buttons = document.querySelectorAll('.btn-primary, .btn-secondary, .btn-icon, .tab-btn');
+    buttons.forEach(button => {
+        button.addEventListener('touchstart', function() {
+            this.style.transform = 'scale(0.95)';
+        });
+        
+        button.addEventListener('touchend', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+    
+    // Añadir feedback a cards
+    const cards = document.querySelectorAll('.summary-card, .category-card, .transaction-item');
+    cards.forEach(card => {
+        card.addEventListener('touchstart', function() {
+            this.style.transform = 'scale(0.98)';
+        });
+        
+        card.addEventListener('touchend', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+}
+
+// Mejorar modales para móviles
+function setupMobileModals() {
+    if (!isMobileDevice()) return;
+    
+    // Cerrar modal con gesto de swipe
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        let startY = 0;
+        let currentY = 0;
+        
+        modal.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+        });
+        
+        modal.addEventListener('touchmove', (e) => {
+            currentY = e.touches[0].clientY;
+            const diff = currentY - startY;
+            
+            if (diff > 50) { // Swipe hacia abajo
+                const modalContent = modal.querySelector('.modal-content');
+                modalContent.style.transform = `translateY(${diff}px)`;
+            }
+        });
+        
+        modal.addEventListener('touchend', (e) => {
+            const diff = currentY - startY;
+            if (diff > 100) { // Swipe suficiente para cerrar
+                const modalId = modal.id;
+                closeModal(modalId);
+            } else {
+                const modalContent = modal.querySelector('.modal-content');
+                modalContent.style.transform = 'translateY(0)';
+            }
+        });
+    });
+}
+
+// Mejorar formularios para móviles
+function setupMobileForms() {
+    if (!isMobileDevice()) return;
+    
+    // Evitar zoom en inputs
+    const inputs = document.querySelectorAll('input[type="text"], input[type="number"], input[type="email"], input[type="password"]');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            // Scroll suave al input
+            setTimeout(() => {
+                this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        });
+    });
+    
+    // Mejorar selectores
+    const selects = document.querySelectorAll('select');
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            // Feedback visual
+            this.style.transform = 'scale(1.02)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1)';
+            }, 200);
+        });
+    });
+}
+
+// Skeleton loading para móviles
+function showSkeletonLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+    `;
+}
+
+function hideSkeletonLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // Remover skeleton y cargar contenido real
+    container.innerHTML = '';
+    updateUI();
+}
+
+// Mejorar performance en móviles
+function setupMobilePerformance() {
+    if (!isMobileDevice()) return;
+    
+    // Lazy loading para gráficos
+    const observerOptions = {
+        root: null,
+        rootMargin: '50px',
+        threshold: 0.1
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const chartCard = entry.target;
+                if (chartCard.classList.contains('chart-card')) {
+                    // Cargar gráfico cuando sea visible
+                    setTimeout(() => {
+                        updateCharts();
+                    }, 100);
+                }
+            }
+        });
+    }, observerOptions);
+    
+    // Observar cards de gráficos
+    const chartCards = document.querySelectorAll('.chart-card');
+    chartCards.forEach(card => observer.observe(card));
+}
+
+// Configurar Chart.js para evitar errores de source maps
+function setupChartJS() {
+    // Deshabilitar source maps para Chart.js
+    if (typeof Chart !== 'undefined') {
+        // Configurar Chart.js para desarrollo
+        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = '#333';
+        
+        // Configurar para móviles
+        if (isMobileDevice()) {
+            Chart.defaults.font.size = 10;
+            Chart.defaults.plugins.legend.labels.boxWidth = 12;
+            Chart.defaults.plugins.legend.labels.padding = 8;
+        }
+        
+        console.log('📊 Chart.js configurado correctamente');
+    }
+}
+
+// Inicializar mejoras mobile
+function initializeMobileEnhancements() {
+    if (!isMobileDevice()) return;
+    
+    setupMobileNavigation();
+    setupTouchFeedback();
+    setupMobileModals();
+    setupMobileForms();
+    setupMobilePerformance();
+    
+    // Añadir clase CSS para móviles
+    document.body.classList.add('mobile-device');
+    
+    console.log('🚀 Mejoras mobile inicializadas');
+}
+
+// Inicializar Chart.js cuando esté disponible
+function initializeChartJS() {
+    // Esperar a que Chart.js esté cargado
+    if (typeof Chart !== 'undefined') {
+        setupChartJS();
+    } else {
+        // Si no está cargado, esperar un poco más
+        setTimeout(initializeChartJS, 100);
+    }
+}
+
+// Función para actualizar el estado de conexión
+function updateConnectionStatus() {
+    const statusIndicator = document.getElementById('connectionStatus');
+    const statusDot = statusIndicator.querySelector('.status-dot');
+    const statusText = statusIndicator.querySelector('.status-text');
+    
+    if (window.cloudServices) {
+        window.cloudServices.testConnection().then(result => {
+            if (result.success) {
+                statusDot.className = 'status-dot connected';
+                statusText.textContent = 'Conectado a Firebase';
+            } else {
+                statusDot.className = 'status-dot error';
+                statusText.textContent = 'Error de conexión';
+            }
+        }).catch(error => {
+            statusDot.className = 'status-dot error';
+            statusText.textContent = 'Error de conexión';
+        });
+    } else {
+        statusDot.className = 'status-dot error';
+        statusText.textContent = 'Servicios no disponibles';
+    }
+}
+
+// Función para actualizar el estado de sincronización
+function updateSyncStatus() {
+    const lastSyncTime = document.getElementById('lastSyncTime');
+    const lastSync = localStorage.getItem('lastSyncTime');
+    
+    if (lastSync) {
+        const date = new Date(lastSync);
+        lastSyncTime.textContent = date.toLocaleString();
+    } else {
+        lastSyncTime.textContent = 'Nunca';
+    }
+}
+
+// Función para sincronizar a la nube con progreso
+async function syncToCloud() {
+    const progressBar = document.getElementById('syncProgress');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    
+    // Mostrar barra de progreso
+    progressBar.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Iniciando sincronización...';
+    
+    try {
+        // Obtener datos locales
+        const transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+        const categories = JSON.parse(localStorage.getItem('categories') || '[]');
+        const budgets = JSON.parse(localStorage.getItem('budgets') || '[]');
+        
+        const totalItems = transactions.length + categories.length + budgets.length;
+        let completedItems = 0;
+        
+        // Verificar qué sincronizar
+        const syncTransactions = document.getElementById('syncTransactions').checked;
+        const syncCategories = document.getElementById('syncCategories').checked;
+        const syncBudgets = document.getElementById('syncBudgets').checked;
+        
+        const dataToSync = {};
+        
+        if (syncTransactions) {
+            dataToSync.transactions = transactions;
+            completedItems += transactions.length;
+            progressFill.style.width = (completedItems / totalItems * 100) + '%';
+            progressText.textContent = `Sincronizando transacciones... (${completedItems}/${totalItems})`;
+        }
+        
+        if (syncCategories) {
+            dataToSync.categories = categories;
+            completedItems += categories.length;
+            progressFill.style.width = (completedItems / totalItems * 100) + '%';
+            progressText.textContent = `Sincronizando categorías... (${completedItems}/${totalItems})`;
+        }
+        
+        if (syncBudgets) {
+            dataToSync.budgets = budgets;
+            completedItems += budgets.length;
+            progressFill.style.width = (completedItems / totalItems * 100) + '%';
+            progressText.textContent = `Sincronizando presupuestos... (${completedItems}/${totalItems})`;
+        }
+        
+        // Sincronizar con Firebase
+        if (window.cloudServices) {
+            const result = await window.cloudServices.syncToCloud(dataToSync, getCurrentUserId());
+            
+            if (result) {
+                // Guardar timestamp de última sincronización
+                localStorage.setItem('lastSyncTime', new Date().toISOString());
+                
+                // Actualizar estado
+                progressFill.style.width = '100%';
+                progressText.textContent = 'Sincronización completada exitosamente';
+                
+                // Ocultar progreso después de 2 segundos
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                }, 2000);
+                
+                // Actualizar estado
+                updateSyncStatus();
+                updateConnectionStatus();
+                
+                showNotification('Sincronización completada', 'success');
+            } else {
+                throw new Error('Error en la sincronización');
+            }
+        } else {
+            throw new Error('Servicios en la nube no disponibles');
+        }
+        
+    } catch (error) {
+        progressText.textContent = 'Error en la sincronización: ' + error.message;
+        progressFill.style.background = '#dc3545';
+        
+        setTimeout(() => {
+            progressBar.style.display = 'none';
+            progressFill.style.background = '#007bff';
+        }, 3000);
+        
+        showNotification('Error en la sincronización', 'error');
+    }
+}
+
+// Función para sincronizar desde la nube
+async function syncFromCloud() {
+    if (!window.cloudServices) {
+        showNotification('Servicios en la nube no disponibles', 'error');
+        return;
+    }
+    
+    try {
+        const result = await window.cloudServices.syncFromCloud(getCurrentUserId());
+        
+        if (result) {
+            // Recargar datos en la aplicación
+            loadTransactions();
+            loadCategories();
+            loadBudgets();
+            
+            // Actualizar timestamp
+            localStorage.setItem('lastSyncTime', new Date().toISOString());
+            updateSyncStatus();
+            
+            showNotification('Datos sincronizados desde la nube', 'success');
+        } else {
+            showNotification('No hay datos en la nube', 'info');
+        }
+    } catch (error) {
+        showNotification('Error al sincronizar desde la nube: ' + error.message, 'error');
+    }
+}
+
+// Función para restaurar desde la nube
+async function restoreFromCloud() {
+    const restoreType = document.querySelector('input[name="restoreType"]:checked').value;
+    
+    if (restoreType === 'all') {
+        if (confirm('¿Estás seguro de que quieres restaurar todos los datos desde la nube? Esto sobrescribirá los datos locales.')) {
+            await syncFromCloud();
+        }
+    } else {
+        // Restauración selectiva (implementar más adelante)
+        showNotification('Restauración selectiva próximamente', 'info');
+    }
+}
+
+// Función para cargar historial de sincronización
+function loadSyncHistory() {
+    const historyContainer = document.getElementById('syncHistory');
+    const history = JSON.parse(localStorage.getItem('syncHistory') || '[]');
+    
+    if (history.length === 0) {
+        historyContainer.innerHTML = '<div class="history-item"><span class="history-date">No hay historial de sincronización</span></div>';
+        return;
+    }
+    
+    historyContainer.innerHTML = history.map(item => `
+        <div class="history-item">
+            <div class="history-date">${new Date(item.timestamp).toLocaleString()}</div>
+            <div class="history-status">${item.action} - ${item.status}</div>
+        </div>
+    `).join('');
+}
+
+
+
+// Función para obtener ID del usuario actual
+function getCurrentUserId() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    return currentUser.id || 'anonymous';
+}
+
+// Función para mostrar notificaciones
+function showNotification(message, type = 'info') {
+    // Crear elemento de notificación
+    const notification = document.createElement('div');
+    notification.className = `visual-notification ${type}`;
+    notification.innerHTML = `
+        <div class="visual-notification-content">
+            <h4>${type.charAt(0).toUpperCase() + type.slice(1)}</h4>
+            <p>${message}</p>
+        </div>
+    `;
+    
+    // Agregar al DOM
+    document.body.appendChild(notification);
+    
+    // Mostrar
+    setTimeout(() => notification.classList.add('show'), 100);
+    
+    // Ocultar después de 3 segundos
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Inicializar estado de sincronización cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar si el modal de sincronización está presente
+    const cloudSyncModal = document.getElementById('cloudSyncModal');
+    if (cloudSyncModal) {
+        // Actualizar estado inicial
+        updateConnectionStatus();
+        updateSyncStatus();
+        
+        // Configurar sincronización automática
+        const autoSyncCheckbox = document.getElementById('autoSync');
+        if (autoSyncCheckbox) {
+            autoSyncCheckbox.checked = localStorage.getItem('autoSync') !== 'false';
+            
+            autoSyncCheckbox.addEventListener('change', function() {
+                localStorage.setItem('autoSync', this.checked);
+            });
+        }
+    }
+    
+    // Inicializar mejoras mobile
+    initializeMobileEnhancements();
+    
+    // Inicializar Chart.js
+    initializeChartJS();
+    
+    console.log('📱 Aplicación inicializada con mejoras mobile');
+});
