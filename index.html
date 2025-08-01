@@ -36,11 +36,11 @@
     <!-- Firebase - Deshabilitado en modo desarrollo -->
     <script>
         // Verificar si estamos en modo desarrollo
-        const isDevelopment = window.location.hostname === 'localhost' || 
-                             window.location.hostname === '127.0.0.1' ||
-                             window.location.hostname.includes('localhost');
+        const isDevMode = window.location.hostname === 'localhost' || 
+                         window.location.hostname === '127.0.0.1' ||
+                         window.location.hostname.includes('localhost');
         
-        if (isDevelopment) {
+        if (isDevMode) {
             console.log('🔧 Modo desarrollo detectado - Firebase deshabilitado');
             window.firebaseDisabled = true;
             window.firebaseInitialized = false;
