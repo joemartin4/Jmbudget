@@ -4,6 +4,19 @@
  */
 
 console.log('🔥 Script firebase-init.js cargado y ejecutándose...');
+
+// Verificar si estamos en modo desarrollo
+const isDevelopment = window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1' ||
+                     window.location.hostname.includes('localhost');
+
+if (isDevelopment) {
+    console.log('🔧 Modo desarrollo detectado - Firebase deshabilitado para evitar errores');
+    window.firebaseInitialized = false;
+    window.firebaseDisabled = true;
+    return;
+}
+
 console.log('🔥 Inicializando Firebase...');
 
 // Verificar que Firebase esté cargado
@@ -23,6 +36,12 @@ if (typeof window.FIREBASE_CONFIG === 'undefined') {
 // Función para inicializar Firebase
 function initializeFirebase() {
     try {
+        // Verificar si Firebase está deshabilitado
+        if (window.firebaseDisabled) {
+            console.log('🔧 Firebase deshabilitado en modo desarrollo');
+            return;
+        }
+        
         // Verificar si ya está inicializado
         if (!firebase.apps.length) {
             console.log('🚀 Inicializando Firebase App...');
@@ -57,7 +76,9 @@ function initializeFirebase() {
 }
 
 // Intentar inicializar inmediatamente si Firebase ya está disponible
-if (typeof firebase !== 'undefined' && typeof window.FIREBASE_CONFIG !== 'undefined') {
+if (window.firebaseDisabled) {
+    console.log('🔧 Firebase deshabilitado en modo desarrollo');
+} else if (typeof firebase !== 'undefined' && typeof window.FIREBASE_CONFIG !== 'undefined') {
     console.log('🔥 Firebase y configuración disponibles, inicializando...');
     initializeFirebase();
 } else {
@@ -70,7 +91,10 @@ if (typeof firebase !== 'undefined' && typeof window.FIREBASE_CONFIG !== 'undefi
     const checkFirebase = setInterval(() => {
         attempts++;
         
-        if (typeof firebase !== 'undefined' && typeof window.FIREBASE_CONFIG !== 'undefined') {
+        if (window.firebaseDisabled) {
+            console.log('🔧 Firebase deshabilitado en modo desarrollo');
+            clearInterval(checkFirebase);
+        } else if (typeof firebase !== 'undefined' && typeof window.FIREBASE_CONFIG !== 'undefined') {
             console.log('🔥 Firebase detectado, inicializando...');
             clearInterval(checkFirebase);
             initializeFirebase();
