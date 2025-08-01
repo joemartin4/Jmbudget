@@ -263,28 +263,34 @@ function saveSyncConfig() {
     const conflictResolution = document.getElementById('conflictResolution');
     const syncFrequency = document.getElementById('syncFrequency');
     
-    if (window.syncService) {
-        if (conflictResolution) {
-            window.syncService.setConflictResolution(conflictResolution.value);
-        }
-        
-        if (syncFrequency) {
-            // Actualizar frecuencia de sincronización
-            const frequency = parseInt(syncFrequency.value);
-            window.syncService.updateSyncFrequency(frequency);
-        }
+    if (!conflictResolution || !syncFrequency) {
+        console.error('❌ Elementos de configuración no encontrados');
+        showNotification('Error al guardar la configuración', 'error');
+        return;
     }
     
     // Guardar configuración en localStorage
     const config = {
-        conflictResolution: conflictResolution ? conflictResolution.value : 'smart-merge',
-        syncFrequency: syncFrequency ? parseInt(syncFrequency.value) : 300000
+        conflictResolution: conflictResolution.value,
+        syncFrequency: parseInt(syncFrequency.value)
     };
     
-    localStorage.setItem('syncConfig', JSON.stringify(config));
-    
-    showNotification('Configuración de sincronización guardada', 'success');
-    closeModal('syncConfigModal');
+    try {
+        localStorage.setItem('syncConfig', JSON.stringify(config));
+        
+        // Aplicar configuración al servicio de sincronización si está disponible
+        if (window.syncService) {
+            window.syncService.setConflictResolution(config.conflictResolution);
+            window.syncService.updateSyncFrequency(config.syncFrequency);
+        }
+        
+        showNotification('Configuración de sincronización guardada', 'success');
+        closeModal('syncConfigModal');
+        console.log('✅ Configuración de sincronización guardada:', config);
+    } catch (error) {
+        console.error('❌ Error al guardar configuración:', error);
+        showNotification('Error al guardar la configuración', 'error');
+    }
 }
 
 function loadSyncConfig() {
@@ -303,6 +309,67 @@ function loadSyncConfig() {
             console.log('✅ Configuración de sincronización cargada');
         } catch (error) {
             console.error('❌ Error al cargar configuración de sincronización:', error);
+        }
+    }
+}
+
+function restoreDefaultSyncConfig() {
+    try {
+        // Configuración por defecto
+        const defaultConfig = {
+            conflictResolution: 'smart-merge',
+            syncFrequency: 300000 // 5 minutos
+        };
+        
+        // Guardar configuración por defecto
+        localStorage.setItem('syncConfig', JSON.stringify(defaultConfig));
+        
+        // Actualizar los campos del formulario
+        const conflictResolution = document.getElementById('conflictResolution');
+        const syncFrequency = document.getElementById('syncFrequency');
+        
+        if (conflictResolution) {
+            conflictResolution.value = defaultConfig.conflictResolution;
+        }
+        
+        if (syncFrequency) {
+            syncFrequency.value = defaultConfig.syncFrequency.toString();
+        }
+        
+        // Aplicar al servicio de sincronización si está disponible
+        if (window.syncService) {
+            window.syncService.setConflictResolution(defaultConfig.conflictResolution);
+            window.syncService.updateSyncFrequency(defaultConfig.syncFrequency);
+        }
+        
+        showNotification('Configuración restaurada a valores por defecto', 'success');
+        console.log('✅ Configuración de sincronización restaurada a valores por defecto');
+    } catch (error) {
+        console.error('❌ Error al restaurar configuración:', error);
+        showNotification('Error al restaurar la configuración', 'error');
+    }
+}
+
+function loadSyncConfigToForm() {
+    const config = localStorage.getItem('syncConfig');
+    if (config) {
+        try {
+            const parsedConfig = JSON.parse(config);
+            
+            const conflictResolution = document.getElementById('conflictResolution');
+            const syncFrequency = document.getElementById('syncFrequency');
+            
+            if (conflictResolution && parsedConfig.conflictResolution) {
+                conflictResolution.value = parsedConfig.conflictResolution;
+            }
+            
+            if (syncFrequency && parsedConfig.syncFrequency) {
+                syncFrequency.value = parsedConfig.syncFrequency.toString();
+            }
+            
+            console.log('✅ Configuración cargada en el formulario');
+        } catch (error) {
+            console.error('❌ Error al cargar configuración en el formulario:', error);
         }
     }
 }
@@ -2442,6 +2509,13 @@ function openModal(modalId) {
         setTimeout(() => {
             updateSubcategoryDropdown();
             updateSelectSubcategoryDropdown();
+        }, 100);
+    }
+    
+    // Cargar configuración cuando se abre el modal de sincronización
+    if (modalId === 'syncConfigModal') {
+        setTimeout(() => {
+            loadSyncConfigToForm();
         }, 100);
     }
 }
