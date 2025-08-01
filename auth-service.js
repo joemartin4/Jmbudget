@@ -20,6 +20,20 @@ class AuthService {
         try {
             console.log('🔧 Inicializando servicio de autenticación...');
             
+            // Verificar si estamos en modo desarrollo
+            const isDevelopment = window.location.hostname === 'localhost' || 
+                                 window.location.hostname === '127.0.0.1' ||
+                                 window.location.hostname.includes('localhost');
+            
+            if (isDevelopment) {
+                console.log('🔧 Modo desarrollo detectado - Usando autenticación local');
+                this.useLocalMode = true;
+                this.isInitialized = true;
+                await this.setupLocalAuth();
+                console.log('✅ Servicio de autenticación inicializado en modo local');
+                return;
+            }
+            
             // Esperar a que Firebase esté disponible
             let attempts = 0;
             const maxAttempts = 100; // 10 segundos máximo
@@ -34,6 +48,7 @@ class AuthService {
                 console.warn('⚠️ Firebase no está disponible, usando modo local');
                 this.useLocalMode = true;
                 this.isInitialized = true;
+                await this.setupLocalAuth();
                 console.log('✅ Servicio de autenticación inicializado en modo local');
                 return;
             }
@@ -86,6 +101,52 @@ class AuthService {
             
         } catch (error) {
             console.error('❌ Error al inicializar servicio de autenticación:', error);
+        }
+    }
+
+    async setupLocalAuth() {
+        try {
+            console.log('🏠 Configurando autenticación local...');
+            
+            // Configurar encriptación
+            await this.setupEncryption();
+            
+            // Crear usuario de prueba si no existe
+            await this.createTestUser();
+            
+            // Configurar monitoreo de actividad
+            this.setupActivityMonitoring();
+            
+            console.log('✅ Autenticación local configurada');
+            
+        } catch (error) {
+            console.error('❌ Error al configurar autenticación local:', error);
+        }
+    }
+
+    async createTestUser() {
+        try {
+            const existingUsers = JSON.parse(localStorage.getItem('localUsers') || '{}');
+            
+            // Crear usuario de prueba si no existe
+            if (!existingUsers['test@example.com']) {
+                const hashedPassword = await this.hashPassword('password123');
+                const testUser = {
+                    email: 'test@example.com',
+                    password: hashedPassword,
+                    displayName: 'Usuario de Prueba',
+                    uid: 'local_test_user',
+                    createdAt: new Date().toISOString()
+                };
+                
+                existingUsers['test@example.com'] = testUser;
+                localStorage.setItem('localUsers', JSON.stringify(existingUsers));
+                
+                console.log('✅ Usuario de prueba creado: test@example.com / password123');
+            }
+            
+        } catch (error) {
+            console.error('❌ Error al crear usuario de prueba:', error);
         }
     }
 
@@ -344,8 +405,17 @@ class AuthService {
                     throw new Error('Contraseña incorrecta');
                 }
                 
+                // Establecer usuario actual
+                this.currentUser = user;
+                this.saveUserSession();
+                
                 console.log('✅ Login exitoso en modo local');
                 return { success: true, user: user };
+            }
+            
+            // Verificar que Firebase Auth esté disponible
+            if (!this.auth) {
+                throw new Error('Firebase Auth no está disponible');
             }
             
             const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
@@ -364,6 +434,18 @@ class AuthService {
 
     async logout() {
         try {
+            if (this.useLocalMode) {
+                console.log('🏠 Cerrando sesión en modo local...');
+                this.currentUser = null;
+                this.clearUserSession();
+                console.log('✅ Logout exitoso en modo local');
+                return;
+            }
+            
+            if (!this.auth) {
+                throw new Error('Firebase Auth no está disponible');
+            }
+            
             await this.auth.signOut();
             this.currentUser = null;
             this.clearUserSession();
