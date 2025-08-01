@@ -1,0 +1,11 @@
+fecha,descripcion,monto,tipo,categoria
+2024-01-15,SUPERMERCADO NACIONAL,-150.50,gasto,Alimentación y Bebidas
+2024-01-16,SALARIO MENSUAL,2500.00,ingreso,Ingresos
+2024-01-17,GASOLINA SHELL,-45.00,gasto,Transporte
+2024-01-18,NETFLIX,-12.99,gasto,Entretenimiento
+2024-01-19,TRANSFERENCIA RECIBIDA,500.00,ingreso,Ingresos
+2024-01-20,FARMACIA SAN JUDAS,-25.50,gasto,Salud
+2024-01-21,AMAZON.COM,-89.99,gasto,Entretenimiento
+2024-01-22,ELECTRICIDAD,-85.00,gasto,Servicios Públicos
+2024-01-23,UBER,-15.00,gasto,Transporte
+2024-01-24,AGUA POTABLE,-35.00,gasto,Servicios Públicos 

@@ -4,13 +4,14 @@
  */
 
 // Configuración de Firebase - Configurado para JM Budget
+// Configuración real del proyecto Firebase Console
 const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyDsIAnb_vCNtT4GqcXTFsujYQI2OsmskEk",
-    authDomain: "jm-budget-baa69.firebaseapp.com",
-    projectId: "jm-budget-baa69",
-    storageBucket: "jm-budget-baa69.firebasestorage.app",
-    messagingSenderId: "1029140625131",
-    appId: "1:1029140625131:web:98b84bccf65b0c9212f0ae"
+    apiKey: "AIzaSyCGmkLIE6d8jhS_QsNzkyjJxOM5D_OdXO0",
+    authDomain: "jm-budget-app.firebaseapp.com",
+    projectId: "jm-budget-app",
+    storageBucket: "jm-budget-app.firebasestorage.app",
+    messagingSenderId: "397811974130",
+    appId: "1:397811974130:web:c23dfad4187ca6f77d356b"
 };
 
 // Función para verificar si la configuración está completa

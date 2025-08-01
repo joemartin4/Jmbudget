@@ -3,7 +3,7 @@ let categories = [];
 let transactions = [];
 let categoryGroups = {};
 let currentUser = null;
-let users = JSON.parse(localStorage.getItem('budgetUsers')) || {};
+
 let collaborations = {};
 let invitations = {};
 let changeHistory = {};
@@ -17,12 +17,73 @@ let importData = {
 // Variables globales para ingresos recurrentes
 let incomes = [];
 
+// Variables globales para metas
+let goals = [];
+
+// Variables globales para notificaciones
+let notifications = [];
+
+// Variables globales para cuentas bancarias
+let bankAccounts = [];
+let bankTransactions = [];
+let reconciliationData = {};
+
 // Función para cargar datos de forma segura
+// Función para obtener la clave de almacenamiento basada en el usuario
+function getStorageKey(key) {
+    const userEmail = currentUser || 'anonymous';
+    const sanitizedEmail = userEmail.replace(/[^a-zA-Z0-9]/g, '_');
+    return `jmBudget_${sanitizedEmail}_${key}`;
+}
+
+// Función para migrar datos antiguos si es necesario
+function migrateOldData() {
+    console.log('🔄 Iniciando migración de datos...');
+    
+    // Datos principales
+    const oldKeys = ['budgetCategories', 'budgetTransactions', 'budgetCategoryGroups'];
+    const newKeys = ['categories', 'transactions', 'categoryGroups'];
+    
+    oldKeys.forEach((oldKey, index) => {
+        const oldData = localStorage.getItem(oldKey);
+        if (oldData) {
+            const newKey = getStorageKey(newKeys[index]);
+            localStorage.setItem(newKey, oldData);
+            localStorage.removeItem(oldKey); // Limpiar datos antiguos
+            console.log(`✅ Migrado: ${oldKey} → ${newKey}`);
+        }
+    });
+    
+    // Datos adicionales que también necesitan migración
+    const additionalData = [
+        'incomes', 'notifications', 'goals', 'bankAccounts', 
+        'bankTransactions', 'reconciliationData'
+    ];
+    
+    additionalData.forEach(dataKey => {
+        const oldData = localStorage.getItem(dataKey);
+        if (oldData) {
+            const newKey = getStorageKey(dataKey);
+            localStorage.setItem(newKey, oldData);
+            localStorage.removeItem(dataKey);
+            console.log(`✅ Migrado: ${dataKey} → ${newKey}`);
+        }
+    });
+    
+    console.log('✅ Migración de datos completada');
+}
+
 function loadDataSafely() {
     try {
-        const categoriesData = localStorage.getItem('budgetCategories');
-        const transactionsData = localStorage.getItem('budgetTransactions');
-        const categoryGroupsData = localStorage.getItem('budgetCategoryGroups');
+        console.log('🔄 Cargando datos de forma segura...');
+        
+        // Migrar datos antiguos si es necesario
+        migrateOldData();
+        
+        // Cargar datos principales
+        const categoriesData = localStorage.getItem(getStorageKey('categories'));
+        const transactionsData = localStorage.getItem(getStorageKey('transactions'));
+        const categoryGroupsData = localStorage.getItem(getStorageKey('categoryGroups'));
         
         categories = categoriesData ? JSON.parse(categoriesData) : [];
         transactions = transactionsData ? JSON.parse(transactionsData) : [];
@@ -33,26 +94,58 @@ function loadDataSafely() {
         if (!Array.isArray(transactions)) transactions = [];
         if (typeof categoryGroups !== 'object' || categoryGroups === null) categoryGroups = {};
         
+        // Cargar datos adicionales
+        const incomesData = localStorage.getItem(getStorageKey('incomes'));
+        const notificationsData = localStorage.getItem(getStorageKey('notifications'));
+        const goalsData = localStorage.getItem(getStorageKey('goals'));
+        
+        incomes = incomesData ? JSON.parse(incomesData) : [];
+        notifications = notificationsData ? JSON.parse(notificationsData) : [];
+        goals = goalsData ? JSON.parse(goalsData) : [];
+        
+        // Validar datos adicionales
+        if (!Array.isArray(incomes)) incomes = [];
+        if (!Array.isArray(notifications)) notifications = [];
+        if (!Array.isArray(goals)) goals = [];
+        
+        console.log('📊 Datos cargados correctamente:', {
+            categories: categories.length,
+            transactions: transactions.length,
+            categoryGroups: Object.keys(categoryGroups).length,
+            incomes: incomes.length,
+            notifications: notifications.length,
+            goals: goals.length
+        });
+        
     } catch (error) {
-        console.error('Error al cargar datos:', error);
+        console.error('❌ Error al cargar datos:', error);
         categories = [];
         transactions = [];
         categoryGroups = {};
+        incomes = [];
+        notifications = [];
+        goals = [];
     }
 }
 
 // Cargar datos al inicio
 loadDataSafely();
 
-// Sistema de Login
+// Sistema de Login con Autenticación Real
 function initializeLogin() {
-    // Cargar usuarios existentes
-    users = JSON.parse(localStorage.getItem('budgetUsers')) || {};
+    // Esperar a que el servicio de autenticación esté inicializado
+    if (!window.authService || !window.authService.isInitialized) {
+        setTimeout(initializeLogin, 100);
+        return;
+    }
     
-    // Verificar si hay un usuario logueado
-    const loggedInUser = localStorage.getItem('budgetCurrentUser');
-    if (loggedInUser && users[loggedInUser]) {
-        loginUser(loggedInUser);
+    // Configurar eventos de autenticación
+    setupAuthEventListeners();
+    
+    // Verificar si hay una sesión activa
+    if (window.authService.isAuthenticated()) {
+        const user = window.authService.getCurrentUser();
+        loginUser(user.email);
         return;
     }
     
@@ -71,121 +164,620 @@ function showMainApp() {
     document.getElementById('currentUser').textContent = currentUser;
 }
 
-function loginUser(username) {
-    currentUser = username;
-    localStorage.setItem('budgetCurrentUser', username);
+async function loginUser(email) {
+    currentUser = email;
     
     // Cargar datos del usuario
-    loadUserData();
+    await loadUserData();
     
     // Mostrar aplicación principal
     showMainApp();
     
     // Inicializar aplicación
-    initializeApp();
+    await initializeApp();
+}
+
+function setupAuthEventListeners() {
+    // Eventos de autenticación
+    window.addEventListener('userLoggedIn', (event) => {
+        const user = event.detail;
+        loginUser(user.email);
+    });
+    
+    window.addEventListener('userLoggedOut', () => {
+        logoutUser();
+    });
+}
+
+function setupSyncEventListeners() {
+    console.log('🔄 Configurando eventos de sincronización...');
+    
+    const forceSyncBtn = document.getElementById('forceSyncBtn');
+    if (forceSyncBtn) {
+        forceSyncBtn.addEventListener('click', async () => {
+            console.log('🔄 Botón de sincronización forzada clickeado');
+            if (window.syncService) {
+                await window.syncService.forceSync();
+            }
+        });
+    }
+    
+    // Escuchar cambios de estado de sincronización
+    window.addEventListener('syncStatusChanged', (event) => {
+        const { status, timestamp } = event.detail;
+        console.log(`🔄 Estado de sincronización cambiado: ${status} a las ${timestamp.toLocaleTimeString()}`);
+        
+        // Actualizar UI según el estado
+        updateSyncUI(status);
+    });
+}
+
+function updateSyncUI(status) {
+    const forceSyncBtn = document.getElementById('forceSyncBtn');
+    if (forceSyncBtn) {
+        const icon = forceSyncBtn.querySelector('i');
+        
+        switch (status) {
+            case 'syncing':
+                icon.className = 'fas fa-sync-alt fa-spin';
+                forceSyncBtn.disabled = true;
+                break;
+            case 'synced':
+                icon.className = 'fas fa-check';
+                forceSyncBtn.disabled = false;
+                setTimeout(() => {
+                    icon.className = 'fas fa-sync-alt';
+                }, 2000);
+                break;
+            case 'error':
+                icon.className = 'fas fa-exclamation-triangle';
+                forceSyncBtn.disabled = false;
+                break;
+            case 'offline':
+                icon.className = 'fas fa-wifi-slash';
+                forceSyncBtn.disabled = true;
+                break;
+            default:
+                icon.className = 'fas fa-sync-alt';
+                forceSyncBtn.disabled = false;
+        }
+    }
+}
+
+function openSyncConfig() {
+    const modal = document.getElementById('syncConfigModal');
+    if (modal) {
+        modal.style.display = 'block';
+        
+        // Cargar configuración actual
+        if (window.syncService) {
+            const conflictResolution = document.getElementById('conflictResolution');
+            if (conflictResolution) {
+                conflictResolution.value = window.syncService.conflictResolution || 'smart-merge';
+            }
+        }
+    }
+}
+
+function saveSyncConfig() {
+    const conflictResolution = document.getElementById('conflictResolution');
+    const syncFrequency = document.getElementById('syncFrequency');
+    
+    if (window.syncService) {
+        if (conflictResolution) {
+            window.syncService.setConflictResolution(conflictResolution.value);
+        }
+        
+        if (syncFrequency) {
+            // Actualizar frecuencia de sincronización
+            const frequency = parseInt(syncFrequency.value);
+            window.syncService.updateSyncFrequency(frequency);
+        }
+    }
+    
+    // Guardar configuración en localStorage
+    const config = {
+        conflictResolution: conflictResolution ? conflictResolution.value : 'smart-merge',
+        syncFrequency: syncFrequency ? parseInt(syncFrequency.value) : 300000
+    };
+    
+    localStorage.setItem('syncConfig', JSON.stringify(config));
+    
+    showNotification('Configuración de sincronización guardada', 'success');
+    closeModal('syncConfigModal');
+}
+
+function loadSyncConfig() {
+    const config = localStorage.getItem('syncConfig');
+    if (config) {
+        try {
+            const parsedConfig = JSON.parse(config);
+            
+            if (window.syncService) {
+                window.syncService.setConflictResolution(parsedConfig.conflictResolution);
+                if (parsedConfig.syncFrequency) {
+                    window.syncService.updateSyncFrequency(parsedConfig.syncFrequency);
+                }
+            }
+            
+            console.log('✅ Configuración de sincronización cargada');
+        } catch (error) {
+            console.error('❌ Error al cargar configuración de sincronización:', error);
+        }
+    }
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    
+    // Agregar al historial
+    addToHistory('Tema cambiado', `Cambió a modo ${newTheme === 'dark' ? 'oscuro' : 'claro'}`, 'theme');
+}
+
+// Escuchar cambios de tema
+window.addEventListener('themeChanged', (event) => {
+    const { theme } = event.detail;
+    console.log(`🎨 Tema cambiado a: ${theme}`);
+    updateThemeButton();
+    
+    // Actualizar gráficos si existen
+    if (window.charts && window.charts.length > 0) {
+        window.charts.forEach(chart => {
+            if (chart && typeof chart.update === 'function') {
+                chart.update();
+            }
+        });
+    }
+});
+
+function setupLoginFormEvents() {
+    console.log('🔧 Configurando eventos del formulario de login...');
+    
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const displayNameInput = document.getElementById('displayName');
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+    const toggleModeBtn = document.getElementById('toggleModeBtn');
+    const passwordToggle = document.getElementById('passwordToggle');
+    
+    console.log('Elementos encontrados:', {
+        emailInput: !!emailInput,
+        passwordInput: !!passwordInput,
+        displayNameInput: !!displayNameInput,
+        loginBtn: !!loginBtn,
+        registerBtn: !!registerBtn,
+        forgotPasswordBtn: !!forgotPasswordBtn,
+        toggleModeBtn: !!toggleModeBtn,
+        passwordToggle: !!passwordToggle
+    });
+    
+    let isRegisterMode = false;
+    
+    // Toggle de contraseña
+    if (passwordToggle) {
+        passwordToggle.addEventListener('click', () => {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+            passwordToggle.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+        });
+    }
+    
+    // Validación de email en tiempo real
+    if (emailInput) {
+        emailInput.addEventListener('input', () => {
+            validateEmail(emailInput.value);
+        });
+    }
+    
+    // Validación de contraseña en tiempo real
+    if (passwordInput) {
+        passwordInput.addEventListener('input', () => {
+            validatePassword(passwordInput.value);
+        });
+    }
+    
+    // Toggle entre login y registro
+    if (toggleModeBtn) {
+        console.log('✅ Configurando evento para toggleModeBtn');
+        toggleModeBtn.addEventListener('click', () => {
+            console.log('🔄 Botón toggle clickeado, cambiando modo...');
+            isRegisterMode = !isRegisterMode;
+            console.log('Modo actual:', isRegisterMode ? 'registro' : 'login');
+            toggleLoginMode(isRegisterMode);
+        });
+    } else {
+        console.error('❌ No se encontró el botón toggleModeBtn');
+    }
+    
+    // Login
+    if (loginBtn) {
+        loginBtn.addEventListener('click', async () => {
+            await handleLogin();
+        });
+    }
+    
+    // Registro
+    if (registerBtn) {
+        console.log('✅ Configurando evento para registerBtn');
+        registerBtn.addEventListener('click', async () => {
+            console.log('🔄 Botón registro clickeado...');
+            await handleRegister();
+        });
+    } else {
+        console.error('❌ No se encontró el botón registerBtn');
+    }
+    
+    // Recuperar contraseña
+    if (forgotPasswordBtn) {
+        forgotPasswordBtn.addEventListener('click', async () => {
+            await handleForgotPassword();
+        });
+    }
+}
+
+function toggleLoginMode(isRegister) {
+    console.log('🔄 Cambiando modo de login a:', isRegister ? 'registro' : 'login');
+    
+    const displayNameGroup = document.getElementById('displayNameGroup');
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const toggleModeBtn = document.getElementById('toggleModeBtn');
+    
+    console.log('Elementos para toggle:', {
+        displayNameGroup: !!displayNameGroup,
+        loginBtn: !!loginBtn,
+        registerBtn: !!registerBtn,
+        toggleModeBtn: !!toggleModeBtn
+    });
+    
+    if (isRegister) {
+        if (displayNameGroup) displayNameGroup.style.display = 'block';
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (registerBtn) registerBtn.style.display = 'block';
+        if (toggleModeBtn) toggleModeBtn.textContent = '¿Ya tienes cuenta? Inicia sesión';
+        console.log('✅ Modo registro activado');
+    } else {
+        if (displayNameGroup) displayNameGroup.style.display = 'none';
+        if (loginBtn) loginBtn.style.display = 'block';
+        if (registerBtn) registerBtn.style.display = 'none';
+        if (toggleModeBtn) toggleModeBtn.textContent = '¿No tienes cuenta? Regístrate';
+        console.log('✅ Modo login activado');
+    }
+}
+
+function validateEmail(email) {
+    const emailValidation = document.getElementById('emailValidation');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!email) {
+        showValidationMessage(emailValidation, '', '');
+        return false;
+    }
+    
+    if (!emailRegex.test(email)) {
+        showValidationMessage(emailValidation, 'error', 'Formato de email inválido');
+        return false;
+    }
+    
+    showValidationMessage(emailValidation, 'success', 'Email válido');
+    return true;
+}
+
+function validatePassword(password) {
+    const passwordValidation = document.getElementById('passwordValidation');
+    const passwordStrength = document.getElementById('passwordStrength');
+    
+    if (!password) {
+        showValidationMessage(passwordValidation, '', '');
+        updatePasswordStrength(passwordStrength, '', 0);
+        return false;
+    }
+    
+    // Validar fortaleza de contraseña
+    const strength = calculatePasswordStrength(password);
+    const isValid = strength.score >= 3;
+    
+    if (isValid) {
+        showValidationMessage(passwordValidation, 'success', 'Contraseña válida');
+    } else {
+        showValidationMessage(passwordValidation, 'error', 'La contraseña debe tener al menos 8 caracteres, mayúsculas, minúsculas, números y caracteres especiales');
+    }
+    
+    updatePasswordStrength(passwordStrength, strength.level, strength.score);
+    return isValid;
+}
+
+function calculatePasswordStrength(password) {
+    let score = 0;
+    
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
+    
+    const levels = ['', 'weak', 'fair', 'good', 'strong'];
+    const level = levels[Math.min(score, 4)];
+    
+    return { score, level };
+}
+
+function updatePasswordStrength(container, level, score) {
+    if (!container) return;
+    
+    const maxScore = 5;
+    const percentage = (score / maxScore) * 100;
+    
+    container.innerHTML = `
+        <div class="password-strength-bar">
+            <div class="password-strength-fill ${level}" style="width: ${percentage}%"></div>
+        </div>
+        <span class="password-strength-text">${level.charAt(0).toUpperCase() + level.slice(1)}</span>
+    `;
+}
+
+function showValidationMessage(container, type, message) {
+    if (!container) return;
+    
+    container.className = `validation-message ${type}`;
+    container.innerHTML = message ? `<i class="fas fa-${type === 'error' ? 'times-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>${message}` : '';
+}
+
+async function handleLogin() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    
+    if (!validateEmail(email) || !validatePassword(password)) {
+        showNotification('Por favor, corrige los errores en el formulario', 'error');
+        return;
+    }
+    
+    try {
+        const result = await window.authService.login(email, password);
+        
+        if (result.success) {
+            showNotification('Inicio de sesión exitoso', 'success');
+        } else {
+            showNotification(result.error, 'error');
+        }
+    } catch (error) {
+        showNotification('Error al iniciar sesión', 'error');
+    }
+}
+
+async function handleRegister() {
+    console.log('🚀 Función handleRegister ejecutada');
+    
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const displayName = document.getElementById('displayName').value;
+    
+    console.log('Datos del formulario:', { email, password: '***', displayName });
+    
+    if (!validateEmail(email) || !validatePassword(password)) {
+        console.log('❌ Validación fallida');
+        showNotification('Por favor, corrige los errores en el formulario', 'error');
+        return;
+    }
+    
+    try {
+        console.log('🔐 Intentando registrar usuario con Firebase Auth...');
+        
+        // Verificar que el servicio de autenticación esté disponible
+        if (!window.authService) {
+            console.error('❌ Servicio de autenticación no disponible');
+            showNotification('Error: Servicio de autenticación no disponible', 'error');
+            return;
+        }
+        
+        console.log('✅ Servicio de autenticación disponible');
+        const result = await window.authService.register(email, password, displayName || null);
+        
+        console.log('Resultado del registro:', result);
+        
+        if (result.success) {
+            console.log('✅ Registro exitoso');
+            showNotification('Registro exitoso. Verifica tu email para confirmar tu cuenta.', 'success');
+            // Cambiar a modo login
+            toggleLoginMode(false);
+        } else {
+            console.log('❌ Error en registro:', result.error);
+            showNotification(result.error, 'error');
+        }
+    } catch (error) {
+        console.error('❌ Excepción en registro:', error);
+        showNotification('Error al registrar usuario', 'error');
+    }
+}
+
+async function handleForgotPassword() {
+    const email = document.getElementById('email').value;
+    
+    if (!validateEmail(email)) {
+        showNotification('Por favor, ingresa un email válido', 'error');
+        return;
+    }
+    
+    try {
+        const result = await window.authService.resetPassword(email);
+        
+        if (result.success) {
+            showNotification('Se ha enviado un email para restablecer tu contraseña', 'success');
+        } else {
+            showNotification(result.error, 'error');
+        }
+    } catch (error) {
+        showNotification('Error al enviar email de recuperación', 'error');
+    }
 }
 
 function logoutUser() {
+    // Cerrar sesión en Firebase
+    if (window.authService) {
+        window.authService.logout();
+    }
+    
     currentUser = null;
     categories = [];
     transactions = [];
     categoryGroups = {};
     incomes = [];
-    localStorage.removeItem('budgetCurrentUser');
+    
     // Limpiar UI
     document.getElementById('mainApp').style.display = 'none';
     document.getElementById('loginContainer').style.display = 'flex';
+    
     // Limpiar campos de login
-    document.getElementById('username').value = '';
-    document.getElementById('password').value = '';
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const displayNameInput = document.getElementById('displayName');
+    
+    if (emailInput) emailInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+    if (displayNameInput) displayNameInput.value = '';
+    
+    // Limpiar validaciones
+    const emailValidation = document.getElementById('emailValidation');
+    const passwordValidation = document.getElementById('passwordValidation');
+    const passwordStrength = document.getElementById('passwordStrength');
+    
+    if (emailValidation) emailValidation.innerHTML = '';
+    if (passwordValidation) passwordValidation.innerHTML = '';
+    if (passwordStrength) passwordStrength.innerHTML = '';
+    
+    showNotification('Sesión cerrada exitosamente', 'info');
 }
 
-function loadUserData() {
-    const userData = users[currentUser] || {
-        categories: [],
-        transactions: [],
-        categoryGroups: {},
-        incomes: [],
-        notifications: []
-    };
-    
-    categories = userData.categories || [];
-    transactions = userData.transactions || [];
-    categoryGroups = userData.categoryGroups || {};
-    incomes = userData.incomes || [];
-    notifications = userData.notifications || [];
-    
-    console.log('📥 Datos cargados para usuario:', currentUser);
-    console.log('📊 Resumen de datos cargados:');
-    console.log('  - Categorías:', categories.length);
-    console.log('  - Transacciones:', transactions.length);
-    console.log('  - Ingresos:', incomes.length);
-    console.log('  - Notificaciones:', notifications.length);
-}
-
-function saveUserData() {
-    if (!currentUser) return;
-    
-    const userData = {
-        categories: categories,
-        transactions: transactions,
-        categoryGroups: categoryGroups,
-        incomes: incomes,
-        notifications: notifications
-    };
-    
-    users[currentUser] = userData;
-    
+async function loadUserData() {
     try {
-        localStorage.setItem('budgetUsers', JSON.stringify(users));
-        console.log('✅ Datos guardados exitosamente para usuario:', currentUser);
+        // Cargar desde localStorage (independiente del puerto)
+        const categoriesData = localStorage.getItem(getStorageKey('categories'));
+        const transactionsData = localStorage.getItem(getStorageKey('transactions'));
+        const categoryGroupsData = localStorage.getItem(getStorageKey('categoryGroups'));
+        const incomesData = localStorage.getItem(getStorageKey('incomes'));
+        const notificationsData = localStorage.getItem(getStorageKey('notifications'));
+        const goalsData = localStorage.getItem(getStorageKey('goals'));
+        const bankAccountsData = localStorage.getItem(getStorageKey('bankAccounts'));
+        
+        // Parsear datos o usar valores por defecto
+        categories = categoriesData ? JSON.parse(categoriesData) : [];
+        transactions = transactionsData ? JSON.parse(transactionsData) : [];
+        categoryGroups = categoryGroupsData ? JSON.parse(categoryGroupsData) : {};
+        incomes = incomesData ? JSON.parse(incomesData) : [];
+        notifications = notificationsData ? JSON.parse(notificationsData) : [];
+        goals = goalsData ? JSON.parse(goalsData) : [];
+        bankAccounts = bankAccountsData ? JSON.parse(bankAccountsData) : [];
+        
+        console.log('📥 Datos cargados desde localStorage para usuario:', currentUser);
+        console.log('📊 Resumen de datos cargados:');
+        console.log('  - Categorías:', categories.length);
+        console.log('  - Transacciones:', transactions.length);
+        console.log('  - Ingresos:', incomes.length);
+        console.log('  - Notificaciones:', notifications.length);
+        console.log('  - Metas:', goals.length);
+        console.log('  - Cuentas bancarias:', bankAccounts.length);
+        
+        // Si hay servicio de autenticación, intentar cargar datos encriptados como respaldo
+        if (window.authService && window.authService.isAuthenticated()) {
+            try {
+                const user = window.authService.getCurrentUser();
+                const userId = user.uid;
+                
+                // Solo cargar datos encriptados si no hay datos en localStorage
+                if (categories.length === 0) {
+                    const encryptedCategories = await window.authService.loadEncryptedData(`categories_${userId}`);
+                    if (encryptedCategories) categories = encryptedCategories;
+                }
+                if (transactions.length === 0) {
+                    const encryptedTransactions = await window.authService.loadEncryptedData(`transactions_${userId}`);
+                    if (encryptedTransactions) transactions = encryptedTransactions;
+                }
+                if (Object.keys(categoryGroups).length === 0) {
+                    const encryptedCategoryGroups = await window.authService.loadEncryptedData(`categoryGroups_${userId}`);
+                    if (encryptedCategoryGroups) categoryGroups = encryptedCategoryGroups;
+                }
+                if (incomes.length === 0) {
+                    const encryptedIncomes = await window.authService.loadEncryptedData(`incomes_${userId}`);
+                    if (encryptedIncomes) incomes = encryptedIncomes;
+                }
+                if (notifications.length === 0) {
+                    const encryptedNotifications = await window.authService.loadEncryptedData(`notifications_${userId}`);
+                    if (encryptedNotifications) notifications = encryptedNotifications;
+                }
+                if (goals.length === 0) {
+                    const encryptedGoals = await window.authService.loadEncryptedData(`goals_${userId}`);
+                    if (encryptedGoals) goals = encryptedGoals;
+                }
+                
+                console.log('📥 Datos encriptados cargados como respaldo para usuario:', user.email);
+            } catch (encryptedError) {
+                console.warn('⚠️ No se pudieron cargar datos encriptados:', encryptedError);
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Error al cargar datos del usuario:', error);
+        // Usar datos por defecto en caso de error
+        categories = [];
+        transactions = [];
+        categoryGroups = {};
+        incomes = [];
+        notifications = [];
+        goals = [];
+        bankAccounts = [];
+    }
+}
+
+async function saveUserData() {
+    try {
+        // Guardar en localStorage como respaldo (independiente del puerto)
+        localStorage.setItem(getStorageKey('categories'), JSON.stringify(categories));
+        localStorage.setItem(getStorageKey('transactions'), JSON.stringify(transactions));
+        localStorage.setItem(getStorageKey('categoryGroups'), JSON.stringify(categoryGroups));
+        localStorage.setItem(getStorageKey('incomes'), JSON.stringify(incomes));
+        localStorage.setItem(getStorageKey('notifications'), JSON.stringify(notifications));
+        localStorage.setItem(getStorageKey('goals'), JSON.stringify(goals));
+        localStorage.setItem(getStorageKey('bankAccounts'), JSON.stringify(bankAccounts));
+        
+        console.log('✅ Datos guardados en localStorage para usuario:', currentUser);
+        
+        // Si hay servicio de autenticación, también guardar encriptado
+        if (window.authService && window.authService.isAuthenticated()) {
+            const user = window.authService.getCurrentUser();
+            const userId = user.uid;
+            
+            // Guardar datos encriptados
+            await window.authService.saveEncryptedData(`categories_${userId}`, categories);
+            await window.authService.saveEncryptedData(`transactions_${userId}`, transactions);
+            await window.authService.saveEncryptedData(`categoryGroups_${userId}`, categoryGroups);
+            await window.authService.saveEncryptedData(`incomes_${userId}`, incomes);
+            await window.authService.saveEncryptedData(`notifications_${userId}`, notifications);
+            await window.authService.saveEncryptedData(`goals_${userId}`, goals);
+            
+            console.log('✅ Datos encriptados guardados exitosamente para usuario:', user.email);
+        }
+        
         console.log('📊 Resumen de datos guardados:');
         console.log('  - Categorías:', categories.length);
         console.log('  - Transacciones:', transactions.length);
         console.log('  - Ingresos:', incomes.length);
         console.log('  - Notificaciones:', notifications.length);
+        console.log('  - Metas:', goals.length);
+        console.log('  - Cuentas bancarias:', bankAccounts.length);
+        
     } catch (error) {
         console.error('❌ Error al guardar datos:', error);
-        alert('Error al guardar los datos. Verifica el espacio disponible en tu navegador.');
+        showNotification('Error al guardar los datos. Verifica el espacio disponible en tu navegador.', 'error');
     }
 }
 
-function registerUser(username, password) {
-    console.log('Intentando registrar usuario:', username);
-    console.log('Usuarios existentes:', Object.keys(users));
-    
-    if (users[username]) {
-        alert('El usuario ya existe. Por favor, elige otro nombre de usuario.');
-        return false;
-    }
-    
-    users[username] = {
-        categories: [],
-        transactions: [],
-        categoryGroups: {},
-        incomes: [],
-        notifications: []
-    };
-    
-    localStorage.setItem('budgetUsers', JSON.stringify(users));
-    console.log('Usuario registrado exitosamente:', username);
-    return true;
-}
 
-function validateLogin(username, password) {
-    console.log('Validando login para usuario:', username);
-    console.log('Usuarios disponibles:', Object.keys(users));
-    
-    if (!users[username]) {
-        alert('Usuario no encontrado. Por favor, regístrate primero.');
-        return false;
-    }
-    
-    // En una aplicación real, aquí se validaría la contraseña
-    // Por simplicidad, solo verificamos que el usuario existe
-    console.log('Login válido para usuario:', username);
-    return true;
-}
+
+
 
 // Sistema de Colaboración
 function initializeCollaboration() {
@@ -899,6 +1491,22 @@ const defaultColors = {
     'Gastos Varios': '#8e8e93'              // Gris
 };
 
+// Iconos por defecto para las categorías principales
+const defaultIcons = {
+    'Alimentación y Bebidas': 'fas fa-utensils',
+    'Vivienda y Servicios': 'fas fa-home',
+    'Transporte': 'fas fa-car',
+    'Salud y Bienestar': 'fas fa-heartbeat',
+    'Educación': 'fas fa-graduation-cap',
+    'Ropa y Calzado': 'fas fa-tshirt',
+    'Entretenimiento y Ocio': 'fas fa-gamepad',
+    'Tecnología y Comunicación': 'fas fa-mobile-alt',
+    'Servicios Financieros': 'fas fa-piggy-bank',
+    'Mascotas': 'fas fa-paw',
+    'Regalos y Celebraciones': 'fas fa-gift',
+    'Gastos Varios': 'fas fa-ellipsis-h'
+};
+
 // Categorías por defecto si no existen datos
 const defaultCategoryGroups = {
     'Alimentación y Bebidas': [
@@ -1116,6 +1724,9 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM cargado, inicializando aplicación...');
     
     try {
+        // Inicializar optimizaciones primero
+        initializeOptimizations();
+        
         loadDataSafely();
         initializeLogin();
         
@@ -1146,137 +1757,28 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Error durante la inicialización:', error);
     }
     
-    // Event listeners para login
-    const loginBtn = document.getElementById('loginBtn');
-    const registerBtn = document.getElementById('registerBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
+    // Event listeners para login (removidos - se manejan en setupLoginFormEvents)
+    console.log('✅ Event listeners de login se configuran en setupLoginFormEvents');
     
-    console.log('Login button:', loginBtn);
-    console.log('Register button:', registerBtn);
-    console.log('Logout button:', logoutBtn);
+    // Configurar eventos del formulario de login mejorado
+    setTimeout(() => {
+        setupLoginFormEvents();
+    }, 100);
     
-    if (loginBtn) {
-        loginBtn.addEventListener('click', handleLogin);
-        console.log('Event listener agregado a loginBtn');
-    } else {
-        console.error('No se encontró el botón de login');
-    }
+    // Configurar eventos de sincronización
+    setupSyncEventListeners();
     
-    if (registerBtn) {
-        registerBtn.addEventListener('click', handleRegister);
-        console.log('Event listener agregado a registerBtn');
-    } else {
-        console.error('No se encontró el botón de registro');
-    }
-    
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logoutUser);
-        console.log('Event listener agregado a logoutBtn');
-    } else {
-        console.error('No se encontró el botón de logout');
-    }
-    
-    // Event listeners para formularios de login
-    const usernameInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
-    
-    if (usernameInput) {
-        usernameInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                passwordInput.focus();
-            }
-        });
-    }
-    
-    if (passwordInput) {
-        passwordInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                handleLogin();
-            }
-        });
-    }
-
-    const subtabBtns = document.querySelectorAll('.subtab-btn');
-    const gastosContainer = document.getElementById('gastosContainer');
-    const ingresosContainer = document.getElementById('ingresosContainer');
-    const addGastoBtn = document.getElementById('addGastoBtn');
-    const addIngresoBtn = document.getElementById('addIngresoBtn');
-
-    subtabBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            subtabBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            if (btn.dataset.subtab === 'gastos') {
-                gastosContainer.classList.add('active');
-                ingresosContainer.classList.remove('active');
-                addGastoBtn.style.display = '';
-                addIngresoBtn.style.display = 'none';
-            } else {
-                gastosContainer.classList.remove('active');
-                ingresosContainer.classList.add('active');
-                addGastoBtn.style.display = 'none';
-                addIngresoBtn.style.display = '';
-            }
-        });
-    });
-
-    // Mostrar por defecto el botón de gasto
-    addGastoBtn.style.display = '';
-    addIngresoBtn.style.display = 'none';
-
-    // Lógica para crear nueva transacción según tipo
-    addGastoBtn.addEventListener('click', function() {
-        openTransactionModal('gasto');
-    });
-    addIngresoBtn.addEventListener('click', function() {
-        openTransactionModal('ingreso');
-    });
+    // Cargar configuración de sincronización
+    setTimeout(() => {
+        loadSyncConfig();
+    }, 2000);
 });
 
-function handleLogin() {
-    console.log('Función handleLogin ejecutada');
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim();
-    
-    console.log('Username:', username);
-    console.log('Password:', password);
-    
-    if (!username || !password) {
-        alert('Por favor, completa todos los campos.');
-        return;
-    }
-    
-    if (validateLogin(username, password)) {
-        loginUser(username);
-        // Limpiar formulario
-        document.getElementById('username').value = '';
-        document.getElementById('password').value = '';
-    }
-}
 
-function handleRegister() {
-    console.log('Función handleRegister ejecutada');
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim();
-    
-    console.log('Username:', username);
-    console.log('Password:', password);
-    
-    if (!username || !password) {
-        alert('Por favor, completa todos los campos.');
-        return;
-    }
-    
-    if (registerUser(username, password)) {
-        alert('Usuario registrado exitosamente. Ahora puedes iniciar sesión.');
-        loginUser(username);
-        // Limpiar formulario
-        document.getElementById('username').value = '';
-        document.getElementById('password').value = '';
-    }
-}
 
-function initializeApp() {
+// Función handleRegister eliminada - se usa la versión async con Firebase Auth
+
+async function initializeApp() {
     // Solo inicializar si hay un usuario logueado
     if (!currentUser) return;
     
@@ -1304,6 +1806,12 @@ function initializeApp() {
     initializeCollaboration();
     initializeHistory();
     initializeImport();
+    
+    // Cargar metas
+    loadGoals();
+    
+    // Cargar cuentas bancarias
+    loadBankAccounts();
     
     // Inicializar notificaciones después de cargar datos
     setTimeout(() => {
@@ -1339,6 +1847,15 @@ function initializeApp() {
     // Configurar event listeners
     setupEventListeners();
     
+    // Configurar event delegation para botones de cuentas
+    setupBankAccountEventDelegation();
+    
+    // Verificar y actualizar fechas de tarjetas de crédito
+    checkAndUpdateCreditCardDates();
+    
+    // Configurar manejo inteligente de fechas
+    setupSmartDateHandling();
+    
     // Actualizar dropdowns de categorías
     updateCategoryDropdowns();
     updateCategorySelect();
@@ -1358,6 +1875,8 @@ function setupEventListeners() {
     const transactionForm = document.getElementById('transactionForm');
     const addGastoBtn = document.getElementById('addGastoBtn');
     const addIngresoBtn = document.getElementById('addIngresoBtn');
+    const addTransferenciaBtn = document.getElementById('addTransferenciaBtn');
+    const addPagoTarjetaBtn = document.getElementById('addPagoTarjetaBtn');
     
     // Navegación de pestañas
     if (tabButtons && tabButtons.length > 0) {
@@ -1390,6 +1909,20 @@ function setupEventListeners() {
         addIngresoBtn.addEventListener('click', () => openTransactionModal('ingreso'));
     } else {
         console.error('No se encontró el elemento addIngresoBtn');
+    }
+    
+    // Botón de nueva transferencia
+    if (addTransferenciaBtn) {
+        addTransferenciaBtn.addEventListener('click', () => openTransactionModal('transferencia'));
+    } else {
+        console.error('No se encontró el elemento addTransferenciaBtn');
+    }
+    
+    // Botón de nuevo pago de tarjeta
+    if (addPagoTarjetaBtn) {
+        addPagoTarjetaBtn.addEventListener('click', () => openPagoTarjetaModal());
+    } else {
+        console.error('No se encontró el elemento addPagoTarjetaBtn');
     }
     
     const selectCategoryBtn = document.getElementById('selectCategoryBtn');
@@ -1432,6 +1965,64 @@ function setupEventListeners() {
         transactionForm.addEventListener('submit', handleTransactionSubmit);
     } else {
         console.error('No se encontró el formulario transactionForm');
+    }
+    
+    // Formulario de pago de tarjetas
+    const pagoTarjetaForm = document.getElementById('pagoTarjetaForm');
+    if (pagoTarjetaForm) {
+        pagoTarjetaForm.addEventListener('submit', handlePagoTarjetaSubmit);
+    } else {
+        console.error('No se encontró el formulario pagoTarjetaForm');
+    }
+    
+    // Event listeners para subpestañas de transacciones
+    const subtabBtns = document.querySelectorAll('.subtab-btn');
+    const gastosContainer = document.getElementById('gastosContainer');
+    const ingresosContainer = document.getElementById('ingresosContainer');
+    const transferenciasContainer = document.getElementById('transferenciasContainer');
+    const pagosTarjetasContainer = document.getElementById('pagosTarjetasContainer');
+    
+    if (subtabBtns.length > 0) {
+        subtabBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remover clase active de todos los botones
+                subtabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Ocultar todos los contenedores
+                if (gastosContainer) gastosContainer.classList.remove('active');
+                if (ingresosContainer) ingresosContainer.classList.remove('active');
+                if (transferenciasContainer) transferenciasContainer.classList.remove('active');
+                if (pagosTarjetasContainer) pagosTarjetasContainer.classList.remove('active');
+                
+                // Ocultar todos los botones
+                if (addGastoBtn) addGastoBtn.style.display = 'none';
+                if (addIngresoBtn) addIngresoBtn.style.display = 'none';
+                if (addTransferenciaBtn) addTransferenciaBtn.style.display = 'none';
+                if (addPagoTarjetaBtn) addPagoTarjetaBtn.style.display = 'none';
+                
+                // Mostrar contenedor y botón correspondiente según la subpestaña
+                if (btn.dataset.subtab === 'gastos') {
+                    if (gastosContainer) gastosContainer.classList.add('active');
+                    if (addGastoBtn) addGastoBtn.style.display = '';
+                } else if (btn.dataset.subtab === 'ingresos') {
+                    if (ingresosContainer) ingresosContainer.classList.add('active');
+                    if (addIngresoBtn) addIngresoBtn.style.display = '';
+                } else if (btn.dataset.subtab === 'transferencias') {
+                    if (transferenciasContainer) transferenciasContainer.classList.add('active');
+                    if (addTransferenciaBtn) addTransferenciaBtn.style.display = '';
+                } else if (btn.dataset.subtab === 'pagos-tarjetas') {
+                    if (pagosTarjetasContainer) pagosTarjetasContainer.classList.add('active');
+                    if (addPagoTarjetaBtn) addPagoTarjetaBtn.style.display = '';
+                }
+            });
+        });
+        
+        // Mostrar por defecto la pestaña de gastos
+        const gastosTab = document.querySelector('[data-subtab="gastos"]');
+        if (gastosTab) {
+            gastosTab.click();
+        }
     }
 
     // Botones de agregar categoría y subcategoría
@@ -1567,6 +2158,23 @@ function setupEventListeners() {
         });
     }
     
+    // Botón para arreglar cuentas duplicadas
+    const fixDuplicateAccountsBtn = document.getElementById('fixDuplicateAccountsBtn');
+    if (fixDuplicateAccountsBtn) {
+        fixDuplicateAccountsBtn.addEventListener('click', () => {
+            const beforeCount = bankAccounts.length;
+            const removedCount = removeDuplicateAccounts();
+            
+            if (removedCount > 0) {
+                updateBankAccountsDisplay();
+                updateAccountSummary();
+                showNotification(`${removedCount} cuentas duplicadas eliminadas`, 'success');
+            } else {
+                showNotification('No se encontraron cuentas duplicadas', 'info');
+            }
+        });
+    }
+    
     // Botón de sincronización en la nube
     const cloudSyncBtn = document.getElementById('cloudSyncBtn');
     console.log('🔍 Buscando botón de sincronización en la nube:', cloudSyncBtn);
@@ -1669,6 +2277,57 @@ function setupEventListeners() {
         });
     }
     
+    // Event listeners para cuentas bancarias
+    const addBankAccountBtn = document.getElementById('addBankAccountBtn');
+    const bankAccountForm = document.getElementById('bankAccountForm');
+    const importBankTransactionsBtn = document.getElementById('importBankTransactionsBtn');
+    const reconcileAccountsBtn = document.getElementById('reconcileAccountsBtn');
+    
+    if (addBankAccountBtn) {
+        addBankAccountBtn.addEventListener('click', () => {
+            // Limpiar formulario
+            if (bankAccountForm) {
+                bankAccountForm.reset();
+                document.getElementById('bankAccountModalTitle').textContent = 'Nueva Cuenta Bancaria';
+                delete bankAccountForm.dataset.editId;
+            }
+            openModal('bankAccountModal');
+        });
+        console.log('✅ Event listener agregado a addBankAccountBtn');
+    } else {
+        console.error('No se encontró el elemento addBankAccountBtn');
+    }
+    
+    if (bankAccountForm) {
+        bankAccountForm.addEventListener('submit', handleBankAccountSubmit);
+        console.log('✅ Event listener agregado a bankAccountForm');
+    } else {
+        console.error('No se encontró el formulario bankAccountForm');
+    }
+    
+    if (importBankTransactionsBtn) {
+        importBankTransactionsBtn.addEventListener('click', () => {
+            openModal('importBankTransactionsModal');
+            // Actualizar dropdown de cuentas cuando se abra el modal
+            setTimeout(() => {
+                updateImportAccountDropdown();
+            }, 100);
+        });
+        console.log('✅ Event listener agregado a importBankTransactionsBtn');
+    } else {
+        console.error('No se encontró el elemento importBankTransactionsBtn');
+    }
+    
+    if (reconcileAccountsBtn) {
+        reconcileAccountsBtn.addEventListener('click', () => {
+            // Implementar lógica de conciliación
+            showNotification('Función de conciliación en desarrollo', 'info');
+        });
+        console.log('✅ Event listener agregado a reconcileAccountsBtn');
+    } else {
+        console.error('No se encontró el elemento reconcileAccountsBtn');
+    }
+    
     // Event listeners para reportes avanzados
     const reportMonthAdvanced = document.getElementById('reportMonth');
     const reportType = document.getElementById('reportType');
@@ -1684,6 +2343,74 @@ function setupEventListeners() {
     
     if (exportReportBtn) {
         exportReportBtn.addEventListener('click', exportReport);
+    }
+    
+    // Botón de cerrar sesión
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logoutUser);
+        console.log('✅ Event listener agregado al botón de logout');
+    } else {
+        console.error('❌ Botón de logout no encontrado');
+    }
+    
+    // Botón de guardar configuración de sincronización
+    const saveSyncConfigBtn = document.querySelector('#syncConfigModal .btn-primary');
+    if (saveSyncConfigBtn) {
+        saveSyncConfigBtn.addEventListener('click', saveSyncConfig);
+        console.log('✅ Event listener agregado al botón de guardar configuración de sincronización');
+    } else {
+        console.error('❌ Botón de guardar configuración de sincronización no encontrado');
+    }
+    
+    // Botón de solicitar permisos de notificación
+    const requestNotificationPermissionBtn = document.getElementById('requestNotificationPermissionBtn');
+    if (requestNotificationPermissionBtn) {
+        requestNotificationPermissionBtn.addEventListener('click', () => {
+            if (window.notificationService) {
+                window.notificationService.requestNotificationPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('✅ Permisos de notificación concedidos');
+                        window.notificationService.show('Notificaciones activadas correctamente', 'success', { duration: 3000 });
+                        // Ocultar el botón después de activar
+                        requestNotificationPermissionBtn.style.display = 'none';
+                    } else if (permission === 'denied') {
+                        console.log('❌ Permisos de notificación denegados');
+                        window.notificationService.show('Los permisos de notificación fueron denegados. Puedes habilitarlos en la configuración del navegador.', 'warning', { duration: 5000 });
+                    }
+                });
+            }
+        });
+        console.log('✅ Event listener agregado al botón de solicitar permisos de notificación');
+    } else {
+        console.error('❌ Botón de solicitar permisos de notificación no encontrado');
+    }
+    
+    // Botón de cambio de tema en el menú
+    const menuThemeToggleBtn = document.getElementById('menuThemeToggleBtn');
+    if (menuThemeToggleBtn) {
+        menuThemeToggleBtn.addEventListener('click', toggleTheme);
+        console.log('✅ Event listener agregado al botón de cambio de tema');
+    } else {
+        console.error('❌ Botón de cambio de tema no encontrado');
+    }
+    
+    // Botones de metas
+    const addGoalBtn = document.getElementById('addGoalBtn');
+    if (addGoalBtn) {
+        addGoalBtn.addEventListener('click', showAddGoalModal);
+        console.log('✅ Event listener agregado al botón de nueva meta');
+    } else {
+        console.error('❌ Botón de nueva meta no encontrado');
+    }
+    
+    // Formulario de metas
+    const goalForm = document.getElementById('goalForm');
+    if (goalForm) {
+        goalForm.addEventListener('submit', handleGoalSubmit);
+        console.log('✅ Event listener agregado al formulario de metas');
+    } else {
+        console.error('❌ Formulario de metas no encontrado');
     }
 }
 
@@ -1834,12 +2561,20 @@ function handleTransactionSubmit(e) {
     const amount = parseFloat(document.getElementById('transactionAmount').value);
     const type = document.getElementById('transactionType').value;
     const category = document.getElementById('transactionCategory').value;
+    const accountId = document.getElementById('transactionAccount').value;
+    const transferToAccountId = document.getElementById('transferToAccount').value;
     const date = document.getElementById('transactionDate').value;
     const comment = document.getElementById('transactionComment').value.trim();
     const editId = transactionForm.dataset.editId;
     
     if (!description || !amount || !category || !date) {
-        alert('Por favor completa todos los campos requeridos.');
+        showNotification('Por favor completa todos los campos requeridos', 'error');
+        return;
+    }
+    
+    // Validar cuenta bancaria
+    if (!accountId) {
+        showNotification('Por favor selecciona una cuenta bancaria', 'error');
         return;
     }
     
@@ -1864,6 +2599,7 @@ function handleTransactionSubmit(e) {
                 amount,
                 type,
                 category,
+                accountId,
                 date,
                 comment: comment || null,
                 lastModifiedBy: currentUser,
@@ -1899,6 +2635,7 @@ function handleTransactionSubmit(e) {
             amount,
             type,
             category,
+            accountId,
             date,
             comment: comment || null,
             createdBy: currentUser,
@@ -1907,7 +2644,46 @@ function handleTransactionSubmit(e) {
             lastModifiedAt: new Date().toISOString()
         };
         
-        transactions.push(newTransaction);
+        // Si es una transferencia
+        if (transferToAccountId && transferToAccountId !== accountId) {
+            newTransaction.type = 'transferencia';
+            newTransaction.transferToAccountId = transferToAccountId;
+            
+            // Crear transacción de salida
+            const outgoingTransaction = {
+                ...newTransaction,
+                id: Date.now() + 1,
+                description: `Transferencia a ${getAccountName(transferToAccountId)}`,
+                amount: -Math.abs(amount)
+            };
+            
+            // Crear transacción de entrada
+            const incomingTransaction = {
+                ...newTransaction,
+                id: Date.now() + 2,
+                description: `Transferencia desde ${getAccountName(accountId)}`,
+                amount: Math.abs(amount),
+                accountId: transferToAccountId,
+                transferFromAccountId: accountId
+            };
+            
+            transactions.push(outgoingTransaction, incomingTransaction);
+            
+            // Actualizar balances de ambas cuentas
+            updateAccountBalance(accountId, -Math.abs(amount), `Transferencia a ${getAccountName(transferToAccountId)}`);
+            updateAccountBalance(transferToAccountId, Math.abs(amount), `Transferencia desde ${getAccountName(accountId)}`);
+            
+            showNotification('Transferencia realizada exitosamente', 'success');
+        } else {
+            // Transacción normal (gasto o ingreso)
+            transactions.push(newTransaction);
+            
+            // Actualizar balance de la cuenta
+            const balanceChange = newTransaction.amount;
+            updateAccountBalance(accountId, balanceChange, description);
+            
+            showNotification('Transacción agregada exitosamente', 'success');
+        }
         
         // Ajustar spent en categoría si es gasto
         if (type === 'gasto') {
@@ -2164,6 +2940,10 @@ function getCategoryColor(categoryName) {
     return color;
 }
 
+function getCategoryIcon(categoryName) {
+    return defaultIcons[categoryName] || 'fas fa-tag';
+}
+
 function showAddCategoryInput() {
     const categorySelect = document.getElementById('categoryName');
     const newCategory = prompt('Ingresa el nombre de la nueva categoría:');
@@ -2255,6 +3035,19 @@ function updateUI(forceUpdate = false) {
     updateIncomesDisplay();
     updateGastosIngresosDisplay();
     updateReports();
+    updateGoalsDisplay();
+    // Limpiar cuentas duplicadas existentes al cargar
+    removeDuplicateAccounts();
+    
+    // Normalizar IDs de cuentas existentes
+    normalizeAllAccountIds();
+    
+    // Actualizar cuentas bancarias
+    updateBankAccountsDisplay();
+    updateAccountSummary();
+    
+    // Configurar event delegation para botones de cuentas
+    setupBankAccountEventDelegation();
     
     // Actualizar dropdowns solo si es necesario
     if (forceUpdate || !document.getElementById('categoryName').options.length) {
@@ -2393,7 +3186,7 @@ function updateCategoriesDisplay(categoriesToShow = null) {
         groupedCategories[category.name].push(category);
     });
 
-    // Crear grupos de categorías compactos
+    // Crear lista elegante de categorías principales
     Object.keys(groupedCategories).forEach(categoryName => {
         const categoryGroup = groupedCategories[categoryName];
         const totalBudget = categoryGroup.reduce((sum, cat) => {
@@ -2402,158 +3195,293 @@ function updateCategoriesDisplay(categoriesToShow = null) {
         }, 0);
         const totalSpent = categoryGroup.reduce((sum, cat) => sum + cat.spent, 0);
         const totalRemaining = totalBudget - totalSpent;
-        const percentage = (totalSpent / totalBudget) * 100;
-        
-        // Crear contenedor del grupo
-        const groupContainer = document.createElement('div');
-        groupContainer.className = 'category-group';
-        groupContainer.style.marginBottom = '12px';
-        groupContainer.style.border = '1px solid #e0e0e0';
-        groupContainer.style.borderRadius = '8px';
-        groupContainer.style.overflow = 'hidden';
-        groupContainer.style.cursor = 'pointer';
-        groupContainer.style.transition = 'all 0.3s ease';
+        const percentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
         
         // Usar el color de la categoría principal
         const groupColor = getCategoryColor(categoryName);
         
-        // Crear header del grupo con información resumida
-        const groupHeader = document.createElement('div');
-        groupHeader.style.background = '#f8f9fa';
-        groupHeader.style.padding = '16px';
-        groupHeader.style.borderBottom = '1px solid #e0e0e0';
-        groupHeader.style.fontWeight = '600';
-        groupHeader.style.fontSize = '16px';
-        groupHeader.style.color = '#333';
-        groupHeader.style.display = 'flex';
-        groupHeader.style.justifyContent = 'space-between';
-        groupHeader.style.alignItems = 'center';
-        
-        groupHeader.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <i class="fas fa-chevron-right" style="color: #666; transition: transform 0.3s ease;" id="chevron-${categoryName.replace(/\s+/g, '-')}"></i>
-                <span style="color: ${groupColor}">${categoryName}</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 16px;">
-                <div style="text-align: right;">
-                    <div style="font-size: 14px; color: #666;">Presupuesto</div>
-                    <div style="font-weight: 600; color: #333;">${formatCurrency(totalBudget)}</div>
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 14px; color: #666;">Gastado</div>
-                    <div style="font-weight: 600; color: ${totalSpent > totalBudget ? '#ff3b30' : '#34c759'}">${formatCurrency(totalSpent)}</div>
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 14px; color: #666;">Restante</div>
-                    <div style="font-weight: 600; color: ${totalRemaining < 0 ? '#ff3b30' : '#333'}">${formatCurrency(totalRemaining)}</div>
-                </div>
-            </div>
+        // Crear elemento de lista elegante
+        const categoryItem = document.createElement('div');
+        categoryItem.className = 'category-list-item';
+        categoryItem.style.cssText = `
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color, #e0e0e0);
+            border-radius: 12px;
+            background: var(--card-bg, #fff);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
         `;
         
-        groupContainer.appendChild(groupHeader);
+        // Crear header principal con información resumida
+        const itemHeader = document.createElement('div');
+        itemHeader.style.cssText = `
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-color, #f8f9fa);
+            border-bottom: 1px solid transparent;
+            transition: all 0.3s ease;
+        `;
+        
+        // Lado izquierdo: Nombre y progreso
+        const leftSide = document.createElement('div');
+        leftSide.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        `;
+        
+        const chevron = document.createElement('i');
+        chevron.className = 'fas fa-chevron-right';
+        chevron.id = `chevron-${categoryName.replace(/\s+/g, '-')}`;
+        chevron.style.cssText = `
+            color: var(--text-muted, #666);
+            transition: transform 0.3s ease;
+            font-size: 14px;
+        `;
+        
+        const categoryInfo = document.createElement('div');
+        categoryInfo.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        `;
+        
+        const categoryIcon = document.createElement('i');
+        categoryIcon.className = getCategoryIcon(categoryName);
+        categoryIcon.style.cssText = `
+            color: ${groupColor};
+            font-size: 18px;
+            margin-right: 8px;
+        `;
+        
+        const categoryTitle = document.createElement('span');
+        categoryTitle.textContent = categoryName;
+        categoryTitle.style.cssText = `
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--text-color, #333);
+        `;
+        
+        const progressBar = document.createElement('div');
+        progressBar.style.cssText = `
+            width: 120px;
+            height: 6px;
+            background: var(--border-color, #e0e0e0);
+            border-radius: 3px;
+            overflow: hidden;
+        `;
+        
+        const progressFill = document.createElement('div');
+        progressFill.style.cssText = `
+            width: ${Math.min(percentage, 100)}%;
+            height: 100%;
+            background: ${groupColor};
+            transition: width 0.3s ease;
+        `;
+        
+        progressBar.appendChild(progressFill);
+        categoryInfo.appendChild(categoryTitle);
+        categoryInfo.appendChild(progressBar);
+        
+        // Crear contenedor para icono y título
+        const titleContainer = document.createElement('div');
+        titleContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+        `;
+        titleContainer.appendChild(categoryIcon);
+        titleContainer.appendChild(categoryTitle);
+        
+        categoryInfo.innerHTML = '';
+        categoryInfo.appendChild(titleContainer);
+        categoryInfo.appendChild(progressBar);
+        leftSide.appendChild(chevron);
+        leftSide.appendChild(categoryInfo);
+        
+        // Lado derecho: Resumen financiero
+        const rightSide = document.createElement('div');
+        rightSide.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            text-align: right;
+        `;
+        
+        const budgetInfo = document.createElement('div');
+        budgetInfo.innerHTML = `
+            <div style="font-size: 12px; color: var(--text-muted, #666); margin-bottom: 2px;">Presupuesto</div>
+            <div style="font-weight: 600; color: var(--text-color, #333);">${formatCurrency(totalBudget)}</div>
+        `;
+        
+        const spentInfo = document.createElement('div');
+        spentInfo.innerHTML = `
+            <div style="font-size: 12px; color: var(--text-muted, #666); margin-bottom: 2px;">Gastado</div>
+            <div style="font-weight: 600; color: ${totalSpent > totalBudget ? 'var(--danger-color, #ff3b30)' : 'var(--success-color, #34c759)'}">${formatCurrency(totalSpent)}</div>
+        `;
+        
+        const remainingInfo = document.createElement('div');
+        remainingInfo.innerHTML = `
+            <div style="font-size: 12px; color: var(--text-muted, #666); margin-bottom: 2px;">Restante</div>
+            <div style="font-weight: 600; color: ${totalRemaining < 0 ? 'var(--danger-color, #ff3b30)' : 'var(--text-color, #333)'}">${formatCurrency(totalRemaining)}</div>
+        `;
+        
+        const percentageInfo = document.createElement('div');
+        percentageInfo.innerHTML = `
+            <div style="font-size: 12px; color: var(--text-muted, #666); margin-bottom: 2px;">Progreso</div>
+            <div style="font-weight: 600; color: var(--text-color, #333);">${Math.round(percentage)}%</div>
+        `;
+        
+        rightSide.appendChild(budgetInfo);
+        rightSide.appendChild(spentInfo);
+        rightSide.appendChild(remainingInfo);
+        rightSide.appendChild(percentageInfo);
+        
+        itemHeader.appendChild(leftSide);
+        itemHeader.appendChild(rightSide);
+        categoryItem.appendChild(itemHeader);
         
         // Crear contenedor para las subcategorías (inicialmente oculto)
         const subcategoriesContainer = document.createElement('div');
-        subcategoriesContainer.style.display = 'none';
-        subcategoriesContainer.style.padding = '12px';
-        subcategoriesContainer.style.background = '#fff';
-        subcategoriesContainer.style.borderTop = '1px solid #e0e0e0';
+        subcategoriesContainer.style.cssText = `
+            display: none;
+            padding: 0;
+            background: var(--card-bg, #fff);
+            border-top: 1px solid var(--border-color, #e0e0e0);
+        `;
         
         // Agregar cada subcategoría del grupo
         categoryGroup.forEach(category => {
-            // Calcular el presupuesto ajustado según la frecuencia
             const adjustedBudget = calculateAdjustedBudget(category.budget, category.frequency || 'monthly', category.customDays);
-            const subcategoryPercentage = (category.spent / adjustedBudget) * 100;
+            const subcategoryPercentage = adjustedBudget > 0 ? (category.spent / adjustedBudget) * 100 : 0;
             const subcategoryRemaining = adjustedBudget - category.spent;
             const frequencyText = category.frequency ? getFrequencyText(category.frequency, category.customDays) : 'Mensual';
             const nextRecurrence = category.recurringDate && category.frequency ? 
                 getNextRecurrenceDate(category.recurringDate, category.frequency, category.customDays) : null;
-            const recurringDateText = category.recurringDate ? 
-                `<span class="category-recurring">${frequencyText} - Próximo: ${formatDate(nextRecurrence || category.recurringDate)}</span>` : '';
             
-            // Mostrar el presupuesto base y el ajustado
+            const subcategoryItem = document.createElement('div');
+            subcategoryItem.style.cssText = `
+                padding: 16px 20px;
+                border-bottom: 1px solid var(--border-color, #e0e0e0);
+                background: var(--card-bg, #fff);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `;
+            
+            const subcategoryLeft = document.createElement('div');
+            subcategoryLeft.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                flex: 1;
+            `;
+            
+            const subcategoryName = document.createElement('span');
+            subcategoryName.textContent = category.subcategory || 'Sin subcategoría';
+            subcategoryName.style.cssText = `
+                font-weight: 500;
+                color: var(--text-color, #333);
+                font-size: 14px;
+            `;
+            
+            const subcategoryDetails = document.createElement('div');
+            subcategoryDetails.style.cssText = `
+                display: flex;
+                gap: 16px;
+                font-size: 12px;
+                color: var(--text-muted, #666);
+            `;
+            
             const budgetDisplay = category.frequency && category.frequency !== 'monthly' ? 
                 `${formatCurrency(category.budget)} → ${formatCurrency(adjustedBudget)}` : 
                 formatCurrency(category.budget);
             
-            const categoryCard = document.createElement('div');
-            categoryCard.className = 'category-card';
-            categoryCard.style.margin = '8px 0';
-            categoryCard.style.border = '1px solid #e0e0e0';
-            categoryCard.style.borderRadius = '6px';
-            categoryCard.style.padding = '12px';
-            categoryCard.style.background = '#fff';
+            subcategoryDetails.innerHTML = `
+                <span>Presupuesto: ${budgetDisplay}</span>
+                <span>Frecuencia: ${frequencyText}</span>
+                ${category.recurringDate ? `<span>Próximo: ${formatDate(nextRecurrence || category.recurringDate)}</span>` : ''}
+            `;
             
-            categoryCard.innerHTML = `
-                <div class="category-header">
-                    <div class="category-info">
-                        <span class="category-name" style="color: ${groupColor}">${category.subcategory || 'Sin subcategoría'}</span>
-                        <span class="category-budget">${budgetDisplay}</span>
-                        ${recurringDateText}
-                    </div>
-                    <div class="category-actions">
-                        <button class="btn-icon edit-category" data-id="${category.id}" title="Editar categoría">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-icon delete-category" data-id="${category.id}" title="Eliminar categoría">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+            const subcategoryProgress = document.createElement('div');
+            subcategoryProgress.style.cssText = `
+                width: 100px;
+                height: 4px;
+                background: var(--border-color, #e0e0e0);
+                border-radius: 2px;
+                overflow: hidden;
+            `;
+            
+            const subcategoryProgressFill = document.createElement('div');
+            subcategoryProgressFill.style.cssText = `
+                width: ${Math.min(subcategoryPercentage, 100)}%;
+                height: 100%;
+                background: ${groupColor};
+                transition: width 0.3s ease;
+            `;
+            
+            subcategoryProgress.appendChild(subcategoryProgressFill);
+            
+            subcategoryLeft.appendChild(subcategoryName);
+            subcategoryLeft.appendChild(subcategoryDetails);
+            subcategoryLeft.appendChild(subcategoryProgress);
+            
+            const subcategoryRight = document.createElement('div');
+            subcategoryRight.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                text-align: right;
+            `;
+            
+            subcategoryRight.innerHTML = `
+                <div>
+                    <div style="font-size: 11px; color: var(--text-muted, #666);">Gastado</div>
+                    <div style="font-weight: 600; color: ${category.spent > adjustedBudget ? 'var(--danger-color, #ff3b30)' : 'var(--success-color, #34c759)'}; font-size: 13px;">${formatCurrency(category.spent)}</div>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${Math.min(subcategoryPercentage, 100)}%; background: ${groupColor}"></div>
+                <div>
+                    <div style="font-size: 11px; color: var(--text-muted, #666);">Restante</div>
+                    <div style="font-weight: 600; color: ${subcategoryRemaining < 0 ? 'var(--danger-color, #ff3b30)' : 'var(--text-color, #333)'}; font-size: 13px;">${formatCurrency(subcategoryRemaining)}</div>
                 </div>
-                <div class="category-stats">
-                    <span>Gastado: ${formatCurrency(category.spent)}</span>
-                    <span>Restante: ${formatCurrency(subcategoryRemaining)}</span>
+                <div>
+                    <div style="font-size: 11px; color: var(--text-muted, #666);">%</div>
+                    <div style="font-weight: 600; color: var(--text-color, #333); font-size: 13px;">${Math.round(subcategoryPercentage)}%</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-icon edit-category" data-id="${category.id}" title="Editar categoría" style="padding: 6px; border-radius: 6px; border: 1px solid var(--border-color, #e0e0e0); background: var(--card-bg, #fff); color: var(--text-muted, #666); cursor: pointer;">
+                        <i class="fas fa-edit" style="font-size: 12px;"></i>
+                    </button>
+                    <button class="btn-icon delete-category" data-id="${category.id}" title="Eliminar categoría" style="padding: 6px; border-radius: 6px; border: 1px solid var(--border-color, #e0e0e0); background: var(--card-bg, #fff); color: var(--danger-color, #ff3b30); cursor: pointer;">
+                        <i class="fas fa-trash" style="font-size: 12px;"></i>
+                    </button>
                 </div>
             `;
-            // ALERTA VISUAL EN TARJETA DE CATEGORÍA
-            categoryCard.classList.remove('alert', 'critical');
-            if (adjustedBudget > 0) {
-                const percent = category.spent / adjustedBudget;
-                if (percent >= 1) {
-                    categoryCard.classList.add('critical');
-                } else if (percent >= 0.9) {
-                    categoryCard.classList.add('alert');
-                }
-            }
             
-            subcategoriesContainer.appendChild(categoryCard);
+            subcategoryItem.appendChild(subcategoryLeft);
+            subcategoryItem.appendChild(subcategoryRight);
+            subcategoriesContainer.appendChild(subcategoryItem);
         });
         
-        // Agregar barra de progreso del grupo
-        const progressContainer = document.createElement('div');
-        progressContainer.style.padding = '0 16px 16px 16px';
-        progressContainer.style.background = '#f8f9fa';
-        progressContainer.innerHTML = `
-            <div class="progress-bar" style="height: 8px; border-radius: 4px; background: #e0e0e0; overflow: hidden;">
-                <div class="progress-fill" style="width: ${Math.min(percentage, 100)}%; background: ${groupColor}; height: 100%; transition: width 0.3s ease;"></div>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: #666;">
-                <span>0%</span>
-                <span>${Math.round(percentage)}%</span>
-                <span>100%</span>
-            </div>
-        `;
-        
-        groupContainer.appendChild(progressContainer);
-        groupContainer.appendChild(subcategoriesContainer);
-        container.appendChild(groupContainer);
+        categoryItem.appendChild(subcategoriesContainer);
+        container.appendChild(categoryItem);
         
         // Agregar event listener para expandir/colapsar
-        groupHeader.addEventListener('click', () => {
+        itemHeader.addEventListener('click', () => {
             const isExpanded = subcategoriesContainer.style.display === 'block';
-            const chevron = document.getElementById(`chevron-${categoryName.replace(/\s+/g, '-')}`);
             
             if (isExpanded) {
                 subcategoriesContainer.style.display = 'none';
                 chevron.style.transform = 'rotate(0deg)';
-                groupContainer.style.background = '#f8f9fa';
+                itemHeader.style.borderBottomColor = 'transparent';
+                categoryItem.style.background = 'var(--bg-color, #f8f9fa)';
             } else {
                 subcategoriesContainer.style.display = 'block';
                 chevron.style.transform = 'rotate(90deg)';
-                groupContainer.style.background = '#fff';
+                itemHeader.style.borderBottomColor = 'var(--border-color, #e0e0e0)';
+                categoryItem.style.background = 'var(--card-bg, #fff)';
             }
         });
     });
@@ -2582,8 +3510,10 @@ function updateGastosIngresosDisplay(transactionsToShow = null) {
     
     const gastosContainer = document.getElementById('gastosContainer');
     const ingresosContainer = document.getElementById('ingresosContainer');
+    const transferenciasContainer = document.getElementById('transferenciasContainer');
+    const pagosTarjetasContainer = document.getElementById('pagosTarjetasContainer');
     
-    if (!gastosContainer || !ingresosContainer) {
+    if (!gastosContainer || !ingresosContainer || !transferenciasContainer || !pagosTarjetasContainer) {
         console.error('No se encontraron los contenedores de transacciones');
         return;
     }
@@ -2591,6 +3521,8 @@ function updateGastosIngresosDisplay(transactionsToShow = null) {
     // Limpiar contenedores
     gastosContainer.innerHTML = '';
     ingresosContainer.innerHTML = '';
+    transferenciasContainer.innerHTML = '';
+    pagosTarjetasContainer.innerHTML = '';
     
     const transactionsToDisplay = transactionsToShow || transactions;
     console.log('Transacciones a mostrar:', transactionsToDisplay.length);
@@ -2598,9 +3530,13 @@ function updateGastosIngresosDisplay(transactionsToShow = null) {
     // Filtrar transacciones por tipo
     const gastos = transactionsToDisplay.filter(t => t.type === 'gasto');
     const ingresos = transactionsToDisplay.filter(t => t.type === 'ingreso');
+    const transferencias = transactionsToDisplay.filter(t => t.type === 'transferencia');
+    const pagosTarjetas = transactionsToDisplay.filter(t => t.type === 'pago-tarjeta');
     
     console.log('Gastos encontrados:', gastos.length);
     console.log('Ingresos encontrados:', ingresos.length);
+    console.log('Transferencias encontradas:', transferencias.length);
+    console.log('Pagos de tarjetas encontrados:', pagosTarjetas.length);
     
     // Mostrar gastos
     if (gastos.length === 0) {
@@ -2622,6 +3558,26 @@ function updateGastosIngresosDisplay(transactionsToShow = null) {
         });
     }
     
+    // Mostrar transferencias
+    if (transferencias.length === 0) {
+        transferenciasContainer.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No hay transferencias registradas.</p>';
+    } else {
+        transferencias.forEach(transaction => {
+            const transactionItem = createTransactionItem(transaction);
+            transferenciasContainer.appendChild(transactionItem);
+        });
+    }
+    
+    // Mostrar pagos de tarjetas
+    if (pagosTarjetas.length === 0) {
+        pagosTarjetasContainer.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No hay pagos de tarjetas registrados.</p>';
+    } else {
+        pagosTarjetas.forEach(transaction => {
+            const transactionItem = createTransactionItem(transaction);
+            pagosTarjetasContainer.appendChild(transactionItem);
+        });
+    }
+    
     console.log('Visualización de transacciones actualizada');
 }
 
@@ -2633,12 +3589,47 @@ function createTransactionItem(transaction) {
     const amountPrefix = transaction.type === 'ingreso' ? '+' : '-';
     const authorInfo = transaction.lastModifiedBy ? `<div class="transaction-author">por ${transaction.lastModifiedBy}</div>` : '';
     const commentHtml = transaction.comment ? `<div class="transaction-comment"><div class="transaction-comment-author">${transaction.lastModifiedBy || 'Usuario'}</div>${transaction.comment}</div>` : '';
+    
+    // Información de cuenta bancaria
+    let accountInfo = '';
+    if (transaction.accountId) {
+        const accountName = getAccountName(transaction.accountId);
+        accountInfo = `<div class="transaction-account"><i class="fas fa-university"></i> ${accountName}</div>`;
+    }
+    
+    // Información de transferencia
+    let transferInfo = '';
+    if (transaction.type === 'transferencia') {
+        if (transaction.transferToAccountId) {
+            const toAccountName = getAccountName(transaction.transferToAccountId);
+            transferInfo = `<div class="transaction-transfer"><i class="fas fa-exchange-alt"></i> → ${toAccountName}</div>`;
+        } else if (transaction.transferFromAccountId) {
+            const fromAccountName = getAccountName(transaction.transferFromAccountId);
+            transferInfo = `<div class="transaction-transfer"><i class="fas fa-exchange-alt"></i> ← ${fromAccountName}</div>`;
+        }
+    }
+    
+    // Información de pago de tarjeta
+    let pagoTarjetaInfo = '';
+    if (transaction.type === 'pago-tarjeta') {
+        if (transaction.tarjetaDestinoId) {
+            const tarjetaName = getAccountName(transaction.tarjetaDestinoId);
+            pagoTarjetaInfo = `<div class="transaction-pago-tarjeta"><i class="fas fa-credit-card"></i> → ${tarjetaName}</div>`;
+        } else if (transaction.cuentaOrigenId) {
+            const cuentaName = getAccountName(transaction.cuentaOrigenId);
+            pagoTarjetaInfo = `<div class="transaction-pago-tarjeta"><i class="fas fa-credit-card"></i> ← ${cuentaName}</div>`;
+        }
+    }
+    
     transactionItem.innerHTML = `
         <div class="transaction-description">
             <h4>${transaction.description}</h4>
             <div class="transaction-details">
                 ${transaction.category} • ${date}
             </div>
+            ${accountInfo}
+            ${transferInfo}
+            ${pagoTarjetaInfo}
             ${authorInfo}
             ${commentHtml}
         </div>
@@ -3097,18 +4088,26 @@ function handleSelectFrequencyChange() {
     }
 }
 
-function saveData() {
+async function saveData() {
     try {
-        saveUserData();
+        await saveUserData();
+        
+        // Sincronizar automáticamente después de guardar
+        if (window.syncService && window.syncService.isOnline) {
+            console.log('🔄 Sincronizando datos después de guardar...');
+            setTimeout(() => {
+                window.syncService.syncNow();
+            }, 1000);
+        }
     } catch (error) {
         console.error('Error al guardar datos:', error);
-        alert('Error al guardar los datos. Verifica el espacio disponible en tu navegador.');
+        showNotification('Error al guardar los datos. Verifica el espacio disponible en tu navegador.', 'error');
     }
 }
 
-function saveCategoryGroups() {
+async function saveCategoryGroups() {
     try {
-        saveUserData();
+        await saveUserData();
     } catch (error) {
         console.error('Error al guardar grupos de categorías:', error);
     }
@@ -3415,13 +4414,16 @@ window.closeModal = closeModal;
 // Función para mostrar información del usuario
 function showUserInfo() {
     if (currentUser) {
-        const userData = users[currentUser];
-        const totalCategories = userData.categories ? userData.categories.length : 0;
-        const totalTransactions = userData.transactions ? userData.transactions.length : 0;
+        const totalCategories = categories.length;
+        const totalTransactions = transactions.length;
+        const totalIncomes = incomes.length;
+        const totalGoals = goals.length;
         
         console.log(`Usuario: ${currentUser}`);
         console.log(`Categorías: ${totalCategories}`);
         console.log(`Transacciones: ${totalTransactions}`);
+        console.log(`Ingresos: ${totalIncomes}`);
+        console.log(`Metas: ${totalGoals}`);
     }
 }
 
@@ -3429,7 +4431,18 @@ function showUserInfo() {
 function exportUserData() {
     if (!currentUser) return;
     
-    const userData = users[currentUser];
+    const userData = {
+        categories: categories,
+        transactions: transactions,
+        categoryGroups: categoryGroups,
+        incomes: incomes,
+        goals: goals,
+        notifications: notifications,
+        bankAccounts: bankAccounts,
+        bankTransactions: bankTransactions,
+        reconciliationData: reconciliationData
+    };
+    
     const dataStr = JSON.stringify(userData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
@@ -3508,19 +4521,38 @@ function importUserData(file) {
                     categoryGroups = dataToImport.categoryGroups || {};
                     incomes = dataToImport.incomes || [];
                     
-                    // Actualizar datos del usuario
-                    users[currentUser] = dataToImport.userData || {};
+                    // Restaurar datos adicionales si existen
+                    if (dataToImport.goals) goals = dataToImport.goals;
+                    if (dataToImport.notifications) notifications = dataToImport.notifications;
+                    if (dataToImport.bankAccounts) bankAccounts = dataToImport.bankAccounts;
+                    if (dataToImport.bankTransactions) bankTransactions = dataToImport.bankTransactions;
+                    if (dataToImport.reconciliationData) reconciliationData = dataToImport.reconciliationData;
                     
                     // Guardar todo
                     saveData();
                     saveCategoryGroups();
                     saveIncomes();
+                    saveGoals();
+                    saveBankAccounts();
                     saveUserData();
                 } else {
-                    // Importación simple
-                    users[currentUser] = dataToImport;
-                    loadUserData();
-                    saveUserData();
+                    // Importación simple - aplicar datos directamente
+                    if (dataToImport.categories) categories = dataToImport.categories;
+                    if (dataToImport.transactions) transactions = dataToImport.transactions;
+                    if (dataToImport.categoryGroups) categoryGroups = dataToImport.categoryGroups;
+                    if (dataToImport.incomes) incomes = dataToImport.incomes;
+                    if (dataToImport.goals) goals = dataToImport.goals;
+                    if (dataToImport.notifications) notifications = dataToImport.notifications;
+                    if (dataToImport.bankAccounts) bankAccounts = dataToImport.bankAccounts;
+                    if (dataToImport.bankTransactions) bankTransactions = dataToImport.bankTransactions;
+                    if (dataToImport.reconciliationData) reconciliationData = dataToImport.reconciliationData;
+                    
+                    // Guardar todo
+                    saveData();
+                    saveCategoryGroups();
+                    saveIncomes();
+                    saveGoals();
+                    saveBankAccounts();
                 }
                 
                 clearCaches();
@@ -3555,19 +4587,19 @@ function loadIncomes() {
 }
 
 // Función para guardar ingresos recurrentes
-function saveIncomes() {
+async function saveIncomes() {
     try {
         // Guardar en el sistema centralizado
-        saveUserData();
+        await saveUserData();
         console.log('✅ Ingresos guardados exitosamente');
     } catch (error) {
         console.error('❌ Error al guardar ingresos recurrentes:', error);
-        alert('Error al guardar los ingresos. Verifica el espacio disponible en tu navegador.');
+        showNotification('Error al guardar los ingresos. Verifica el espacio disponible en tu navegador.', 'error');
     }
 }
 
 // Función para manejar el envío del formulario de ingresos recurrentes
-function handleIncomeSubmit(e) {
+async function handleIncomeSubmit(e) {
     e.preventDefault();
     
     const name = document.getElementById('incomeName').value.trim();
@@ -3609,7 +4641,7 @@ function handleIncomeSubmit(e) {
         incomes.push(incomeData);
     }
     
-    saveIncomes();
+    await saveIncomes();
     addToHistory('Ingreso recurrente', editId ? `Editó ingreso: ${name}` : `Agregó ingreso: ${name}`, 'income');
     clearCaches();
     updateUI();
@@ -3659,20 +4691,28 @@ function updateIncomesDisplay() {
         return;
     }
     
-    // Crear contenedor para ingresos
+    // Crear contenedor para ingresos con el mismo estilo que las categorías
     const incomesSection = document.createElement('div');
-    incomesSection.style.marginBottom = '30px';
+    incomesSection.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        max-width: 800px;
+        margin: 0 auto 30px auto;
+    `;
     
     // Título de la sección
     const sectionTitle = document.createElement('h3');
     sectionTitle.textContent = 'Ingresos Recurrentes';
-    sectionTitle.style.marginBottom = '20px';
-    sectionTitle.style.color = '#333';
-    sectionTitle.style.fontSize = '18px';
-    sectionTitle.style.fontWeight = '600';
-    incomesSection.appendChild(sectionTitle);
+    sectionTitle.style.cssText = `
+        margin-bottom: 20px;
+        color: var(--text-color, #333);
+        font-size: 18px;
+        font-weight: 600;
+    `;
+    container.appendChild(sectionTitle);
     
-    // Crear tarjetas para cada ingreso
+    // Crear tarjetas compactas para cada ingreso
     incomes.forEach(income => {
         const adjustedAmount = calculateAdjustedBudget(income.amount, income.frequency, income.customDays);
         const frequencyText = getFrequencyText(income.frequency, income.customDays);
@@ -3686,33 +4726,54 @@ function updateIncomesDisplay() {
         
         const incomeCard = document.createElement('div');
         incomeCard.className = 'category-card income-card';
-        incomeCard.style.display = 'flex';
-        incomeCard.style.alignItems = 'center';
-        incomeCard.style.justifyContent = 'space-between';
-        incomeCard.style.gap = '18px';
-        incomeCard.style.margin = '12px 0';
-        incomeCard.style.padding = '18px 20px';
-        incomeCard.style.background = '#fff';
-        incomeCard.style.boxShadow = '0 8px 30px rgba(0,0,0,0.08)';
-        incomeCard.style.border = '1px solid rgba(0,0,0,0.08)';
-        incomeCard.style.borderLeft = '6px solid #34c759';
+        incomeCard.style.cssText = `
+            background: var(--card-bg, white);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            position: relative;
+            border-left: 6px solid #34c759;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            margin-bottom: 15px;
+            width: 100%;
+            cursor: pointer;
+        `;
         
         incomeCard.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
-                <i class="fas fa-money-bill-wave" style="font-size: 28px; color: #34c759;"></i>
-                <div>
-                    <div style="font-weight: 600; color: #222; font-size: 16px; margin-bottom: 2px;">${income.name}</div>
-                    <div style="color: #666; font-size: 14px; margin-bottom: 2px;">${amountDisplay}</div>
-                    <div style="color: #8e8e93; font-size: 12px;">${frequencyText} - Próximo: ${formatDate(nextIncome || income.startDate)}</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                    <i class="fas fa-money-bill-wave" style="font-size: 20px; color: #34c759;"></i>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: var(--text-color, #222); font-size: 16px; margin-bottom: 4px;">${income.name}</div>
+                        <div style="color: var(--text-muted, #666); font-size: 14px; margin-bottom: 2px;">${amountDisplay}</div>
+                        <div style="color: var(--text-muted, #8e8e93); font-size: 12px;">${frequencyText} - Próximo: ${formatDate(nextIncome || income.startDate)}</div>
+                    </div>
                 </div>
-            </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="btn-icon edit-income" data-id="${income.id}" title="Editar ingreso">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn-icon delete-income" data-id="${income.id}" title="Eliminar ingreso">
-                    <i class="fas fa-trash"></i>
-                </button>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="btn-icon edit-income" data-id="${income.id}" title="Editar ingreso" style="
+                        background: var(--card-bg, white);
+                        border: 1px solid var(--border-color, #e0e0e0);
+                        border-radius: 8px;
+                        padding: 8px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        color: var(--text-muted, #666);
+                    ">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon delete-income" data-id="${income.id}" title="Eliminar ingreso" style="
+                        background: var(--card-bg, white);
+                        border: 1px solid var(--border-color, #e0e0e0);
+                        border-radius: 8px;
+                        padding: 8px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        color: var(--danger-color, #ff3b30);
+                    ">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
         `;
         
@@ -3785,6 +4846,292 @@ function deleteIncome(incomeId) {
     updateUI();
 }
 
+// ===== FUNCIONES PARA METAS =====
+
+// Función para cargar metas
+function loadGoals() {
+    try {
+        const goalsData = localStorage.getItem(`budgetGoals_${currentUser}`);
+        goals = goalsData ? JSON.parse(goalsData) : [];
+        
+        // Validar que los datos sean un array válido
+        if (!Array.isArray(goals)) goals = [];
+        
+    } catch (error) {
+        console.error('Error al cargar metas:', error);
+        goals = [];
+    }
+}
+
+// Función para guardar metas
+async function saveGoals() {
+    try {
+        if (currentUser) {
+            localStorage.setItem(`budgetGoals_${currentUser}`, JSON.stringify(goals));
+            
+            // Sincronizar con Firebase si está disponible
+            if (window.syncService && window.syncService.isEnabled()) {
+                await window.syncService.syncGoals(goals);
+            }
+        }
+    } catch (error) {
+        console.error('Error al guardar metas:', error);
+    }
+}
+
+// Función para mostrar el modal de nueva meta
+function showAddGoalModal() {
+    // Limpiar formulario
+    document.getElementById('goalForm').reset();
+    document.getElementById('goalModalTitle').textContent = 'Nueva Meta Financiera';
+    delete document.getElementById('goalForm').dataset.editId;
+    
+    // Inicializar fecha objetivo (por defecto 1 año desde hoy)
+    const today = new Date();
+    const oneYearFromNow = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+    const goalDeadline = document.getElementById('goalDeadline');
+    if (goalDeadline) {
+        goalDeadline.value = oneYearFromNow.toISOString().split('T')[0];
+    }
+    
+    // Establecer valor mínimo para la fecha (hoy)
+    if (goalDeadline) {
+        goalDeadline.min = today.toISOString().split('T')[0];
+    }
+    
+    openModal('goalModal');
+}
+
+// Función para manejar el envío del formulario de metas
+async function handleGoalSubmit(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    // Obtener datos del formulario
+    const goalName = formData.get('goalName') || document.getElementById('goalName').value;
+    const goalTarget = parseFloat(formData.get('goalTarget') || document.getElementById('goalTarget').value);
+    const goalCurrent = parseFloat(formData.get('goalCurrent') || document.getElementById('goalCurrent').value);
+    const goalDeadline = formData.get('goalDeadline') || document.getElementById('goalDeadline').value;
+    const goalCategory = formData.get('goalCategory') || document.getElementById('goalCategory').value;
+    const goalColor = formData.get('goalColor') || document.getElementById('goalColor').value;
+    const goalDescription = formData.get('goalDescription') || document.getElementById('goalDescription').value;
+    
+    // Validaciones
+    if (!goalName || !goalTarget || !goalDeadline || !goalCategory) {
+        alert('Por favor completa todos los campos obligatorios.');
+        return;
+    }
+    
+    if (goalTarget <= 0) {
+        alert('La meta debe ser mayor a 0.');
+        return;
+    }
+    
+    if (goalCurrent < 0) {
+        alert('El ahorro actual no puede ser negativo.');
+        return;
+    }
+    
+    if (goalCurrent > goalTarget) {
+        alert('El ahorro actual no puede ser mayor que la meta.');
+        return;
+    }
+    
+    const editId = form.dataset.editId;
+    
+    if (editId) {
+        // Editar meta existente
+        const goalIndex = goals.findIndex(g => g.id === editId);
+        if (goalIndex !== -1) {
+            goals[goalIndex] = {
+                ...goals[goalIndex],
+                name: goalName,
+                target: goalTarget,
+                current: goalCurrent,
+                deadline: goalDeadline,
+                category: goalCategory,
+                color: goalColor,
+                description: goalDescription,
+                updatedAt: new Date().toISOString()
+            };
+        }
+    } else {
+        // Crear nueva meta
+        const newGoal = {
+            id: Date.now().toString(),
+            name: goalName,
+            target: goalTarget,
+            current: goalCurrent,
+            deadline: goalDeadline,
+            category: goalCategory,
+            color: goalColor,
+            description: goalDescription,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            completed: false
+        };
+        
+        goals.push(newGoal);
+    }
+    
+    // Guardar y actualizar
+    await saveGoals();
+    closeModal('goalModal');
+    updateGoalsDisplay();
+    updateUI();
+    
+    // Mostrar notificación
+    const action = editId ? 'actualizada' : 'creada';
+    showNotification(`Meta ${action} exitosamente`, 'success');
+    
+    // Agregar al historial
+    addToHistory(
+        editId ? 'Meta actualizada' : 'Meta creada',
+        `Meta: ${goalName} - Objetivo: $${formatCurrency(goalTarget)}`,
+        'goal'
+    );
+}
+
+// Función para actualizar la visualización de metas
+function updateGoalsDisplay() {
+    const goalsContainer = document.getElementById('goalsContainer');
+    if (!goalsContainer) return;
+    
+    // Actualizar estadísticas
+    updateGoalsStats();
+    
+    if (goals.length === 0) {
+        goalsContainer.innerHTML = `
+            <div class="no-goals-message">
+                <i class="fas fa-bullseye"></i>
+                <h3>No tienes metas configuradas</h3>
+                <p>Crea tu primera meta financiera para empezar a ahorrar</p>
+                <button class="btn-primary" onclick="showAddGoalModal()">
+                    <i class="fas fa-plus"></i> Crear Primera Meta
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    // Ordenar metas por fecha de vencimiento
+    const sortedGoals = [...goals].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+    
+    goalsContainer.innerHTML = sortedGoals.map(goal => {
+        const progress = (goal.current / goal.target) * 100;
+        const daysLeft = Math.ceil((new Date(goal.deadline) - new Date()) / (1000 * 60 * 60 * 24));
+        const isOverdue = daysLeft < 0;
+        const isCompleted = goal.completed || progress >= 100;
+        
+        return `
+            <div class="goal-card ${isCompleted ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}" data-goal-id="${goal.id}">
+                <div class="goal-header">
+                    <div class="goal-info">
+                        <h3 class="goal-name" style="color: ${goal.color}">${goal.name}</h3>
+                        <p class="goal-category">${goal.category}</p>
+                    </div>
+                    <div class="goal-actions">
+                        <button class="btn-icon" onclick="editGoal('${goal.id}')" title="Editar meta">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon" onclick="deleteGoal('${goal.id}')" title="Eliminar meta">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="goal-progress">
+                    <div class="goal-amounts">
+                        <span class="goal-current">$${formatCurrency(goal.current)}</span>
+                        <span class="goal-separator">/</span>
+                        <span class="goal-target">$${formatCurrency(goal.target)}</span>
+                    </div>
+                    <div class="goal-progress-bar">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${Math.min(progress, 100)}%; background-color: ${goal.color}"></div>
+                        </div>
+                        <span class="goal-percentage">${Math.round(progress)}%</span>
+                    </div>
+                </div>
+                
+                <div class="goal-details">
+                    <div class="goal-deadline">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="${isOverdue ? 'overdue' : ''}">
+                            ${isOverdue ? 'Vencida' : daysLeft === 0 ? 'Vence hoy' : `Vence en ${daysLeft} días`}
+                        </span>
+                    </div>
+                    ${goal.description ? `<p class="goal-description">${goal.description}</p>` : ''}
+                </div>
+                
+                ${isCompleted ? '<div class="goal-completed-badge"><i class="fas fa-check-circle"></i> Completada</div>' : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+// Función para actualizar estadísticas de metas
+function updateGoalsStats() {
+    const totalGoals = goals.length;
+    const completedGoals = goals.filter(g => g.completed || (g.current / g.target) >= 1).length;
+    const totalSaved = goals.reduce((sum, goal) => sum + goal.current, 0);
+    
+    // Actualizar elementos en el DOM
+    const totalGoalsElement = document.getElementById('totalGoals');
+    const completedGoalsElement = document.getElementById('completedGoals');
+    const totalSavedElement = document.getElementById('totalSaved');
+    
+    if (totalGoalsElement) totalGoalsElement.textContent = totalGoals;
+    if (completedGoalsElement) completedGoalsElement.textContent = completedGoals;
+    if (totalSavedElement) totalSavedElement.textContent = formatCurrency(totalSaved);
+}
+
+// Función para editar una meta
+function editGoal(goalId) {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+    
+    // Llenar formulario con datos de la meta
+    document.getElementById('goalName').value = goal.name;
+    document.getElementById('goalTarget').value = goal.target;
+    document.getElementById('goalCurrent').value = goal.current;
+    document.getElementById('goalDeadline').value = goal.deadline;
+    document.getElementById('goalCategory').value = goal.category;
+    document.getElementById('goalColor').value = goal.color;
+    document.getElementById('goalDescription').value = goal.description || '';
+    
+    // Marcar que estamos editando
+    document.getElementById('goalForm').dataset.editId = goalId;
+    document.getElementById('goalModalTitle').textContent = 'Editar Meta Financiera';
+    
+    openModal('goalModal');
+}
+
+// Función para eliminar una meta
+function deleteGoal(goalId) {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+    
+    if (!confirm(`¿Estás seguro de que quieres eliminar la meta "${goal.name}"?`)) {
+        return;
+    }
+    
+    // Eliminar la meta
+    goals = goals.filter(g => g.id !== goalId);
+    
+    saveGoals();
+    updateGoalsDisplay();
+    updateUI();
+    
+    // Mostrar notificación
+    showNotification('Meta eliminada exitosamente', 'success');
+    
+    // Agregar al historial
+    addToHistory('Meta eliminada', `Meta: ${goal.name}`, 'goal');
+}
+
 // Función para crear backup de los datos del usuario
 function createBackup() {
     if (!currentUser) {
@@ -3803,7 +5150,11 @@ function createBackup() {
                 transactions: transactions,
                 categoryGroups: categoryGroups,
                 incomes: incomes,
-                userData: users[currentUser] || {}
+                goals: goals,
+                notifications: notifications,
+                bankAccounts: bankAccounts,
+                bankTransactions: bankTransactions,
+                reconciliationData: reconciliationData
             }
         };
         
@@ -4255,7 +5606,6 @@ function generateCSV(data) {
 }
 
 // Sistema de notificaciones y recordatorios
-let notifications = [];
 let recurringReminders = [];
 
 function initializeNotifications() {
@@ -4469,6 +5819,22 @@ function setupNotificationEventListeners() {
     if (notificationsBtn && notificationsList) {
         notificationsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            
+            // Solicitar permisos de notificación cuando el usuario haga clic
+            if (window.notificationService) {
+                window.notificationService.requestNotificationPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('✅ Permisos de notificación concedidos');
+                        // Mostrar una notificación de prueba
+                        window.notificationService.showSystemNotification('Notificaciones activadas correctamente', 'success');
+                    } else if (permission === 'denied') {
+                        console.log('❌ Permisos de notificación denegados');
+                        // Mostrar mensaje al usuario
+                        window.notificationService.show('Los permisos de notificación fueron denegados. Puedes habilitarlos en la configuración del navegador.', 'warning', { duration: 5000 });
+                    }
+                });
+            }
+            
             notificationsList.classList.toggle('show');
         });
         
@@ -4495,12 +5861,23 @@ function checkForNotifications() {
 }
 
 function checkBudgetAlerts() {
-    const totalBudget = categories.reduce((sum, cat) => sum + cat.adjustedBudget, 0);
-    const totalSpent = transactions
-        .filter(t => t.type === 'gasto')
-        .reduce((sum, t) => sum + t.amount, 0);
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
     
+    // Obtener transacciones del mes actual
+    const currentMonthTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        return transactionDate.getMonth() === currentMonth && 
+               transactionDate.getFullYear() === currentYear &&
+               t.type === 'gasto';
+    });
+    
+    // Calcular totales del mes actual
+    const totalBudget = categories.reduce((sum, cat) => sum + cat.adjustedBudget, 0);
+    const totalSpent = currentMonthTransactions.reduce((sum, t) => sum + t.amount, 0);
     const percentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+    
+    // === ALERTAS BÁSICAS DE PRESUPUESTO ===
     
     // Alerta al 80% del presupuesto
     if (percentage >= 80 && percentage < 100) {
@@ -4537,6 +5914,147 @@ function checkBudgetAlerts() {
             );
         }
     }
+    
+    // === ALERTAS INTELIGENTES BASADAS EN PROMEDIOS ===
+    
+    // Calcular promedio de gastos de los últimos 3 meses
+    const last3Months = [];
+    for (let i = 1; i <= 3; i++) {
+        const month = (currentMonth - i + 12) % 12;
+        const year = currentMonth - i < 0 ? currentYear - 1 : currentYear;
+        
+        const monthTransactions = transactions.filter(t => {
+            const transactionDate = new Date(t.date);
+            return transactionDate.getMonth() === month && 
+                   transactionDate.getFullYear() === year &&
+                   t.type === 'gasto';
+        });
+        
+        const monthTotal = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+        last3Months.push(monthTotal);
+    }
+    
+    const averageSpending = last3Months.reduce((sum, amount) => sum + amount, 0) / last3Months.length;
+    const currentSpending = totalSpent;
+    
+    // Alerta si el gasto actual supera el promedio en más del 20%
+    if (averageSpending > 0 && currentSpending > averageSpending * 1.2) {
+        const increasePercentage = ((currentSpending - averageSpending) / averageSpending) * 100;
+        
+        const existingAlert = notifications.find(n => 
+            n.type === 'intelligent' && 
+            n.title.includes('Gasto Superior al Promedio') && 
+            !n.read
+        );
+        
+        if (!existingAlert) {
+            addNotification(
+                '🚨 Gasto Superior al Promedio',
+                `Tu gasto actual (${formatCurrency(currentSpending)}) está ${increasePercentage.toFixed(1)}% por encima del promedio de los últimos 3 meses (${formatCurrency(averageSpending)}).`,
+                'intelligent',
+                'high'
+            );
+        }
+    }
+    
+    // === ALERTAS POR CATEGORÍA ===
+    
+    categories.forEach(category => {
+        const categoryTransactions = currentMonthTransactions.filter(t => 
+            t.category === category.name || t.category === category.subcategory
+        );
+        
+        const categorySpent = categoryTransactions.reduce((sum, t) => sum + t.amount, 0);
+        const categoryBudget = category.adjustedBudget;
+        const categoryPercentage = categoryBudget > 0 ? (categorySpent / categoryBudget) * 100 : 0;
+        
+        // Alerta si una categoría específica supera el 90%
+        if (categoryPercentage >= 90 && categoryPercentage < 100) {
+            const existingAlert = notifications.find(n => 
+                n.type === 'category' && 
+                n.title.includes(category.name) && 
+                !n.read
+            );
+            
+            if (!existingAlert) {
+                addNotification(
+                    `⚠️ ${category.name} - 90% del Presupuesto`,
+                    `Has gastado ${categoryPercentage.toFixed(1)}% del presupuesto en ${category.name}. Restante: ${formatCurrency(categoryBudget - categorySpent)}.`,
+                    'category',
+                    'normal'
+                );
+            }
+        }
+        
+        // Alerta crítica si una categoría específica se excede
+        if (categoryPercentage >= 100) {
+            const existingAlert = notifications.find(n => 
+                n.type === 'category' && 
+                n.title.includes(`${category.name} - Excedido`) && 
+                !n.read
+            );
+            
+            if (!existingAlert) {
+                addNotification(
+                    `🚨 ${category.name} - Presupuesto Excedido`,
+                    `Has excedido el presupuesto de ${category.name} en ${formatCurrency(categorySpent - categoryBudget)}.`,
+                    'category',
+                    'high'
+                );
+            }
+        }
+    });
+    
+    // === ALERTAS DE TENDENCIAS ===
+    
+    // Detectar si hay un patrón de gastos crecientes
+    if (last3Months.length >= 2) {
+        const trend = last3Months[0] - last3Months[1]; // Comparar últimos dos meses
+        const trendPercentage = last3Months[1] > 0 ? (trend / last3Months[1]) * 100 : 0;
+        
+        if (trendPercentage > 15) { // Si el gasto aumentó más del 15%
+            const existingAlert = notifications.find(n => 
+                n.type === 'trend' && 
+                n.title.includes('Tendencia Creciente') && 
+                !n.read
+            );
+            
+            if (!existingAlert) {
+                addNotification(
+                    '📈 Tendencia de Gastos Creciente',
+                    `Tu gasto ha aumentado ${trendPercentage.toFixed(1)}% comparado con el mes anterior. Considera revisar tus hábitos de gasto.`,
+                    'trend',
+                    'normal'
+                );
+            }
+        }
+    }
+    
+    // === ALERTAS DE GASTOS INUSUALES ===
+    
+    // Detectar gastos inusualmente altos (más del doble del promedio diario)
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const averageDailySpending = totalSpent / daysInMonth;
+    
+    currentMonthTransactions.forEach(transaction => {
+        if (transaction.amount > averageDailySpending * 2) {
+            const existingAlert = notifications.find(n => 
+                n.type === 'unusual' && 
+                n.title.includes('Gasto Inusual') && 
+                n.message.includes(transaction.description) && 
+                !n.read
+            );
+            
+            if (!existingAlert) {
+                addNotification(
+                    '💡 Gasto Inusual Detectado',
+                    `El gasto "${transaction.description}" (${formatCurrency(transaction.amount)}) es significativamente mayor al promedio diario (${formatCurrency(averageDailySpending)}).`,
+                    'unusual',
+                    'normal'
+                );
+            }
+        }
+    });
 }
 
 function checkRecurringExpenses() {
@@ -4726,11 +6244,7 @@ function initializeTheme() {
         setTheme('light');
     }
     
-    // Configurar event listener para el botón de tema
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', toggleTheme);
-    }
+    // Configurar event listener para el botón de tema (ya configurado en setupEventListeners)
     
     // Escuchar cambios en la preferencia del sistema
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
@@ -4744,18 +6258,22 @@ function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
     
-    // Actualizar icono del botón
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    if (themeToggleBtn) {
-        const icon = themeToggleBtn.querySelector('i');
+    // Actualizar icono del botón en el menú
+    const menuThemeToggleBtn = document.getElementById('menuThemeToggleBtn');
+    if (menuThemeToggleBtn) {
+        const icon = menuThemeToggleBtn.querySelector('i');
         if (icon) {
             icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
         }
-    }
-    
-    // Actualizar título del botón
-    if (themeToggleBtn) {
-        themeToggleBtn.title = theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro';
+        
+        // Actualizar texto del botón
+        const textSpan = menuThemeToggleBtn.querySelector('span');
+        if (textSpan) {
+            textSpan.textContent = theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro';
+        }
+        
+        // Actualizar título del botón
+        menuThemeToggleBtn.title = theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro';
     }
 }
 
@@ -4885,7 +6403,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function openTransactionModal(tipo) {
     document.getElementById('transactionType').value = tipo;
-    document.getElementById('transactionModalTitle').textContent = tipo === 'gasto' ? 'Nuevo Gasto' : 'Nuevo Ingreso';
+    
+    // Configurar título según el tipo
+    let title = 'Nueva Transacción';
+    if (tipo === 'gasto') title = 'Nuevo Gasto';
+    else if (tipo === 'ingreso') title = 'Nuevo Ingreso';
+    else if (tipo === 'transferencia') title = 'Nueva Transferencia';
+    
+    document.getElementById('transactionModalTitle').textContent = title;
+    
     const submitBtn = document.getElementById('transactionForm').querySelector('.btn-primary');
     submitBtn.textContent = 'Guardar';
     document.getElementById('transactionForm').reset();
@@ -4897,7 +6423,102 @@ function openTransactionModal(tipo) {
     // Actualizar categorías según el tipo
     updateCategorySelect();
     
+    // Configurar campos de cuenta bancaria
+    updateAccountDropdowns();
+    
+    // Mostrar/ocultar campos de transferencia
+    const transferToAccountGroup = document.getElementById('transferToAccountGroup');
+    if (tipo === 'transferencia') {
+        transferToAccountGroup.style.display = 'block';
+    } else {
+        transferToAccountGroup.style.display = 'none';
+    }
+    
     openModal('transactionModal');
+}
+
+// Función para abrir modal de pago de tarjetas
+function openPagoTarjetaModal() {
+    // Establecer fecha actual
+    document.getElementById('pagoTarjetaFecha').value = new Date().toISOString().split('T')[0];
+    
+    // Actualizar dropdowns
+    updatePagoTarjetaDropdowns();
+    
+    // Limpiar formulario
+    document.getElementById('pagoTarjetaForm').reset();
+    
+    openModal('pagoTarjetaModal');
+}
+
+// Función para manejar el envío del formulario de pago de tarjetas
+async function handlePagoTarjetaSubmit(e) {
+    e.preventDefault();
+    
+    const descripcion = document.getElementById('pagoTarjetaDescripcion').value.trim();
+    const monto = parseFloat(document.getElementById('pagoTarjetaMonto').value);
+    const cuentaOrigenId = document.getElementById('pagoTarjetaCuentaOrigen').value;
+    const tarjetaDestinoId = document.getElementById('pagoTarjetaDestino').value;
+    const fecha = document.getElementById('pagoTarjetaFecha').value;
+    const comentario = document.getElementById('pagoTarjetaComentario').value.trim();
+    
+    if (!descripcion || !monto || !cuentaOrigenId || !tarjetaDestinoId || !fecha) {
+        showNotification('Por favor completa todos los campos requeridos', 'error');
+        return;
+    }
+    
+    if (cuentaOrigenId === tarjetaDestinoId) {
+        showNotification('No puedes pagar una tarjeta desde la misma tarjeta', 'error');
+        return;
+    }
+    
+    try {
+        // Crear una sola transacción de pago de tarjeta
+        const transaccionPago = {
+            id: Date.now(),
+            description: `Pago tarjeta: ${descripcion}`,
+            amount: -Math.abs(monto), // Monto negativo para mostrar como pago
+            type: 'pago-tarjeta',
+            category: 'Pagos de Tarjetas',
+            accountId: cuentaOrigenId, // Cuenta desde donde se paga
+            tarjetaDestinoId: tarjetaDestinoId, // Tarjeta que se paga
+            date: fecha,
+            comment: comentario || null,
+            createdBy: currentUser,
+            createdAt: new Date().toISOString(),
+            lastModifiedBy: currentUser,
+            lastModifiedAt: new Date().toISOString()
+        };
+        
+        // Agregar solo una transacción
+        transactions.push(transaccionPago);
+        
+        // Actualizar balances
+        // Para la cuenta origen: reducir el balance (gasto)
+        updateAccountBalance(cuentaOrigenId, -Math.abs(monto), `Pago tarjeta: ${descripcion}`);
+        // Para la tarjeta de crédito: reducir el balance pendiente (pago recibido)
+        updateAccountBalance(tarjetaDestinoId, Math.abs(monto), `Pago recibido: ${descripcion}`);
+        
+        // Guardar datos
+        saveData();
+        
+        // Cerrar modal
+        closeModal('pagoTarjetaModal');
+        
+        // Mostrar notificación
+        showNotification('Pago de tarjeta realizado exitosamente', 'success');
+        
+        // Registrar en historial
+        addToHistory(
+            'Realizó pago de tarjeta',
+            `${descripcion} - ${formatCurrency(monto)}`,
+            'transaction'
+        );
+        
+    } catch (error) {
+        console.error('Error al procesar pago de tarjeta:', error);
+        showNotification('Error al procesar el pago de tarjeta', 'error');
+    }
 }
 
 // Función de depuración para verificar transacciones
@@ -5518,17 +7139,18 @@ async function syncToCloud() {
     
     try {
         // Obtener datos locales
-        const transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
-        const categories = JSON.parse(localStorage.getItem('categories') || '[]');
-        const budgets = JSON.parse(localStorage.getItem('budgets') || '[]');
+        const transactions = JSON.parse(localStorage.getItem('budgetTransactions') || '[]');
+        const categories = JSON.parse(localStorage.getItem('budgetCategories') || '[]');
+        const categoryGroups = JSON.parse(localStorage.getItem('budgetCategoryGroups') || '{}');
+        const incomes = JSON.parse(localStorage.getItem('budgetIncomes') || '[]');
         
-        const totalItems = transactions.length + categories.length + budgets.length;
+        const totalItems = transactions.length + categories.length + Object.keys(categoryGroups).length + incomes.length;
         let completedItems = 0;
         
         // Verificar qué sincronizar
-        const syncTransactions = document.getElementById('syncTransactions').checked;
-        const syncCategories = document.getElementById('syncCategories').checked;
-        const syncBudgets = document.getElementById('syncBudgets').checked;
+        const syncTransactions = document.getElementById('syncTransactions')?.checked ?? true;
+        const syncCategories = document.getElementById('syncCategories')?.checked ?? true;
+        const syncBudgets = document.getElementById('syncBudgets')?.checked ?? true;
         
         const dataToSync = {};
         
@@ -5541,16 +7163,17 @@ async function syncToCloud() {
         
         if (syncCategories) {
             dataToSync.categories = categories;
-            completedItems += categories.length;
+            dataToSync.categoryGroups = categoryGroups;
+            completedItems += categories.length + Object.keys(categoryGroups).length;
             progressFill.style.width = (completedItems / totalItems * 100) + '%';
             progressText.textContent = `Sincronizando categorías... (${completedItems}/${totalItems})`;
         }
         
         if (syncBudgets) {
-            dataToSync.budgets = budgets;
-            completedItems += budgets.length;
+            dataToSync.incomes = incomes;
+            completedItems += incomes.length;
             progressFill.style.width = (completedItems / totalItems * 100) + '%';
-            progressText.textContent = `Sincronizando presupuestos... (${completedItems}/${totalItems})`;
+            progressText.textContent = `Sincronizando ingresos... (${completedItems}/${totalItems})`;
         }
         
         // Sincronizar con Firebase
@@ -5606,10 +7229,26 @@ async function syncFromCloud() {
         const result = await window.cloudServices.syncFromCloud(getCurrentUserId());
         
         if (result) {
+            // Restaurar datos desde la nube
+            if (result.transactions) {
+                localStorage.setItem('budgetTransactions', JSON.stringify(result.transactions));
+            }
+            if (result.categories) {
+                localStorage.setItem('budgetCategories', JSON.stringify(result.categories));
+            }
+            if (result.categoryGroups) {
+                localStorage.setItem('budgetCategoryGroups', JSON.stringify(result.categoryGroups));
+            }
+            if (result.incomes) {
+                localStorage.setItem('budgetIncomes', JSON.stringify(result.incomes));
+            }
+            
             // Recargar datos en la aplicación
-            loadTransactions();
-            loadCategories();
-            loadBudgets();
+            loadDataSafely();
+            loadIncomes();
+            
+            // Actualizar la interfaz de usuario
+            updateUI(true);
             
             // Actualizar timestamp
             localStorage.setItem('lastSyncTime', new Date().toISOString());
@@ -5666,27 +7305,26 @@ function getCurrentUserId() {
 
 // Función para mostrar notificaciones
 function showNotification(message, type = 'info') {
-    // Crear elemento de notificación
-    const notification = document.createElement('div');
-    notification.className = `visual-notification ${type}`;
-    notification.innerHTML = `
-        <div class="visual-notification-content">
-            <h4>${type.charAt(0).toUpperCase() + type.slice(1)}</h4>
-            <p>${message}</p>
-        </div>
-    `;
-    
-    // Agregar al DOM
-    document.body.appendChild(notification);
-    
-    // Mostrar
-    setTimeout(() => notification.classList.add('show'), 100);
-    
-    // Ocultar después de 3 segundos
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    if (window.notificationService) {
+        window.notificationService.show(message, type);
+    } else {
+        // Fallback para cuando el servicio no está disponible
+        const notification = document.createElement('div');
+        notification.className = `visual-notification ${type}`;
+        notification.innerHTML = `
+            <div class="visual-notification-content">
+                <h4>${type.charAt(0).toUpperCase() + type.slice(1)}</h4>
+                <p>${message}</p>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        setTimeout(() => notification.classList.add('show'), 100);
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
 }
 
 // Inicializar estado de sincronización cuando se carga la página
@@ -5717,3 +7355,1978 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('📱 Aplicación inicializada con mejoras mobile');
 });
+
+// ===== GESTIÓN DE CUENTAS BANCARIAS =====
+
+// Función para cargar cuentas bancarias
+function loadBankAccounts() {
+    try {
+        const savedAccounts = localStorage.getItem(getStorageKey('bankAccounts'));
+        if (savedAccounts) {
+            bankAccounts = JSON.parse(savedAccounts);
+        }
+        
+        const savedBankTransactions = localStorage.getItem(getStorageKey('bankTransactions'));
+        if (savedBankTransactions) {
+            bankTransactions = JSON.parse(savedBankTransactions);
+        }
+        
+        const savedReconciliationData = localStorage.getItem(getStorageKey('reconciliationData'));
+        if (savedReconciliationData) {
+            reconciliationData = JSON.parse(savedReconciliationData);
+        }
+        
+        console.log(`✅ Cuentas bancarias cargadas: ${bankAccounts.length} cuentas, ${bankTransactions.length} transacciones`);
+    } catch (error) {
+        console.error('❌ Error al cargar cuentas bancarias:', error);
+        bankAccounts = [];
+        bankTransactions = [];
+        reconciliationData = {};
+    }
+}
+
+// Función para guardar cuentas bancarias
+async function saveBankAccounts() {
+    try {
+        localStorage.setItem(getStorageKey('bankAccounts'), JSON.stringify(bankAccounts));
+        localStorage.setItem(getStorageKey('bankTransactions'), JSON.stringify(bankTransactions));
+        localStorage.setItem(getStorageKey('reconciliationData'), JSON.stringify(reconciliationData));
+        
+        // Sincronizar con Firebase si está disponible
+        if (typeof authService !== 'undefined' && authService.saveEncryptedData) {
+            await authService.saveEncryptedData('bankAccounts', bankAccounts);
+            await authService.saveEncryptedData('bankTransactions', bankTransactions);
+            await authService.saveEncryptedData('reconciliationData', reconciliationData);
+        }
+        
+        console.log(`✅ Cuentas bancarias guardadas: ${bankAccounts.length} cuentas, ${bankTransactions.length} transacciones`);
+    } catch (error) {
+        console.error('❌ Error al guardar cuentas bancarias:', error);
+    }
+}
+
+// Función para crear una nueva cuenta bancaria
+function createBankAccount(accountData) {
+    const newAccount = {
+        id: 'account_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        name: accountData.name,
+        type: accountData.type, // 'checking', 'savings', 'credit', 'investment'
+        bank: accountData.bank,
+        accountNumber: accountData.accountNumber,
+        balance: accountData.balance || 0,
+        currency: accountData.currency || 'DOP',
+        color: accountData.color || getRandomColor(),
+        status: accountData.status || 'active',
+        holder: accountData.holder || '',
+        email: accountData.email || '',
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastReconciliation: null,
+        notes: accountData.notes || '',
+        
+        // Campos específicos para tarjetas de crédito
+        creditLimit: accountData.creditLimit || 0,
+        cutoffDate: accountData.cutoffDate || null,
+        paymentDueDate: accountData.paymentDueDate || null,
+        minimumPayment: accountData.minimumPayment || 0,
+        
+        // Estadísticas
+        totalTransactions: 0,
+        totalDeposits: 0,
+        totalWithdrawals: 0,
+        lastTransactionDate: null
+    };
+    
+    console.log('✅ Nueva cuenta creada:', newAccount);
+    
+    addNotification(
+        '🏦 Nueva Cuenta Bancaria Creada',
+        `Se ha creado la cuenta "${newAccount.name}" con balance inicial de ${formatCurrency(newAccount.balance)} ${newAccount.currency}.`,
+        'bank',
+        'normal'
+    );
+    
+    return newAccount;
+}
+
+// Función para manejar el cambio de tipo de cuenta
+function handleAccountTypeChange() {
+    const accountTypeElement = document.getElementById('bankAccountType');
+    const creditCardFields = document.getElementById('creditCardFields');
+    const balanceLabel = document.querySelector('label[for="bankAccountBalance"]');
+    const balanceInput = document.getElementById('bankAccountBalance');
+    
+    console.log('🔄 handleAccountTypeChange() ejecutado');
+    console.log('📋 Tipo de cuenta seleccionado:', accountTypeElement?.value);
+    console.log('🎯 Campos de tarjeta de crédito encontrados:', !!creditCardFields);
+    
+    if (!accountTypeElement) return;
+    
+    const accountType = accountTypeElement.value;
+    
+    if (accountType === 'credit') {
+        if (creditCardFields) creditCardFields.style.display = 'block';
+        if (balanceLabel) balanceLabel.textContent = 'Balance actual (saldo pendiente):';
+        if (balanceInput) balanceInput.placeholder = 'Saldo pendiente (negativo)';
+        
+        // Configurar fechas por defecto para tarjetas de crédito SOLO si no tienen valores
+        const cutoffDateElement = document.getElementById('cutoffDate');
+        const paymentDueDateElement = document.getElementById('paymentDueDate');
+        
+        if (cutoffDateElement && !cutoffDateElement.value) {
+            const today = new Date();
+            const cutoffDate = new Date(today.getFullYear(), today.getMonth() + 1, 15); // 15 del próximo mes
+            cutoffDateElement.value = cutoffDate.toISOString().split('T')[0];
+        }
+        
+        if (paymentDueDateElement && !paymentDueDateElement.value) {
+            const today = new Date();
+            const paymentDueDate = new Date(today.getFullYear(), today.getMonth() + 1, 25); // 25 del próximo mes
+            paymentDueDateElement.value = paymentDueDate.toISOString().split('T')[0];
+        }
+        
+        // Agregar event listeners para actualizar fechas automáticamente
+        if (cutoffDateElement) {
+            cutoffDateElement.addEventListener('change', function() {
+                updatePaymentDueDate();
+            });
+        }
+        
+        if (paymentDueDateElement) {
+            paymentDueDateElement.addEventListener('change', function() {
+                updateCutoffDate();
+            });
+        }
+        
+    } else {
+        if (creditCardFields) creditCardFields.style.display = 'none';
+        if (balanceLabel) balanceLabel.textContent = 'Balance inicial:';
+        if (balanceInput) balanceInput.placeholder = '0.00';
+    }
+}
+
+// Función para actualizar la fecha de límite de pago basada en la fecha de corte
+function updatePaymentDueDate() {
+    const cutoffDateElement = document.getElementById('cutoffDate');
+    const paymentDueDateElement = document.getElementById('paymentDueDate');
+    
+    if (!cutoffDateElement || !paymentDueDateElement || !cutoffDateElement.value) return;
+    
+    const cutoffDate = new Date(cutoffDateElement.value);
+    const paymentDueDate = new Date(cutoffDate);
+    paymentDueDate.setDate(cutoffDate.getDate() + 10); // 10 días después del corte
+    
+    paymentDueDateElement.value = paymentDueDate.toISOString().split('T')[0];
+}
+
+// Función para actualizar la fecha de corte basada en la fecha de límite de pago
+function updateCutoffDate() {
+    const cutoffDateElement = document.getElementById('cutoffDate');
+    const paymentDueDateElement = document.getElementById('paymentDueDate');
+    
+    if (!cutoffDateElement || !paymentDueDateElement || !paymentDueDateElement.value) return;
+    
+    const paymentDueDate = new Date(paymentDueDateElement.value);
+    const cutoffDate = new Date(paymentDueDate);
+    cutoffDate.setDate(paymentDueDate.getDate() - 10); // 10 días antes del límite de pago
+    
+    cutoffDateElement.value = cutoffDate.toISOString().split('T')[0];
+}
+
+// Función para obtener el color de una cuenta
+function getRandomColor() {
+    const colors = [
+        '#007aff', '#34c759', '#ff9500', '#ff3b30', '#5856d6',
+        '#ff2d92', '#5ac8fa', '#30d158', '#8e8e93', '#ffcc02'
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+}
+
+// Función para obtener el icono del tipo de cuenta
+function getAccountTypeIcon(type) {
+    const icons = {
+        'checking': 'fas fa-university',
+        'savings': 'fas fa-piggy-bank',
+        'credit': 'fas fa-credit-card',
+        'investment': 'fas fa-chart-line'
+    };
+    return icons[type] || 'fas fa-university';
+}
+
+// Función para obtener el texto del tipo de cuenta
+function getAccountTypeText(type) {
+    const texts = {
+        'checking': 'Cuenta Corriente',
+        'savings': 'Cuenta de Ahorros',
+        'credit': 'Tarjeta de Crédito',
+        'investment': 'Cuenta de Inversión'
+    };
+    return texts[type] || type;
+}
+
+// Función para obtener el texto del estado
+function getStatusText(status) {
+    const texts = {
+        'active': 'Activa',
+        'inactive': 'Inactiva',
+        'suspended': 'Suspendida',
+        'closed': 'Cerrada'
+    };
+    return texts[status] || status;
+}
+
+// Función auxiliar para normalizar IDs de cuentas
+function normalizeAccountId(accountId) {
+    if (typeof accountId === 'string') {
+        // Si es un string numérico, convertirlo a número
+        if (!isNaN(accountId)) {
+            return parseInt(accountId);
+        }
+        // Si ya es un string válido, mantenerlo
+        return accountId;
+    } else if (typeof accountId === 'number') {
+        // Si es un número, mantenerlo
+        return accountId;
+    }
+    // Si es otro tipo, convertirlo a string
+    return String(accountId);
+}
+
+// Función auxiliar para encontrar cuenta por ID con manejo de tipos
+function findAccountById(accountId) {
+    const normalizedId = normalizeAccountId(accountId);
+    
+    // Intentar encontrar con el ID normalizado
+    let account = bankAccounts.find(acc => acc.id === normalizedId);
+    
+    if (account) return account;
+    
+    // Si no se encuentra, intentar con diferentes tipos
+    if (typeof normalizedId === 'string' && !isNaN(normalizedId)) {
+        const numericId = parseInt(normalizedId);
+        account = bankAccounts.find(acc => acc.id === numericId);
+        if (account) return account;
+    }
+    
+    if (typeof normalizedId === 'number') {
+        const stringId = normalizedId.toString();
+        account = bankAccounts.find(acc => acc.id === stringId);
+        if (account) return account;
+    }
+    
+    return null;
+}
+
+// Función para normalizar todos los IDs de cuentas existentes
+function normalizeAllAccountIds() {
+    console.log('🔧 Normalizando IDs de todas las cuentas...');
+    let changesMade = false;
+    
+    bankAccounts.forEach((account, index) => {
+        const originalId = account.id;
+        const normalizedId = normalizeAccountId(originalId);
+        
+        if (originalId !== normalizedId) {
+            console.log(`🔄 Normalizando ID: ${originalId} → ${normalizedId}`);
+            bankAccounts[index].id = normalizedId;
+            changesMade = true;
+        }
+    });
+    
+    if (changesMade) {
+        saveBankAccounts();
+        console.log('✅ IDs normalizados y guardados');
+        showNotification('IDs de cuentas normalizados', 'success');
+    } else {
+        console.log('✅ Todos los IDs ya están normalizados');
+    }
+    
+    return changesMade;
+}
+
+// Función para calcular el balance total de todas las cuentas
+function calculateTotalBalance() {
+    return bankAccounts
+        .filter(account => account.status === 'active')
+        .reduce((total, account) => {
+            // Para cuentas bancarias (savings, checking): sumar (dinero disponible)
+            // Para tarjetas de crédito: restar (deuda pendiente)
+            if (account.type === 'credit') {
+                return total - (account.balance || 0); // Restar deuda
+            } else {
+                return total + (account.balance || 0); // Sumar dinero disponible
+            }
+        }, 0);
+}
+
+// Función para actualizar el balance de una cuenta
+function updateAccountBalance(accountId, amountChange, reason = '') {
+    const account = bankAccounts.find(acc => acc.id === accountId);
+    if (!account) return false;
+    
+    const oldBalance = account.balance || 0;
+    
+    // Para tarjetas de crédito, el balance pendiente se reduce con pagos
+    if (account.type === 'credit') {
+        // Si es un pago (amountChange positivo), reduce el balance pendiente
+        // Si es un gasto (amountChange negativo), aumenta el balance pendiente
+        account.balance = oldBalance - amountChange;
+    } else {
+        // Para cuentas bancarias normales, suma el cambio
+        account.balance = oldBalance + amountChange;
+    }
+    
+    account.lastUpdated = new Date().toISOString();
+    
+    // Registrar el cambio
+    const balanceChange = {
+        id: Date.now(),
+        accountId: accountId,
+        oldBalance: oldBalance,
+        newBalance: account.balance,
+        change: amountChange,
+        reason: reason,
+        timestamp: new Date().toISOString()
+    };
+    
+    if (!reconciliationData[accountId]) {
+        reconciliationData[accountId] = [];
+    }
+    reconciliationData[accountId].push(balanceChange);
+    
+    saveBankAccounts();
+    
+    const accountType = account.type === 'credit' ? 'Tarjeta de Crédito' : 'Cuenta Bancaria';
+    const balanceText = account.type === 'credit' ? 
+        `Balance pendiente: ${formatCurrency(oldBalance)} → ${formatCurrency(account.balance)}` :
+        `Balance: ${formatCurrency(oldBalance)} → ${formatCurrency(account.balance)}`;
+    
+    addNotification(
+        '💰 Balance Actualizado',
+        `${accountType} "${account.name}" - ${balanceText}`,
+        'bank',
+        'normal'
+    );
+    
+    return true;
+}
+
+// Función para importar transacciones bancarias desde CSV
+function importBankTransactions(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            try {
+                const csv = e.target.result;
+                const lines = csv.split('\n');
+                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                
+                console.log('📋 Headers detectados:', headers);
+                
+                const importedTransactions = [];
+                let successCount = 0;
+                let errorCount = 0;
+                
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+                    
+                    const values = lines[i].split(',').map(v => v.trim());
+                    const transaction = {};
+                    
+                    // Mapear columnas según formato común de bancos
+                    headers.forEach((header, index) => {
+                        const value = values[index] || '';
+                        
+                        switch (header) {
+                            case 'date':
+                            case 'fecha':
+                                transaction.date = value;
+                                break;
+                            case 'description':
+                            case 'descripcion':
+                            case 'concepto':
+                            case 'descripción':
+                                transaction.description = value;
+                                break;
+                            case 'amount':
+                            case 'monto':
+                            case 'importe':
+                                transaction.amount = parseFloat(value.replace(/[^0-9.-]/g, '')) || 0;
+                                break;
+                            case 'debito':
+                            case 'débito':
+                                const debito = parseFloat(value.replace(/[^0-9.-]/g, '')) || 0;
+                                if (debito > 0) {
+                                    transaction.amount = -debito; // Negativo para gastos
+                                }
+                                break;
+                            case 'credito':
+                            case 'crédito':
+                                const credito = parseFloat(value.replace(/[^0-9.-]/g, '')) || 0;
+                                if (credito > 0) {
+                                    transaction.amount = credito; // Positivo para ingresos
+                                }
+                                break;
+                            case 'type':
+                            case 'tipo':
+                                transaction.type = value.toLowerCase();
+                                break;
+                            case 'category':
+                            case 'categoria':
+                            case 'categoría':
+                                transaction.category = value;
+                                break;
+                            case 'account':
+                            case 'cuenta':
+                                transaction.accountId = value;
+                                break;
+                            case 'saldo':
+                                // Solo para referencia, no se usa en la transacción
+                                break;
+                        }
+                    });
+                    
+                    // Determinar tipo de transacción si no está especificado
+                    if (!transaction.type) {
+                        transaction.type = transaction.amount >= 0 ? 'ingreso' : 'gasto';
+                    }
+                    
+                    // Validar y procesar fecha
+                    if (transaction.date) {
+                        // Intentar diferentes formatos de fecha
+                        let parsedDate = null;
+                        
+                        // Formato YYYY-MM-DD
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(transaction.date)) {
+                            parsedDate = transaction.date;
+                        }
+                        // Formato DD/MM/YYYY
+                        else if (/^\d{2}\/\d{2}\/\d{4}$/.test(transaction.date)) {
+                            const parts = transaction.date.split('/');
+                            parsedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        }
+                        // Formato MM/DD/YYYY
+                        else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(transaction.date)) {
+                            const parts = transaction.date.split('/');
+                            parsedDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                        }
+                        
+                        if (parsedDate) {
+                            transaction.date = parsedDate;
+                        }
+                    }
+                    
+                    if (transaction.date && transaction.description && transaction.amount !== undefined) {
+                        transaction.id = Date.now() + i;
+                        transaction.imported = true;
+                        transaction.importDate = new Date().toISOString();
+                        
+                        // Categorización automática básica
+                        if (!transaction.category) {
+                            transaction.category = categorizeTransaction(transaction.description);
+                        }
+                        
+                        importedTransactions.push(transaction);
+                        successCount++;
+                        
+                        console.log(`✅ Transacción importada: ${transaction.description} - ${transaction.amount}`);
+                    } else {
+                        errorCount++;
+                        console.warn(`❌ Error en línea ${i + 1}:`, values);
+                    }
+                }
+                
+                // Agregar transacciones importadas
+                bankTransactions.push(...importedTransactions);
+                saveBankAccounts();
+                
+                addNotification(
+                    '📥 Importación Completada',
+                    `Se importaron ${successCount} transacciones bancarias. ${errorCount} errores encontrados.`,
+                    'bank',
+                    'normal'
+                );
+                
+                resolve({
+                    success: successCount,
+                    errors: errorCount,
+                    transactions: importedTransactions
+                });
+                
+            } catch (error) {
+                console.error('❌ Error en importación:', error);
+                reject(error);
+            }
+        };
+        
+        reader.onerror = reject;
+        reader.readAsText(file);
+    });
+}
+
+// Función para obtener nombre de cuenta
+function getAccountName(accountId) {
+    const account = bankAccounts.find(acc => acc.id == accountId);
+    return account ? account.name : 'Cuenta desconocida';
+}
+
+// Función para actualizar dropdowns de cuentas bancarias
+function updateAccountDropdowns() {
+    const transactionAccount = document.getElementById('transactionAccount');
+    const transferToAccount = document.getElementById('transferToAccount');
+    
+    if (transactionAccount) {
+        transactionAccount.innerHTML = '<option value="">Selecciona una cuenta</option>';
+        bankAccounts.forEach(account => {
+            if (account.status === 'active') {
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = `${account.name} (${formatCurrency(account.balance)})`;
+                transactionAccount.appendChild(option);
+            }
+        });
+    }
+    
+    if (transferToAccount) {
+        transferToAccount.innerHTML = '<option value="">Selecciona cuenta destino</option>';
+        bankAccounts.forEach(account => {
+            if (account.status === 'active') {
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = `${account.name} (${formatCurrency(account.balance)})`;
+                transferToAccount.appendChild(option);
+            }
+        });
+    }
+}
+
+// Función para actualizar dropdowns de pagos de tarjetas
+function updatePagoTarjetaDropdowns() {
+    const cuentaOrigen = document.getElementById('pagoTarjetaCuentaOrigen');
+    const tarjetaDestino = document.getElementById('pagoTarjetaDestino');
+    
+    if (cuentaOrigen) {
+        cuentaOrigen.innerHTML = '<option value="">Selecciona la cuenta desde donde pagarás</option>';
+        bankAccounts.forEach(account => {
+            if (account.status === 'active' && account.type !== 'credit') {
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = `${account.name} (${formatCurrency(account.balance)})`;
+                cuentaOrigen.appendChild(option);
+            }
+        });
+    }
+    
+    if (tarjetaDestino) {
+        tarjetaDestino.innerHTML = '<option value="">Selecciona la tarjeta a pagar</option>';
+        bankAccounts.forEach(account => {
+            if (account.status === 'active' && account.type === 'credit') {
+                const option = document.createElement('option');
+                option.value = account.id;
+                const balancePendiente = account.balance || 0;
+                option.textContent = `${account.name} (Pendiente: ${formatCurrency(balancePendiente)})`;
+                tarjetaDestino.appendChild(option);
+            }
+        });
+    }
+}
+
+// Función para actualizar dropdown del modal de importación de transacciones
+function updateImportAccountDropdown() {
+    const importAccountSelect = document.getElementById('importAccountSelect');
+    
+    if (importAccountSelect) {
+        importAccountSelect.innerHTML = '<option value="">Selecciona una cuenta</option>';
+        
+        if (bankAccounts && bankAccounts.length > 0) {
+            bankAccounts.forEach(account => {
+                if (account.status === 'active') {
+                    const option = document.createElement('option');
+                    option.value = account.id;
+                    option.textContent = `${account.name} (${formatCurrency(account.balance)})`;
+                    importAccountSelect.appendChild(option);
+                }
+            });
+            console.log(`✅ Dropdown de importación actualizado con ${bankAccounts.length} cuentas`);
+        } else {
+            console.warn('⚠️ No hay cuentas bancarias disponibles para importación');
+            importAccountSelect.innerHTML = '<option value="">No hay cuentas disponibles</option>';
+        }
+    } else {
+        console.error('❌ No se encontró el elemento importAccountSelect');
+    }
+}
+
+// Funciones de navegación entre pasos del modal de importación
+function nextStep(stepNumber) {
+    console.log(`🔄 Navegando al paso ${stepNumber}`);
+    
+    // Ocultar todos los pasos
+    const steps = document.querySelectorAll('.import-steps .step');
+    steps.forEach(step => step.classList.remove('active'));
+    
+    // Mostrar el paso solicitado
+    const targetStep = document.getElementById(`step${stepNumber}`);
+    if (targetStep) {
+        targetStep.classList.add('active');
+        
+        // Validaciones específicas por paso
+        if (stepNumber === 2) {
+            const selectedAccount = document.getElementById('importAccountSelect').value;
+            if (!selectedAccount) {
+                showNotification('Debes seleccionar una cuenta antes de continuar', 'warning');
+                prevStep(1);
+                return;
+            }
+            console.log(`✅ Cuenta seleccionada: ${selectedAccount}`);
+        }
+        
+        console.log(`✅ Paso ${stepNumber} activado correctamente`);
+    } else {
+        console.error(`❌ No se encontró el paso ${stepNumber}`);
+    }
+}
+
+function prevStep(stepNumber) {
+    console.log(`🔄 Regresando al paso ${stepNumber}`);
+    
+    // Ocultar todos los pasos
+    const steps = document.querySelectorAll('.import-steps .step');
+    steps.forEach(step => step.classList.remove('active'));
+    
+    // Mostrar el paso solicitado
+    const targetStep = document.getElementById(`step${stepNumber}`);
+    if (targetStep) {
+        targetStep.classList.add('active');
+        console.log(`✅ Paso ${stepNumber} activado correctamente`);
+    } else {
+        console.error(`❌ No se encontró el paso ${stepNumber}`);
+    }
+}
+
+// Función para categorización automática de transacciones
+function categorizeTransaction(description) {
+    const desc = description.toLowerCase();
+    
+    // Alimentación
+    if (desc.includes('supermercado') || desc.includes('super') || desc.includes('market') || 
+        desc.includes('grocery') || desc.includes('food') || desc.includes('comida')) {
+        return 'Alimentación y Bebidas';
+    }
+    
+    // Transporte
+    if (desc.includes('gasolina') || desc.includes('gas') || desc.includes('fuel') || 
+        desc.includes('uber') || desc.includes('taxi') || desc.includes('transporte')) {
+        return 'Transporte';
+    }
+    
+    // Entretenimiento
+    if (desc.includes('netflix') || desc.includes('spotify') || desc.includes('amazon') || 
+        desc.includes('entertainment') || desc.includes('entretenimiento')) {
+        return 'Entretenimiento';
+    }
+    
+    // Servicios
+    if (desc.includes('electricidad') || desc.includes('agua') || desc.includes('internet') || 
+        desc.includes('telefono') || desc.includes('phone')) {
+        return 'Servicios Públicos';
+    }
+    
+    // Salud
+    if (desc.includes('farmacia') || desc.includes('pharmacy') || desc.includes('medico') || 
+        desc.includes('doctor') || desc.includes('hospital')) {
+        return 'Salud';
+    }
+    
+    // Ingresos
+    if (desc.includes('salario') || desc.includes('salary') || desc.includes('pago') || 
+        desc.includes('transferencia') || desc.includes('deposito')) {
+        return 'Ingresos';
+    }
+    
+    // Por defecto
+    return 'Otros';
+}
+
+// Función para conciliar transacciones
+function reconcileTransactions(accountId, transactions) {
+    const account = bankAccounts.find(acc => acc.id === accountId);
+    if (!account) return false;
+    
+    let reconciledCount = 0;
+    let newTransactions = [];
+    
+    transactions.forEach(transaction => {
+        // Buscar transacción similar en las transacciones existentes
+        const existingTransaction = bankTransactions.find(t => 
+            t.accountId === accountId &&
+            Math.abs(t.amount - transaction.amount) < 0.01 &&
+            t.date === transaction.date &&
+            t.description.toLowerCase().includes(transaction.description.toLowerCase().substring(0, 10))
+        );
+        
+        if (!existingTransaction) {
+            // Nueva transacción bancaria
+            const newTransaction = {
+                ...transaction,
+                id: Date.now() + Math.random(),
+                accountId: accountId,
+                reconciled: true,
+                reconciliationDate: new Date().toISOString()
+            };
+            
+            newTransactions.push(newTransaction);
+            reconciledCount++;
+        } else if (!existingTransaction.reconciled) {
+            // Marcar como conciliada
+            existingTransaction.reconciled = true;
+            existingTransaction.reconciliationDate = new Date().toISOString();
+            reconciledCount++;
+        }
+    });
+    
+    // Agregar nuevas transacciones
+    bankTransactions.push(...newTransactions);
+    
+    // Actualizar balance de la cuenta
+    const totalChange = newTransactions.reduce((sum, t) => sum + t.amount, 0);
+    updateAccountBalance(accountId, account.balance + totalChange, 'Conciliación bancaria');
+    
+    saveBankAccounts();
+    
+    addNotification(
+        '🔄 Conciliación Completada',
+        `Se conciliaron ${reconciledCount} transacciones para la cuenta "${account.name}".`,
+        'bank',
+        'normal'
+    );
+    
+    return {
+        reconciled: reconciledCount,
+        newTransactions: newTransactions.length
+    };
+}
+
+// Función para obtener transacciones de una cuenta
+function getAccountTransactions(accountId, filters = {}) {
+    let filteredTransactions = bankTransactions.filter(t => t.accountId === accountId);
+    
+    if (filters.dateFrom) {
+        filteredTransactions = filteredTransactions.filter(t => 
+            new Date(t.date) >= new Date(filters.dateFrom)
+        );
+    }
+    
+    if (filters.dateTo) {
+        filteredTransactions = filteredTransactions.filter(t => 
+            new Date(t.date) <= new Date(filters.dateTo)
+        );
+    }
+    
+    if (filters.type) {
+        filteredTransactions = filteredTransactions.filter(t => 
+            t.type === filters.type
+        );
+    }
+    
+    if (filters.reconciled !== undefined) {
+        filteredTransactions = filteredTransactions.filter(t => 
+            t.reconciled === filters.reconciled
+        );
+    }
+    
+    return filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+// Función para manejar el envío del formulario de cuenta bancaria
+async function handleBankAccountSubmit(e) {
+    e.preventDefault();
+    
+    try {
+        const formData = new FormData(e.target);
+        const accountData = {
+            name: formData.get('bankAccountName') || document.getElementById('bankAccountName')?.value || '',
+            type: formData.get('bankAccountType') || document.getElementById('bankAccountType')?.value || '',
+            bank: formData.get('bankName') || document.getElementById('bankName')?.value || '',
+            accountNumber: formData.get('bankAccountNumber') || document.getElementById('bankAccountNumber')?.value || '',
+            balance: parseFloat(formData.get('bankAccountBalance') || document.getElementById('bankAccountBalance')?.value) || 0,
+            currency: formData.get('bankAccountCurrency') || document.getElementById('bankAccountCurrency')?.value || 'DOP',
+            color: formData.get('bankAccountColor') || document.getElementById('bankAccountColor')?.value || '#007aff',
+            status: formData.get('accountStatus') || document.getElementById('accountStatus')?.value || 'active',
+            holder: formData.get('accountHolder') || document.getElementById('accountHolder')?.value || '',
+            email: formData.get('accountEmail') || document.getElementById('accountEmail')?.value || '',
+            notes: formData.get('bankAccountNotes') || document.getElementById('bankAccountNotes')?.value || '',
+            
+            // Campos específicos para tarjetas de crédito
+            creditLimit: parseFloat(formData.get('creditLimit') || document.getElementById('creditLimit')?.value) || 0,
+            cutoffDate: formData.get('cutoffDate') || document.getElementById('cutoffDate')?.value || null,
+            paymentDueDate: formData.get('paymentDueDate') || document.getElementById('paymentDueDate')?.value || null,
+            minimumPayment: parseFloat(formData.get('minimumPayment') || document.getElementById('minimumPayment')?.value) || 0
+        };
+        
+        // Validar datos requeridos
+        if (!accountData.name || !accountData.type || !accountData.bank) {
+            showNotification('Por favor completa todos los campos requeridos', 'error');
+            return;
+        }
+        
+        // Verificar si es edición o nueva cuenta
+        const editId = e.target.dataset.editId;
+        
+        if (editId) {
+            // Editar cuenta existente
+            const accountIndex = bankAccounts.findIndex(acc => acc.id === editId);
+            if (accountIndex !== -1) {
+                bankAccounts[accountIndex] = {
+                    ...bankAccounts[accountIndex],
+                    ...accountData,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                showNotification('Cuenta bancaria actualizada correctamente', 'success');
+            }
+        } else {
+            // Verificar si ya existe una cuenta con el mismo nombre
+            const existingAccount = bankAccounts.find(acc => 
+                acc.name === accountData.name && 
+                acc.bank === accountData.bank
+            );
+            
+            if (existingAccount) {
+                showNotification('Ya existe una cuenta con este nombre y banco', 'warning');
+                return;
+            }
+            
+            // Crear nueva cuenta
+            const newAccount = createBankAccount(accountData);
+            bankAccounts.push(newAccount);
+            
+            showNotification('Cuenta bancaria creada correctamente', 'success');
+        }
+        
+        // Guardar datos
+        await saveBankAccounts();
+        
+        // Actualizar UI directamente sin llamar a updateUI
+        const container = document.getElementById('bankAccountsContainer');
+        if (container) {
+            // Limpiar duplicadas antes de mostrar
+            cleanDuplicateAccounts();
+            
+            // Actualizar visualización
+            updateBankAccountsDisplay();
+            updateAccountSummary();
+        }
+        
+        // Cerrar modal
+        closeModal('bankAccountModal');
+        
+    } catch (error) {
+        console.error('Error al guardar cuenta bancaria:', error);
+        showNotification('Error al guardar la cuenta bancaria', 'error');
+    }
+}
+
+// Función para eliminar una cuenta bancaria
+async function deleteBankAccount(accountId) {
+    console.log('🔍 Intentando eliminar cuenta con ID:', accountId, 'tipo:', typeof accountId);
+    
+    // Confirmar eliminación
+    if (!confirm('¿Estás seguro de que quieres eliminar esta cuenta? Esta acción no se puede deshacer.')) {
+        return false;
+    }
+    
+    // Usar la función auxiliar para encontrar la cuenta
+    const account = findAccountById(accountId);
+    
+    if (!account) {
+        console.error('❌ Cuenta no encontrada con ID:', accountId);
+        console.error('🔍 IDs disponibles:', bankAccounts.map(acc => acc.id));
+        showNotification(`Cuenta no encontrada (ID: ${accountId})`, 'error');
+        return false;
+    }
+    
+    const accountIndex = bankAccounts.findIndex(acc => acc.id === account.id);
+    console.log('✅ Cuenta encontrada:', account);
+    
+    try {
+        // Eliminar transacciones asociadas
+        const transactionsToRemove = bankTransactions.filter(t => t.accountId === accountId);
+        bankTransactions = bankTransactions.filter(t => t.accountId !== accountId);
+        console.log(`🗑️ Eliminadas ${transactionsToRemove.length} transacciones asociadas`);
+        
+        // Eliminar datos de conciliación
+        if (reconciliationData[accountId]) {
+            delete reconciliationData[accountId];
+            console.log('🗑️ Datos de conciliación eliminados');
+        }
+        
+        // Eliminar cuenta
+        bankAccounts.splice(accountIndex, 1);
+        console.log('✅ Cuenta eliminada del array');
+        
+        // Guardar cambios
+        await saveBankAccounts();
+        console.log('💾 Cambios guardados');
+        
+        // Actualizar UI
+        updateBankAccountsDisplay();
+        updateAccountSummary();
+        
+        showNotification(`Cuenta "${account.name}" eliminada correctamente`, 'success');
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Error al eliminar cuenta:', error);
+        showNotification(`Error al eliminar la cuenta: ${error.message}`, 'error');
+        return false;
+    }
+}
+
+// Función para limpiar cuentas duplicadas
+function cleanDuplicateAccounts() {
+    console.log('🔍 Verificando cuentas duplicadas...');
+    console.log('📋 Cuentas antes de limpiar:', bankAccounts.length);
+    
+    const uniqueAccounts = [];
+    const seenIds = new Set();
+    const seenNames = new Set();
+    let duplicatesFound = 0;
+    
+    bankAccounts.forEach((account, index) => {
+        // Si el ID ya existe, generar uno nuevo
+        if (seenIds.has(account.id)) {
+            console.log(`🔄 ID duplicado encontrado: ${account.id}, generando nuevo ID`);
+            account.id = 'account_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            duplicatesFound++;
+        }
+        
+        // Si el nombre ya existe, agregar sufijo
+        if (seenNames.has(account.name)) {
+            console.log(`🔄 Nombre duplicado encontrado: ${account.name}, agregando sufijo`);
+            account.name = account.name + ' (Copia)';
+            duplicatesFound++;
+        }
+        
+        seenIds.add(account.id);
+        seenNames.add(account.name);
+        uniqueAccounts.push(account);
+    });
+    
+    // Solo actualizar si hay cambios
+    if (duplicatesFound > 0) {
+        bankAccounts = uniqueAccounts;
+        saveBankAccounts();
+        console.log(`✅ ${duplicatesFound} duplicados encontrados y corregidos`);
+        showNotification(`${duplicatesFound} cuentas duplicadas corregidas`, 'success');
+    } else {
+        console.log('✅ No se encontraron duplicados');
+    }
+    
+    return duplicatesFound;
+}
+
+// Función para limpiar cuentas duplicadas existentes (más agresiva)
+function removeDuplicateAccounts() {
+    console.log('🧹 Limpiando cuentas duplicadas existentes...');
+    
+    const uniqueAccounts = [];
+    const seenKeys = new Set();
+    let removedCount = 0;
+    
+    bankAccounts.forEach(account => {
+        // Crear una clave única basada en nombre, banco y número de cuenta
+        const key = `${account.name}-${account.bank}-${account.accountNumber}`;
+        
+        if (seenKeys.has(key)) {
+            console.log(`🗑️ Eliminando cuenta duplicada: ${account.name}`);
+            removedCount++;
+        } else {
+            seenKeys.add(key);
+            uniqueAccounts.push(account);
+        }
+    });
+    
+    if (removedCount > 0) {
+        bankAccounts = uniqueAccounts;
+        saveBankAccounts();
+        console.log(`✅ ${removedCount} cuentas duplicadas eliminadas`);
+        showNotification(`${removedCount} cuentas duplicadas eliminadas`, 'success');
+    } else {
+        console.log('✅ No se encontraron cuentas duplicadas para eliminar');
+    }
+    
+    return removedCount;
+}
+
+// Función para actualizar la visualización de cuentas bancarias
+function updateBankAccountsDisplay() {
+    const container = document.getElementById('bankAccountsContainer');
+    if (!container) return;
+    
+    if (bankAccounts.length === 0) {
+        container.innerHTML = `
+            <div class="no-accounts-message">
+                <i class="fas fa-university"></i>
+                <h3>No tienes cuentas bancarias configuradas</h3>
+                <p>Agrega tu primera cuenta bancaria para comenzar a gestionar tus finanzas</p>
+                <button class="btn-primary" onclick="openModal('bankAccountModal')">
+                    <i class="fas fa-plus"></i> Agregar Primera Cuenta
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    // Agrupar cuentas por tipo
+    const groupedAccounts = {
+        checking: [],
+        savings: [],
+        credit: [],
+        investment: []
+    };
+    
+    bankAccounts.forEach(account => {
+        if (groupedAccounts[account.type]) {
+            groupedAccounts[account.type].push(account);
+        } else {
+            groupedAccounts.checking.push(account); // Default fallback
+        }
+    });
+    
+    // Generar HTML para cada grupo
+    let accountsHTML = '';
+    
+    // Función para generar tarjeta de cuenta individual
+    const generateAccountCard = (account) => {
+        const accountTransactions = bankTransactions.filter(t => t.accountId === account.id);
+        const recentTransactions = accountTransactions.slice(0, 5);
+        
+        // Calcular estadísticas
+        const totalDeposits = accountTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+        const totalWithdrawals = accountTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        
+        // Información específica para tarjetas de crédito (compacta)
+        const creditLimit = account.creditLimit || 0;
+        const currentBalance = Math.abs(account.balance || 0);
+        const availableAmount = creditLimit - currentBalance;
+        
+        const creditInfo = account.type === 'credit' ? `
+            <div class="credit-info-compact">
+                <div class="credit-summary">
+                    <div class="credit-limit-compact">
+                        <small>Límite: ${formatCurrency(creditLimit)}</small>
+                    </div>
+                    <div class="credit-available-compact">
+                        <small>Disponible: <span class="${availableAmount >= 0 ? 'positive' : 'negative'}">${formatCurrency(availableAmount)}</span></small>
+                    </div>
+                </div>
+                ${(account.cutoffDate || account.paymentDueDate) ? `
+                    <div class="credit-dates-compact">
+                        ${account.cutoffDate ? `<small>Corte: ${formatDate(account.cutoffDate)}</small>` : ''}
+                        ${account.paymentDueDate ? `<small>Vence: ${formatDate(account.paymentDueDate)}</small>` : ''}
+                    </div>
+                ` : ''}
+            </div>
+        ` : '';
+        
+        return `
+            <div class="bank-account-card ${account.status !== 'active' ? 'inactive' : ''} ${account.type === 'credit' ? 'credit-card' : ''}" data-account-id="${account.id}">
+                <div class="account-header">
+                    <div class="account-info">
+                        <div class="account-icon" style="background-color: ${account.color}">
+                            <i class="${getAccountTypeIcon(account.type)}"></i>
+                        </div>
+                        <div class="account-details">
+                            <h4>${account.name}</h4>
+                            <p>${account.bank} - ${getAccountTypeText(account.type)}</p>
+                            ${account.accountNumber ? `<small>****${account.accountNumber.slice(-4)}</small>` : ''}
+                            <span class="status-badge ${account.status}">${getStatusText(account.status)}</span>
+                        </div>
+                    </div>
+                    <div class="account-balance">
+                        <div class="balance-amount ${account.balance >= 0 ? 'positive' : 'negative'}">
+                            ${formatCurrency(Math.abs(account.balance))}
+                        </div>
+                        <small>${account.currency}</small>
+                    </div>
+                </div>
+                
+                ${creditInfo}
+                
+                <div class="account-actions-compact">
+                    <button class="btn-sm expand-account-btn" data-account-id="${account.id}" title="Ver detalles">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <button class="btn-sm edit-account-btn" data-account-id="${account.id}" title="Editar cuenta">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-sm delete-account-btn" data-account-id="${account.id}" title="Eliminar cuenta">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                
+                <!-- Panel expandible con detalles completos -->
+                <div class="account-details-panel" id="details-${account.id}" style="display: none;">
+                    <div class="details-content">
+                        ${account.type === 'credit' ? `
+                            <div class="credit-details-full">
+                                <h5>Información de Tarjeta de Crédito</h5>
+                                <div class="credit-grid">
+                                    <div class="credit-item">
+                                        <strong>Límite de la Tarjeta:</strong>
+                                        <span class="limit-amount">${formatCurrency(creditLimit)}</span>
+                                    </div>
+                                    <div class="credit-item">
+                                        <strong>Balance Actual:</strong>
+                                        <span class="balance-amount ${account.balance < 0 ? 'negative' : 'positive'}">${formatCurrency(currentBalance)}</span>
+                                    </div>
+                                    <div class="credit-item">
+                                        <strong>Monto Disponible:</strong>
+                                        <span class="available-amount ${availableAmount >= 0 ? 'positive' : 'negative'}">${formatCurrency(availableAmount)}</span>
+                                    </div>
+                                    ${account.minimumPayment ? `
+                                        <div class="credit-item">
+                                            <strong>Pago Mínimo:</strong>
+                                            <span>${formatCurrency(account.minimumPayment)}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="credit-dates-full">
+                                    ${account.cutoffDate ? `
+                                        <div class="date-item">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <strong>Fecha de Corte:</strong>
+                                            <span>${formatDate(account.cutoffDate)}</span>
+                                        </div>
+                                    ` : ''}
+                                    ${account.paymentDueDate ? `
+                                        <div class="date-item">
+                                            <i class="fas fa-clock"></i>
+                                            <strong>Fecha Límite de Pago:</strong>
+                                            <span>${formatDate(account.paymentDueDate)}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="account-stats-full">
+                            <h5>Estadísticas</h5>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <strong>Depósitos:</strong>
+                                    <span>${formatCurrency(totalDeposits)}</span>
+                                </div>
+                                <div class="stat-item">
+                                    <strong>Retiros:</strong>
+                                    <span>${formatCurrency(totalWithdrawals)}</span>
+                                </div>
+                                <div class="stat-item">
+                                    <strong>Transacciones:</strong>
+                                    <span>${accountTransactions.length}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="account-actions-full">
+                            <button class="btn-secondary view-transactions-btn" data-account-id="${account.id}">
+                                <i class="fas fa-list"></i> Ver Transacciones
+                            </button>
+                            <button class="btn-secondary import-transactions-btn" data-account-id="${account.id}">
+                                <i class="fas fa-file-import"></i> Importar
+                            </button>
+                        </div>
+                        
+                        ${recentTransactions.length > 0 ? `
+                            <div class="recent-transactions-full">
+                                <h5>Transacciones Recientes</h5>
+                                <div class="transactions-list">
+                                    ${recentTransactions.map(transaction => `
+                                        <div class="transaction-item">
+                                            <div class="transaction-date">${formatDate(transaction.date)}</div>
+                                            <div class="transaction-description">${transaction.description}</div>
+                                            <div class="transaction-amount ${transaction.amount >= 0 ? 'positive' : 'negative'}">
+                                                ${formatCurrency(Math.abs(transaction.amount))}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+    
+    // Generar secciones para cada tipo de cuenta
+    const accountTypes = [
+        { key: 'checking', title: 'Cuentas Corrientes', icon: 'fas fa-university' },
+        { key: 'savings', title: 'Cuentas de Ahorros', icon: 'fas fa-piggy-bank' },
+        { key: 'credit', title: 'Tarjetas de Crédito', icon: 'fas fa-credit-card' },
+        { key: 'investment', title: 'Cuentas de Inversión', icon: 'fas fa-chart-line' }
+    ];
+    
+    accountTypes.forEach(type => {
+        const accountsOfType = groupedAccounts[type.key];
+        if (accountsOfType.length > 0) {
+            const totalBalance = accountsOfType.reduce((sum, acc) => sum + acc.balance, 0);
+            
+            accountsHTML += `
+                <div class="account-type-section">
+                    <div class="section-header">
+                        <div class="section-title">
+                            <i class="${type.icon}"></i>
+                            <h3>${type.title}</h3>
+                            <span class="account-count">${accountsOfType.length} cuenta${accountsOfType.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div class="section-balance">
+                            <span class="balance-label">Balance Total:</span>
+                            <span class="balance-amount ${totalBalance >= 0 ? 'positive' : 'negative'}">
+                                ${formatCurrency(Math.abs(totalBalance))}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="accounts-grid">
+                        ${accountsOfType.map(account => generateAccountCard(account)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    container.innerHTML = accountsHTML;
+}
+
+// Función para actualizar el resumen de cuentas
+function updateAccountSummary() {
+    const totalBalance = calculateTotalBalance();
+    const activeAccounts = bankAccounts.length;
+    const totalTransactions = bankTransactions.length;
+    const reconciledTransactions = bankTransactions.filter(t => t.reconciled).length;
+    
+    // Actualizar tarjetas de resumen
+    const totalBalanceElement = document.getElementById('totalBankBalance');
+    const activeAccountsElement = document.getElementById('activeAccountsCount');
+    const totalTransactionsElement = document.getElementById('totalBankTransactions');
+    const reconciledTransactionsElement = document.getElementById('reconciledTransactions');
+    
+    if (totalBalanceElement) totalBalanceElement.textContent = formatCurrency(totalBalance);
+    if (activeAccountsElement) activeAccountsElement.textContent = activeAccounts;
+    if (totalTransactionsElement) totalTransactionsElement.textContent = totalTransactions;
+    if (reconciledTransactionsElement) reconciledTransactionsElement.textContent = reconciledTransactions;
+}
+
+// Función para editar cuenta bancaria
+function editBankAccount(accountId) {
+    console.log('🔍 Editando cuenta con ID:', accountId, 'tipo:', typeof accountId);
+    
+    // Usar la función auxiliar para encontrar la cuenta
+    const account = findAccountById(accountId);
+    
+    if (!account) {
+        console.error('❌ Cuenta no encontrada para editar con ID:', accountId);
+        showNotification(`Cuenta no encontrada (ID: ${accountId})`, 'error');
+        return;
+    }
+    
+    console.log('🔍 Editando cuenta:', account);
+    
+    // Llenar formulario con datos de la cuenta
+    const form = document.getElementById('bankAccountForm');
+    if (form) {
+        form.dataset.editId = accountId;
+        document.getElementById('bankAccountModalTitle').textContent = 'Editar Cuenta Bancaria';
+        
+        // Llenar campos básicos
+        const nameElement = document.getElementById('bankAccountName');
+        const typeElement = document.getElementById('bankAccountType');
+        const bankElement = document.getElementById('bankName');
+        const numberElement = document.getElementById('bankAccountNumber');
+        const balanceElement = document.getElementById('bankAccountBalance');
+        const currencyElement = document.getElementById('bankAccountCurrency');
+        const colorElement = document.getElementById('bankAccountColor');
+        const statusElement = document.getElementById('accountStatus');
+        const holderElement = document.getElementById('accountHolder');
+        const emailElement = document.getElementById('accountEmail');
+        const notesElement = document.getElementById('bankAccountNotes');
+        
+        if (nameElement) nameElement.value = account.name || '';
+        if (typeElement) typeElement.value = account.type || '';
+        if (bankElement) bankElement.value = account.bank || '';
+        if (numberElement) numberElement.value = account.accountNumber || '';
+        if (balanceElement) balanceElement.value = account.balance || 0;
+        if (currencyElement) currencyElement.value = account.currency || 'DOP';
+        if (colorElement) colorElement.value = account.color || '#007aff';
+        if (statusElement) statusElement.value = account.status || 'active';
+        if (holderElement) holderElement.value = account.holder || '';
+        if (emailElement) emailElement.value = account.email || '';
+        if (notesElement) notesElement.value = account.notes || '';
+        
+        // Llenar campos específicos de tarjeta de crédito
+        if (account.type === 'credit') {
+            console.log('💳 Llenando campos de tarjeta de crédito para:', account.name);
+            
+            const creditLimitElement = document.getElementById('creditLimit');
+            const cutoffDateElement = document.getElementById('cutoffDate');
+            const paymentDueDateElement = document.getElementById('paymentDueDate');
+            const minimumPaymentElement = document.getElementById('minimumPayment');
+            
+            console.log('💰 Límite de crédito:', account.creditLimit);
+            console.log('📅 Fecha de corte:', account.cutoffDate);
+            console.log('⏰ Fecha límite de pago:', account.paymentDueDate);
+            console.log('💵 Pago mínimo:', account.minimumPayment);
+            
+            if (creditLimitElement) creditLimitElement.value = account.creditLimit || 0;
+            if (cutoffDateElement) cutoffDateElement.value = account.cutoffDate || '';
+            if (paymentDueDateElement) paymentDueDateElement.value = account.paymentDueDate || '';
+            if (minimumPaymentElement) minimumPaymentElement.value = account.minimumPayment || 0;
+        }
+        
+        // Mostrar/ocultar campos de tarjeta de crédito DESPUÉS de llenar los valores
+        handleAccountTypeChange();
+        
+        // Abrir modal
+        openModal('bankAccountModal');
+    }
+}
+
+// Función para ver transacciones de una cuenta
+function viewAccountTransactions(accountId) {
+    console.log('🔍 Viendo transacciones de cuenta con ID:', accountId, 'tipo:', typeof accountId);
+    
+    // Usar la función auxiliar para encontrar la cuenta
+    const account = findAccountById(accountId);
+    
+    if (!account) {
+        console.error('❌ Cuenta no encontrada para ver transacciones con ID:', accountId);
+        showNotification(`Cuenta no encontrada (ID: ${accountId})`, 'error');
+        return;
+    }
+    
+    const transactions = getAccountTransactions(accountId);
+    
+    if (transactions.length === 0) {
+        showNotification(`No hay transacciones para la cuenta ${account.name}`, 'info');
+        return;
+    }
+    
+    // Crear modal para mostrar transacciones
+    const modalContent = `
+        <div class="modal" id="transactionsModal" style="display: block;">
+            <div class="modal-content" style="max-width: 800px;">
+                <span class="close" onclick="closeModal('transactionsModal')">&times;</span>
+                <h2>Transacciones de ${account.name}</h2>
+                <div class="transactions-list">
+                    ${transactions.map(transaction => `
+                        <div class="transaction-item">
+                            <div class="transaction-date">${formatDate(transaction.date)}</div>
+                            <div class="transaction-description">${transaction.description}</div>
+                            <div class="transaction-amount ${transaction.amount >= 0 ? 'positive' : 'negative'}">
+                                ${formatCurrency(Math.abs(transaction.amount))}
+                            </div>
+                            <div class="transaction-status">
+                                ${transaction.reconciled ? '<span class="badge reconciled">✓ Conciliada</span>' : '<span class="badge pending">⏳ Pendiente</span>'}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeModal('transactionsModal')">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Agregar modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalContent);
+    
+    showNotification(`Mostrando ${transactions.length} transacciones para ${account.name}`, 'info');
+}
+
+// Función para importar transacciones para una cuenta específica
+function importTransactionsForAccount(accountId) {
+    console.log('🔍 Importando transacciones para cuenta con ID:', accountId, 'tipo:', typeof accountId);
+    
+    // Usar la función auxiliar para encontrar la cuenta
+    const account = findAccountById(accountId);
+    
+    if (!account) {
+        console.error('❌ Cuenta no encontrada para importar transacciones con ID:', accountId);
+        showNotification(`Cuenta no encontrada (ID: ${accountId})`, 'error');
+        return;
+    }
+    
+    // Guardar la cuenta seleccionada en el modal de importación
+    localStorage.setItem('selectedAccountForImport', accountId);
+    
+    // Mostrar modal de importación con la cuenta pre-seleccionada
+    openModal('importBankTransactionsModal');
+    
+    // Actualizar dropdown y pre-seleccionar la cuenta en el modal
+    setTimeout(() => {
+        updateImportAccountDropdown();
+        const accountSelect = document.getElementById('importAccountSelect');
+        if (accountSelect) {
+            accountSelect.value = accountId;
+            // Disparar evento change para actualizar la UI
+            accountSelect.dispatchEvent(new Event('change'));
+        }
+    }, 100);
+    
+    showNotification(`Preparando importación para ${account.name}`, 'info');
+}
+
+// Función para configurar event delegation de botones de cuentas
+function setupBankAccountEventDelegation() {
+    const container = document.getElementById('bankAccountsContainer');
+    if (!container) return;
+    
+    // Event delegation para botones de cuentas
+    container.addEventListener('click', function(e) {
+        const target = e.target.closest('button');
+        if (!target) return;
+        
+        const accountId = target.dataset.accountId;
+        if (!accountId) return;
+        
+        // Botón editar
+        if (target.classList.contains('edit-account-btn')) {
+            e.preventDefault();
+            editBankAccount(accountId);
+        }
+        
+        // Botón ver transacciones
+        else if (target.classList.contains('view-transactions-btn')) {
+            e.preventDefault();
+            viewAccountTransactions(accountId);
+        }
+        
+        // Botón importar transacciones
+        else if (target.classList.contains('import-transactions-btn')) {
+            e.preventDefault();
+            importTransactionsForAccount(accountId);
+        }
+        
+        // Botón eliminar
+        else if (target.classList.contains('delete-account-btn')) {
+            e.preventDefault();
+            deleteBankAccount(accountId);
+        }
+        
+        // Botón expandir/contraer detalles
+        else if (target.classList.contains('expand-account-btn')) {
+            e.preventDefault();
+            toggleAccountDetails(accountId);
+        }
+    });
+    
+    console.log('✅ Event delegation configurado para botones de cuentas');
+}
+
+// Función para expandir/contraer detalles de cuenta
+function toggleAccountDetails(accountId) {
+    const detailsPanel = document.getElementById(`details-${accountId}`);
+    const expandBtn = document.querySelector(`[data-account-id="${accountId}"].expand-account-btn i`);
+    
+    if (!detailsPanel || !expandBtn) return;
+    
+    if (detailsPanel.style.display === 'none') {
+        // Expandir
+        detailsPanel.style.display = 'block';
+        expandBtn.className = 'fas fa-chevron-up';
+        detailsPanel.classList.add('expanded');
+    } else {
+        // Contraer
+        detailsPanel.style.display = 'none';
+        expandBtn.className = 'fas fa-chevron-down';
+        detailsPanel.classList.remove('expanded');
+    }
+}
+
+// ===== OPTIMIZACIONES Y MEJORAS DE RENDIMIENTO =====
+
+// Función para optimizar el rendimiento de la aplicación
+function optimizePerformance() {
+    console.log('🚀 Aplicando optimizaciones de rendimiento...');
+    
+    // Optimizar localStorage
+    optimizeLocalStorage();
+    
+    // Optimizar manejo de eventos
+    optimizeEventHandling();
+    
+    // Optimizar renderizado de gráficos
+    optimizeChartRendering();
+    
+    // Optimizar manejo de memoria
+    optimizeMemoryUsage();
+    
+    console.log('✅ Optimizaciones aplicadas correctamente');
+}
+
+// ===== FUNCIONES PARA MANEJO AUTOMÁTICO DE FECHAS DE TARJETAS DE CRÉDITO =====
+
+// Función para avanzar fechas al siguiente mes automáticamente
+function advanceCreditCardDates() {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    bankAccounts.forEach(account => {
+        if (account.type === 'credit' && account.cutoffDate) {
+            const cutoffDate = new Date(account.cutoffDate);
+            const cutoffMonth = cutoffDate.getMonth();
+            const cutoffYear = cutoffDate.getFullYear();
+            
+            // Si la fecha de corte ya pasó este mes, avanzar al siguiente
+            if (cutoffYear < currentYear || (cutoffYear === currentYear && cutoffMonth < currentMonth)) {
+                const newCutoffDate = new Date(cutoffDate);
+                newCutoffDate.setMonth(cutoffMonth + 1);
+                if (newCutoffDate.getMonth() === 0) { // Si es enero del siguiente año
+                    newCutoffDate.setFullYear(cutoffYear + 1);
+                }
+                
+                account.cutoffDate = newCutoffDate.toISOString().split('T')[0];
+                
+                // Actualizar también la fecha de límite de pago
+                if (account.paymentDueDate) {
+                    const paymentDueDate = new Date(account.paymentDueDate);
+                    const newPaymentDueDate = new Date(paymentDueDate);
+                    newPaymentDueDate.setMonth(paymentDueDate.getMonth() + 1);
+                    if (newPaymentDueDate.getMonth() === 0) {
+                        newPaymentDueDate.setFullYear(paymentDueDate.getFullYear() + 1);
+                    }
+                    
+                    account.paymentDueDate = newPaymentDueDate.toISOString().split('T')[0];
+                }
+                
+                console.log(`🔄 Fechas actualizadas para ${account.name}: Corte ${account.cutoffDate}, Pago ${account.paymentDueDate}`);
+            }
+        }
+    });
+    
+    // Guardar los cambios
+    saveBankAccounts();
+    updateBankAccountsDisplay();
+}
+
+// Función para verificar y actualizar fechas al cargar la aplicación
+function checkAndUpdateCreditCardDates() {
+    console.log('🔍 Verificando fechas de tarjetas de crédito...');
+    advanceCreditCardDates();
+}
+
+// Función para configurar fechas inteligentes basadas en el día seleccionado
+function setupSmartDateHandling() {
+    const cutoffDateElement = document.getElementById('cutoffDate');
+    const paymentDueDateElement = document.getElementById('paymentDueDate');
+    
+    if (cutoffDateElement) {
+        cutoffDateElement.addEventListener('change', function() {
+            if (this.value) {
+                const selectedDate = new Date(this.value);
+                const dayOfMonth = selectedDate.getDate();
+                
+                // Configurar la fecha de límite de pago 10 días después
+                const paymentDueDate = new Date(selectedDate);
+                paymentDueDate.setDate(dayOfMonth + 10);
+                
+                if (paymentDueDateElement) {
+                    paymentDueDateElement.value = paymentDueDate.toISOString().split('T')[0];
+                }
+                
+                console.log(`📅 Fecha de corte: ${this.value}, Fecha límite de pago: ${paymentDueDateElement?.value}`);
+            }
+        });
+    }
+    
+    if (paymentDueDateElement) {
+        paymentDueDateElement.addEventListener('change', function() {
+            if (this.value) {
+                const selectedDate = new Date(this.value);
+                const dayOfMonth = selectedDate.getDate();
+                
+                // Configurar la fecha de corte 10 días antes
+                const cutoffDate = new Date(selectedDate);
+                cutoffDate.setDate(dayOfMonth - 10);
+                
+                if (cutoffDateElement) {
+                    cutoffDateElement.value = cutoffDate.toISOString().split('T')[0];
+                }
+                
+                console.log(`📅 Fecha límite de pago: ${this.value}, Fecha de corte: ${cutoffDateElement?.value}`);
+            }
+        });
+    }
+}
+
+// Optimizar localStorage
+function optimizeLocalStorage() {
+    try {
+        // Verificar si localStorage está disponible
+        const testKey = '__test__';
+        localStorage.setItem(testKey, 'test');
+        localStorage.removeItem(testKey);
+        
+        // Implementar compresión para datos grandes
+        const originalSetItem = localStorage.setItem;
+        const originalGetItem = localStorage.getItem;
+        
+        localStorage.setItem = function(key, value) {
+            try {
+                // Comprimir datos si son muy grandes
+                if (value && value.length > 1000) {
+                    const compressed = btoa(encodeURIComponent(value));
+                    originalSetItem.call(this, key, compressed);
+                    originalSetItem.call(this, key + '_compressed', 'true');
+                } else {
+                    originalSetItem.call(this, key, value);
+                    localStorage.removeItem(key + '_compressed');
+                }
+            } catch (error) {
+                console.warn('Error al guardar en localStorage:', error);
+                // Fallback al método original
+                originalSetItem.call(this, key, value);
+            }
+        };
+        
+        localStorage.getItem = function(key) {
+            try {
+                const value = originalGetItem.call(this, key);
+                const isCompressed = originalGetItem.call(this, key + '_compressed');
+                
+                if (isCompressed === 'true' && value) {
+                    return decodeURIComponent(atob(value));
+                }
+                return value;
+            } catch (error) {
+                console.warn('Error al leer de localStorage:', error);
+                return originalGetItem.call(this, key);
+            }
+        };
+        
+        console.log('✅ localStorage optimizado');
+    } catch (error) {
+        console.warn('⚠️ No se pudo optimizar localStorage:', error);
+    }
+}
+
+// Optimizar manejo de eventos
+function optimizeEventHandling() {
+    // Implementar debounce para funciones costosas
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // Aplicar debounce a funciones costosas
+    if (typeof updateUI === 'function') {
+        window.updateUI = debounce(updateUI, 300);
+    }
+    
+    if (typeof saveData === 'function') {
+        window.saveData = debounce(saveData, 500);
+    }
+    
+    // Optimizar event listeners con delegación de eventos
+    document.addEventListener('click', function(e) {
+        // Delegación para botones de eliminar
+        if (e.target.matches('.delete-btn, .btn-delete')) {
+            e.preventDefault();
+            const itemId = e.target.dataset.id;
+            const itemType = e.target.dataset.type;
+            
+            if (itemId && itemType) {
+                handleDeleteItem(itemId, itemType);
+            }
+        }
+        
+        // Delegación para botones de editar
+        if (e.target.matches('.edit-btn, .btn-edit')) {
+            e.preventDefault();
+            const itemId = e.target.dataset.id;
+            const itemType = e.target.dataset.type;
+            
+            if (itemId && itemType) {
+                handleEditItem(itemId, itemType);
+            }
+        }
+    });
+    
+    console.log('✅ Manejo de eventos optimizado');
+}
+
+// Optimizar renderizado de gráficos
+function optimizeChartRendering() {
+    // Implementar lazy loading para gráficos
+    const observerOptions = {
+        root: null,
+        rootMargin: '50px',
+        threshold: 0.1
+    };
+    
+    const chartObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const chartId = entry.target.dataset.chartId;
+                if (chartId && !entry.target.dataset.chartLoaded) {
+                    loadChart(chartId);
+                    entry.target.dataset.chartLoaded = 'true';
+                }
+            }
+        });
+    }, observerOptions);
+    
+    // Observar contenedores de gráficos
+    document.querySelectorAll('[data-chart-id]').forEach(container => {
+        chartObserver.observe(container);
+    });
+    
+    console.log('✅ Renderizado de gráficos optimizado');
+}
+
+// Optimizar uso de memoria
+function optimizeMemoryUsage() {
+    // Limpiar referencias circulares
+    function cleanupCircularReferences() {
+        // Limpiar referencias en transacciones
+        transactions.forEach(transaction => {
+            if (transaction.element) {
+                delete transaction.element;
+            }
+        });
+        
+        // Limpiar referencias en categorías
+        categories.forEach(category => {
+            if (category.element) {
+                delete category.element;
+            }
+        });
+    }
+    
+    // Ejecutar limpieza periódicamente
+    setInterval(cleanupCircularReferences, 30000); // Cada 30 segundos
+    
+    // Limpiar al cambiar de pestaña
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            cleanupCircularReferences();
+        }
+    });
+    
+    console.log('✅ Uso de memoria optimizado');
+}
+
+// Función para manejar eliminación de elementos
+function handleDeleteItem(itemId, itemType) {
+    const confirmMessage = `¿Estás seguro de que quieres eliminar este ${itemType}?`;
+    
+    if (confirm(confirmMessage)) {
+        switch (itemType) {
+            case 'category':
+                deleteCategory(itemId);
+                break;
+            case 'transaction':
+                deleteTransaction(itemId);
+                break;
+            case 'income':
+                deleteIncome(itemId);
+                break;
+            case 'goal':
+                deleteGoal(itemId);
+                break;
+            case 'bankAccount':
+                deleteBankAccount(itemId);
+                break;
+            default:
+                console.warn('Tipo de elemento no reconocido:', itemType);
+        }
+    }
+}
+
+// Función para manejar edición de elementos
+function handleEditItem(itemId, itemType) {
+    switch (itemType) {
+        case 'category':
+            editCategory(itemId);
+            break;
+        case 'transaction':
+            editTransaction(itemId);
+            break;
+        case 'income':
+            editIncome(itemId);
+            break;
+        case 'goal':
+            editGoal(itemId);
+            break;
+        default:
+            console.warn('Tipo de elemento no reconocido para edición:', itemType);
+    }
+}
+
+// Función para cargar gráficos de forma lazy
+function loadChart(chartId) {
+    console.log('📊 Cargando gráfico:', chartId);
+    
+    // Simular carga de gráfico
+    setTimeout(() => {
+        const container = document.querySelector(`[data-chart-id="${chartId}"]`);
+        if (container) {
+            container.innerHTML = '<div class="chart-loading">Cargando gráfico...</div>';
+            
+            // Aquí se cargaría el gráfico real
+            setTimeout(() => {
+                container.innerHTML = '<div class="chart-loaded">Gráfico cargado</div>';
+            }, 1000);
+        }
+    }, 100);
+}
+
+// Función para verificar y reparar datos corruptos
+function repairCorruptedData() {
+    console.log('🔧 Verificando integridad de datos...');
+    
+    let repaired = false;
+    
+    // Verificar transacciones
+    if (Array.isArray(transactions)) {
+        transactions = transactions.filter(transaction => {
+            if (!transaction || typeof transaction !== 'object') {
+                repaired = true;
+                return false;
+            }
+            
+            // Reparar campos faltantes
+            if (!transaction.id) {
+                transaction.id = Date.now() + Math.random();
+                repaired = true;
+            }
+            
+            if (!transaction.date) {
+                transaction.date = new Date().toISOString().split('T')[0];
+                repaired = true;
+            }
+            
+            if (typeof transaction.amount !== 'number') {
+                transaction.amount = parseFloat(transaction.amount) || 0;
+                repaired = true;
+            }
+            
+            return true;
+        });
+    } else {
+        transactions = [];
+        repaired = true;
+    }
+    
+    // Verificar categorías
+    if (Array.isArray(categories)) {
+        categories = categories.filter(category => {
+            if (!category || typeof category !== 'object') {
+                repaired = true;
+                return false;
+            }
+            
+            // Reparar campos faltantes
+            if (!category.id) {
+                category.id = Date.now() + Math.random();
+                repaired = true;
+            }
+            
+            if (!category.budget) {
+                category.budget = 0;
+                repaired = true;
+            }
+            
+            return true;
+        });
+    } else {
+        categories = [];
+        repaired = true;
+    }
+    
+    if (repaired) {
+        console.log('🔧 Datos reparados, guardando...');
+        saveData();
+        showNotification('Datos reparados automáticamente', 'info');
+    } else {
+        console.log('✅ Integridad de datos verificada');
+    }
+}
+
+// Función para monitorear rendimiento
+function monitorPerformance() {
+    const performanceData = {
+        loadTime: performance.now(),
+        memoryUsage: 0,
+        errors: 0
+    };
+    
+    // Monitorear errores
+    window.addEventListener('error', () => {
+        performanceData.errors++;
+    });
+    
+    // Monitorear memoria (si está disponible)
+    if (performance.memory) {
+        setInterval(() => {
+            performanceData.memoryUsage = performance.memory.usedJSHeapSize;
+            
+            // Alerta si el uso de memoria es alto
+            if (performance.memory.usedJSHeapSize > 50 * 1024 * 1024) { // 50MB
+                console.warn('⚠️ Uso de memoria alto:', performance.memory.usedJSHeapSize / 1024 / 1024, 'MB');
+                cleanupCircularReferences();
+            }
+        }, 10000); // Cada 10 segundos
+    }
+    
+    // Reportar métricas cada minuto
+    setInterval(() => {
+        console.log('📊 Métricas de rendimiento:', {
+            tiempoCarga: performance.now() - performanceData.loadTime,
+            errores: performanceData.errors,
+            memoria: performanceData.memoryUsage / 1024 / 1024 + ' MB'
+        });
+    }, 60000);
+    
+    console.log('📊 Monitoreo de rendimiento iniciado');
+}
+
+// Función para inicializar optimizaciones
+function initializeOptimizations() {
+    console.log('🚀 Inicializando optimizaciones...');
+    
+    // Inicializar manejador de errores
+    if (typeof initializeErrorHandler === 'function') {
+        const errorHandler = initializeErrorHandler();
+        console.log('🛡️ Manejador de errores:', errorHandler);
+    }
+    
+    // Inicializar configuración de rendimiento
+    if (typeof initializePerformanceConfig === 'function') {
+        const performanceSetup = initializePerformanceConfig();
+        console.log('📊 Configuración de rendimiento:', performanceSetup);
+    }
+    
+    // Aplicar optimizaciones
+    optimizePerformance();
+    
+    // Reparar datos corruptos
+    repairCorruptedData();
+    
+    // Iniciar monitoreo de rendimiento
+    monitorPerformance();
+    
+    console.log('✅ Optimizaciones inicializadas');
+}

@@ -14,6 +14,10 @@
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    <link rel="apple-touch-icon-precomposed" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    <link rel="icon" type="image/png" sizes="16x16" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
     
     <title>JM Budget - Gestión de Presupuesto Familiar</title>
     
@@ -37,8 +41,32 @@
     <!-- Configuración global de Firebase -->
     <script src="firebase-config.js"></script>
     
+    <!-- Configuración de Firebase para Desarrollo -->
+    <script src="firebase-dev-config.js"></script>
+    
+    <!-- Inicialización de Firebase -->
+    <script src="firebase-init.js"></script>
+    
     <!-- Configuración de la aplicación -->
     <script src="config.js"></script>
+    
+    <!-- Configuración de rendimiento -->
+    <script src="performance-config.js"></script>
+    
+    <!-- Manejador de errores -->
+    <script src="error-handler.js"></script>
+    
+    <!-- Servicio de Autenticación -->
+    <script src="auth-service.js"></script>
+    
+    <!-- Servicio de Sincronización -->
+    <script src="sync-service.js"></script>
+    
+    <!-- Servicio de Notificaciones -->
+    <script src="notification-service.js"></script>
+    
+    <!-- Servicio de Temas -->
+    <script src="theme-service.js"></script>
 </head>
 <body>
     <!-- Sistema de Login -->
@@ -52,13 +80,26 @@
             
             <div class="login-form">
                 <div class="form-group">
-                    <label for="username">Usuario:</label>
-                    <input type="text" id="username" placeholder="Ingresa tu nombre de usuario" required>
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" placeholder="Ingresa tu email" required>
+                    <div class="validation-message" id="emailValidation"></div>
                 </div>
                 
                 <div class="form-group">
                     <label for="password">Contraseña:</label>
-                    <input type="password" id="password" placeholder="Ingresa tu contraseña" required>
+                    <div class="password-input-container">
+                        <input type="password" id="password" placeholder="Ingresa tu contraseña" required>
+                        <button type="button" class="password-toggle" id="passwordToggle">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength" id="passwordStrength"></div>
+                    <div class="validation-message" id="passwordValidation"></div>
+                </div>
+                
+                <div class="form-group" id="displayNameGroup" style="display: none;">
+                    <label for="displayName">Nombre (opcional):</label>
+                    <input type="text" id="displayName" placeholder="Tu nombre para mostrar">
                 </div>
                 
                 <div class="login-actions">
@@ -70,8 +111,18 @@
                     </button>
                 </div>
                 
+                <div class="login-links">
+                    <button type="button" id="forgotPasswordBtn" class="link-button">
+                        ¿Olvidaste tu contraseña?
+                    </button>
+                    <button type="button" id="toggleModeBtn" class="link-button">
+                        Cambiar a modo registro
+                    </button>
+                </div>
+                
                 <div class="login-info">
-                    <p><i class="fas fa-info-circle"></i> Los datos se guardan localmente en tu navegador</p>
+                    <p><i class="fas fa-shield-alt"></i> Tus datos están protegidos con encriptación AES-256</p>
+                    <p><i class="fas fa-cloud"></i> Sincronización automática con Firebase</p>
                 </div>
             </div>
         </div>
@@ -88,6 +139,15 @@
                 </div>
                 <div class="user-info">
                     <span id="currentUser"></span>
+                    <div class="sync-status-container">
+                        <span id="syncStatus" class="sync-status pending">⏳ Pendiente</span>
+                        <button id="forceSyncBtn" class="btn-sync" title="Sincronizar ahora">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button id="syncConfigBtn" class="btn-sync-config" title="Configurar sincronización" onclick="openSyncConfig()">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
                     <div class="user-actions">
                         <div class="menu-container">
                             <button id="menuBtn" class="btn-menu" title="Menú de opciones">
@@ -99,11 +159,15 @@
                                     <span>Notificaciones</span>
                                     <span id="notificationsCount" class="notifications-count">0</span>
                                 </button>
+                                <button class="menu-item" id="requestNotificationPermissionBtn" title="Solicitar permisos de notificación">
+                                    <i class="fas fa-bell-slash"></i>
+                                    <span>Activar Notificaciones</span>
+                                </button>
                                 <button class="menu-item" id="installAppBtn" title="Instalar App" style="display: none;">
                                     <i class="fas fa-download"></i>
                                     <span>Instalar App</span>
                                 </button>
-                                <button class="menu-item" id="themeToggleBtn" title="Cambiar Tema">
+                                <button class="menu-item" id="menuThemeToggleBtn" title="Cambiar Tema">
                                     <i class="fas fa-moon"></i>
                                     <span>Cambiar Tema</span>
                                 </button>
@@ -136,6 +200,10 @@
                                     <i class="fas fa-broom"></i>
                                     <span>Limpiar Cache</span>
                                 </button>
+                                <button class="menu-item" id="fixDuplicateAccountsBtn" title="Arreglar cuentas duplicadas (solo desarrollo)">
+                                    <i class="fas fa-tools"></i>
+                                    <span>Arreglar Cuentas Duplicadas</span>
+                                </button>
                                 <button class="menu-item" id="cloudSyncBtn" title="Configurar sincronización en la nube">
                                     <i class="fas fa-cloud"></i>
                                     <span>Sincronización en la Nube</span>
@@ -154,99 +222,32 @@
 
         <!-- Navegación por pestañas -->
         <nav class="tab-navigation">
-            <button class="tab-btn active" data-tab="presupuesto">
+            <button class="tab-btn active" data-tab="reportes">
+                <i class="fas fa-chart-bar"></i> Reportes
+            </button>
+            <button class="tab-btn" data-tab="presupuesto">
                 <i class="fas fa-chart-pie"></i> Presupuesto
             </button>
             <button class="tab-btn" data-tab="transacciones">
                 <i class="fas fa-exchange-alt"></i> Transacciones
             </button>
-            <button class="tab-btn" data-tab="reportes">
-                <i class="fas fa-chart-bar"></i> Reportes
+            <button class="tab-btn" data-tab="estadisticas">
+                <i class="fas fa-analytics"></i> Estadísticas
+            </button>
+            <button class="tab-btn" data-tab="metas">
+                <i class="fas fa-bullseye"></i> Metas
+            </button>
+            <button class="tab-btn" data-tab="bancos">
+                <i class="fas fa-university"></i> Bancos
             </button>
         </nav>
 
         <!-- Contenido principal -->
         <main class="main-content">
-            <!-- Sección Presupuesto -->
-            <section id="presupuesto" class="tab-content active">
-                <div class="section-header">
-                    <div class="budget-controls">
-                        <div class="month-selector">
-                            <label for="budgetMonth">Mes:</label>
-                            <select id="budgetMonth" class="month-select">
-                                <option value="">Mes actual</option>
-                            </select>
-                        </div>
-                        <div class="budget-actions">
-                            <button class="btn-secondary" id="selectCategoryBtn">
-                                <i class="fas fa-list"></i> Elegir Categoría
-                            </button>
-                            <button class="btn-primary" id="addCategoryBtn">
-                                <i class="fas fa-plus"></i> Nueva Categoría
-                            </button>
-                            <button class="btn-primary" id="addIncomeBtn">
-                                <i class="fas fa-plus"></i> Nuevo Ingreso
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="summary-cards">
-                    <div class="summary-card">
-                        <h3 data-icon="budget">Presupuesto Total</h3>
-                        <div class="amount" id="totalBudget">$0</div>
-                    </div>
-                    <div class="summary-card">
-                        <h3 data-icon="spent">Gastado</h3>
-                        <div class="amount spent" id="totalSpent">$0</div>
-                    </div>
-                    <div class="summary-card">
-                        <h3 data-icon="remaining">Restante</h3>
-                        <div class="amount remaining" id="totalRemaining">$0</div>
-                    </div>
-                    <div class="summary-card">
-                        <h3 data-icon="income">Ingresos</h3>
-                        <div class="amount income" id="totalIncomes">$0</div>
-                    </div>
-                    <div class="summary-card">
-                        <h3 data-icon="balance">Balance</h3>
-                        <div class="amount" id="totalBalance">$0</div>
-                    </div>
-                </div>
-                
-                <div id="incomesContainer"></div>
-                
-                <h3 id="gastosRecurrentesTitle" style="margin-bottom: 20px; color: #333; font-size: 18px; font-weight: 600;">Gastos Recurrentes</h3>
-                <div id="categoriesContainer"></div>
-            </section>
-
-            <!-- Sección Transacciones -->
-            <section id="transacciones" class="tab-content">
-                <div class="section-header">
-                    <h2>Transacciones</h2>
-                </div>
-                <div class="subtab-navigation">
-                    <button class="subtab-btn active" data-subtab="gastos">Gastos</button>
-                    <button class="subtab-btn" data-subtab="ingresos">Ingresos</button>
-                    <button class="btn-primary subtab-action-btn" id="addGastoBtn" style="margin-left:auto;"> <i class="fas fa-plus"></i> Nuevo Gasto</button>
-                    <button class="btn-primary subtab-action-btn" id="addIngresoBtn" style="margin-left:auto; display:none;"> <i class="fas fa-plus"></i> Nuevo Ingreso</button>
-                </div>
-                <div class="filters">
-                    <select id="monthFilter">
-                        <option value="">Todos los meses</option>
-                    </select>
-                    <select id="categoryFilter">
-                        <option value="">Todas las categorías</option>
-                    </select>
-                </div>
-                <div id="gastosContainer" class="transactions-subtab active"></div>
-                <div id="ingresosContainer" class="transactions-subtab"></div>
-            </section>
-
             <!-- Sección Reportes -->
-            <section id="reportes" class="tab-content">
+            <section id="reportes" class="tab-content active">
                 <div class="section-header">
-                    <h2>Reportes y Análisis</h2>
+                    <h2>📊 Reportes y Análisis</h2>
                     <div class="report-controls">
                         <div class="report-filters">
                             <select id="reportMonth">
@@ -312,6 +313,271 @@
                         <h3>Comparación con Mes Anterior</h3>
                         <div id="monthComparison"></div>
                     </div>
+                </div>
+            </section>
+
+            <!-- Sección Transacciones -->
+            <section id="transacciones" class="tab-content">
+                <div class="section-header">
+                    <h2>Transacciones</h2>
+                </div>
+                <div class="subtab-navigation">
+                    <button class="subtab-btn active" data-subtab="gastos">Gastos</button>
+                    <button class="subtab-btn" data-subtab="ingresos">Ingresos</button>
+                    <button class="subtab-btn" data-subtab="transferencias">Transferencias</button>
+                    <button class="subtab-btn" data-subtab="pagos-tarjetas">Pagos de Tarjetas</button>
+                    <button class="btn-primary subtab-action-btn" id="addGastoBtn" style="margin-left:auto;"> <i class="fas fa-plus"></i> Nuevo Gasto</button>
+                    <button class="btn-primary subtab-action-btn" id="addIngresoBtn" style="margin-left:auto; display:none;"> <i class="fas fa-plus"></i> Nuevo Ingreso</button>
+                    <button class="btn-primary subtab-action-btn" id="addTransferenciaBtn" style="margin-left:auto; display:none;"> <i class="fas fa-exchange-alt"></i> Nueva Transferencia</button>
+                    <button class="btn-primary subtab-action-btn" id="addPagoTarjetaBtn" style="margin-left:auto; display:none;"> <i class="fas fa-credit-card"></i> Nuevo Pago</button>
+                </div>
+                <div class="filters">
+                    <select id="monthFilter">
+                        <option value="">Todos los meses</option>
+                    </select>
+                    <select id="categoryFilter">
+                        <option value="">Todas las categorías</option>
+                    </select>
+                </div>
+                <div id="gastosContainer" class="transactions-subtab active"></div>
+                <div id="ingresosContainer" class="transactions-subtab"></div>
+                <div id="transferenciasContainer" class="transactions-subtab"></div>
+                <div id="pagosTarjetasContainer" class="transactions-subtab"></div>
+            </section>
+
+            <!-- Sección Presupuesto -->
+            <section id="presupuesto" class="tab-content">
+                <div class="section-header">
+                    <div class="budget-controls">
+                        <div class="month-selector">
+                            <label for="budgetMonth">Mes:</label>
+                            <select id="budgetMonth" class="month-select">
+                                <option value="">Mes actual</option>
+                            </select>
+                        </div>
+                        <div class="budget-actions">
+                            <button class="btn-secondary" id="selectCategoryBtn">
+                                <i class="fas fa-list"></i> Elegir Categoría
+                            </button>
+                            <button class="btn-primary" id="addCategoryBtn">
+                                <i class="fas fa-plus"></i> Nueva Categoría
+                            </button>
+                            <button class="btn-primary" id="addIncomeBtn">
+                                <i class="fas fa-plus"></i> Nuevo Ingreso
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <h3 data-icon="budget">Presupuesto Total</h3>
+                        <div class="amount" id="totalBudget">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="spent">Gastado</h3>
+                        <div class="amount spent" id="totalSpent">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="remaining">Restante</h3>
+                        <div class="amount remaining" id="totalRemaining">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="income">Ingresos</h3>
+                        <div class="amount income" id="totalIncomes">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="balance">Balance</h3>
+                        <div class="amount" id="totalBalance">$0</div>
+                    </div>
+                </div>
+                
+                <div id="incomesContainer"></div>
+                
+                <h3 id="gastosRecurrentesTitle" style="margin-bottom: 20px; color: #333; font-size: 18px; font-weight: 600;">Gastos Recurrentes</h3>
+                <div id="categoriesContainer"></div>
+            </section>
+
+            <!-- Sección Estadísticas Avanzadas -->
+            <section id="estadisticas" class="tab-content">
+                <div class="section-header">
+                    <h2>📊 Estadísticas Avanzadas</h2>
+                    <div class="stats-controls">
+                        <select id="statsPeriod">
+                            <option value="month">Este Mes</option>
+                            <option value="quarter">Este Trimestre</option>
+                            <option value="year">Este Año</option>
+                            <option value="custom">Personalizado</option>
+                        </select>
+                        <button id="exportStatsBtn" class="btn-secondary">
+                            <i class="fas fa-download"></i> Exportar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stats-card">
+                        <h3>💰 Flujo de Caja</h3>
+                        <div class="stats-value" id="cashFlow">$0</div>
+                        <div class="stats-change positive" id="cashFlowChange">+0%</div>
+                    </div>
+                    <div class="stats-card">
+                        <h3>📈 Ahorro Mensual</h3>
+                        <div class="stats-value" id="monthlySavings">$0</div>
+                        <div class="stats-change positive" id="savingsChange">+0%</div>
+                    </div>
+                    <div class="stats-card">
+                        <h3>🎯 Meta de Ahorro</h3>
+                        <div class="stats-value" id="savingsGoal">$0</div>
+                        <div class="stats-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="savingsProgress"></div>
+                            </div>
+                            <span id="savingsPercentage">0%</span>
+                        </div>
+                    </div>
+                    <div class="stats-card">
+                        <h3>📊 Promedio Diario</h3>
+                        <div class="stats-value" id="dailyAverage">$0</div>
+                        <div class="stats-subtitle">Gasto promedio por día</div>
+                    </div>
+                </div>
+                
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <h3>📈 Tendencias de Gastos</h3>
+                        <canvas id="trendsChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>🎯 Análisis de Metas</h3>
+                        <canvas id="goalsChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>📊 Distribución Temporal</h3>
+                        <canvas id="timeDistributionChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>💰 Comparación Mensual</h3>
+                        <canvas id="monthlyComparisonChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="insights-section">
+                    <h3>💡 Insights Inteligentes</h3>
+                    <div class="insights-grid" id="insightsContainer">
+                        <div class="insight-card">
+                            <i class="fas fa-lightbulb"></i>
+                            <h4>Gasto Recurrente</h4>
+                            <p>Has gastado $0 en servicios recurrentes este mes</p>
+                        </div>
+                        <div class="insight-card">
+                            <i class="fas fa-chart-line"></i>
+                            <h4>Tendencia Positiva</h4>
+                            <p>Tu gasto ha disminuido un 0% comparado al mes anterior</p>
+                        </div>
+                        <div class="insight-card">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h4>Alerta de Presupuesto</h4>
+                            <p>Estás al 0% de tu presupuesto en la categoría más cara</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección Metas y Objetivos -->
+            <section id="metas" class="tab-content">
+                <div class="section-header">
+                    <h2>🎯 Metas y Objetivos Financieros</h2>
+                    <button class="btn-primary" id="addGoalBtn">
+                        <i class="fas fa-plus"></i> Nueva Meta
+                    </button>
+                </div>
+                
+                <div class="goals-overview">
+                    <div class="goal-summary-card">
+                        <h3>📊 Resumen de Metas</h3>
+                        <div class="goal-stats">
+                            <div class="goal-stat">
+                                <span class="stat-number" id="totalGoals">0</span>
+                                <span class="stat-label">Metas Activas</span>
+                            </div>
+                            <div class="goal-stat">
+                                <span class="stat-number" id="completedGoals">0</span>
+                                <span class="stat-label">Completadas</span>
+                            </div>
+                            <div class="goal-stat">
+                                <span class="stat-number" id="totalSaved">$0</span>
+                                <span class="stat-label">Total Ahorrado</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="goals-container" id="goalsContainer">
+                    <div class="no-goals-message">
+                        <i class="fas fa-bullseye"></i>
+                        <h3>No tienes metas configuradas</h3>
+                        <p>Crea tu primera meta financiera para empezar a ahorrar</p>
+                        <button class="btn-primary" onclick="showAddGoalModal()">
+                            <i class="fas fa-plus"></i> Crear Primera Meta
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección Bancos -->
+            <section id="bancos" class="tab-content">
+                <div class="section-header">
+                    <h2>🏦 Gestión de Bancos</h2>
+                    <div class="bank-controls">
+                        <button class="btn-primary" id="addBankAccountBtn">
+                            <i class="fas fa-plus"></i> Nueva Cuenta
+                        </button>
+                        <button class="btn-secondary" id="importBankTransactionsBtn">
+                            <i class="fas fa-file-import"></i> Importar CSV
+                        </button>
+                        <button class="btn-secondary" id="reconcileAccountsBtn">
+                            <i class="fas fa-sync-alt"></i> Conciliar
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Resumen de cuentas -->
+                <div class="bank-summary-cards">
+                    <div class="summary-card">
+                        <h3 data-icon="balance">Balance Total</h3>
+                        <div class="amount" id="totalBankBalance">$0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="accounts">Cuentas Activas</h3>
+                        <div class="amount" id="activeAccountsCount">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="transactions">Transacciones</h3>
+                        <div class="amount" id="totalBankTransactions">0</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3 data-icon="reconciled">Conciliadas</h3>
+                        <div class="amount" id="reconciledTransactions">0</div>
+                    </div>
+                </div>
+                
+                <!-- Lista de cuentas -->
+                <div class="bank-accounts-container" id="bankAccountsContainer">
+                    <div class="no-accounts-message">
+                        <i class="fas fa-university"></i>
+                        <h3>No tienes cuentas bancarias configuradas</h3>
+                        <p>Agrega tu primera cuenta bancaria para comenzar a gestionar tus finanzas</p>
+                        <button class="btn-primary" onclick="openBankAccountModal()">
+                            <i class="fas fa-plus"></i> Agregar Primera Cuenta
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Transacciones bancarias recientes -->
+                <div class="recent-transactions" id="recentBankTransactions" style="display: none;">
+                    <h3>📊 Transacciones Recientes</h3>
+                    <div class="transactions-list" id="bankTransactionsList"></div>
                 </div>
             </section>
         </main>
@@ -404,6 +670,25 @@
                         <option value="">Selecciona una categoría</option>
                     </select>
                 </div>
+                
+                <!-- Campo para seleccionar cuenta bancaria -->
+                <div class="form-group" id="accountSelectionGroup">
+                    <label for="transactionAccount">Cuenta bancaria:</label>
+                    <select id="transactionAccount" required>
+                        <option value="">Selecciona una cuenta</option>
+                    </select>
+                    <small class="form-help">Selecciona desde qué cuenta se realizó el pago</small>
+                </div>
+                
+                <!-- Campo para transferencias -->
+                <div class="form-group" id="transferToAccountGroup" style="display: none;">
+                    <label for="transferToAccount">Transferir a cuenta:</label>
+                    <select id="transferToAccount" required>
+                        <option value="">Selecciona cuenta destino</option>
+                    </select>
+                    <small class="form-help">Selecciona la cuenta que recibirá la transferencia</small>
+                </div>
+                
                 <div class="form-group">
                     <label for="transactionDate">Fecha:</label>
                     <input type="date" id="transactionDate" required>
@@ -710,6 +995,56 @@
         </div>
     </div>
 
+    <!-- Modal para Nueva Meta -->
+    <div id="goalModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('goalModal')">&times;</span>
+            <h2 id="goalModalTitle">Nueva Meta Financiera</h2>
+            <form id="goalForm">
+                <div class="form-group">
+                    <label for="goalName">Nombre de la meta:</label>
+                    <input type="text" id="goalName" placeholder="Ej: Vacaciones, Auto nuevo, etc." required>
+                </div>
+                <div class="form-group">
+                    <label for="goalTarget">Meta de ahorro:</label>
+                    <input type="number" id="goalTarget" step="0.01" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label for="goalCurrent">Ahorro actual:</label>
+                    <input type="number" id="goalCurrent" step="0.01" placeholder="0.00" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="goalDeadline">Fecha objetivo:</label>
+                    <input type="date" id="goalDeadline" required>
+                </div>
+                <div class="form-group">
+                    <label for="goalCategory">Categoría:</label>
+                    <select id="goalCategory" required>
+                        <option value="">Selecciona una categoría</option>
+                        <option value="vacaciones">Vacaciones</option>
+                        <option value="auto">Automóvil</option>
+                        <option value="casa">Casa</option>
+                        <option value="emergencia">Fondo de Emergencia</option>
+                        <option value="inversion">Inversión</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="goalColor">Color:</label>
+                    <input type="color" id="goalColor" value="#007aff">
+                </div>
+                <div class="form-group">
+                    <label for="goalDescription">Descripción (opcional):</label>
+                    <textarea id="goalDescription" placeholder="Describe tu meta..." rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Guardar Meta</button>
+                    <button type="button" class="btn-secondary" onclick="closeModal('goalModal')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal de Sincronización en la Nube -->
     <div id="cloudSyncModal" class="modal">
         <div class="modal-content">
@@ -971,5 +1306,262 @@
             console.log('📱 Aplicación lista para usar');
         });
     </script>
+    
+    <!-- Modal para Nueva/Editar Cuenta Bancaria -->
+    <div id="bankAccountModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('bankAccountModal')">&times;</span>
+            <h2 id="bankAccountModalTitle">Nueva Cuenta Bancaria</h2>
+            <form id="bankAccountForm">
+                <div class="form-group">
+                    <label for="bankAccountName">Nombre de la cuenta:</label>
+                    <input type="text" id="bankAccountName" placeholder="Ej: Cuenta Corriente Principal" required>
+                </div>
+                <div class="form-group">
+                    <label for="bankAccountType">Tipo de cuenta:</label>
+                    <select id="bankAccountType" required onchange="handleAccountTypeChange()">
+                        <option value="">Selecciona el tipo</option>
+                        <option value="checking">Cuenta Corriente</option>
+                        <option value="savings">Cuenta de Ahorros</option>
+                        <option value="credit">Tarjeta de Crédito</option>
+                        <option value="investment">Cuenta de Inversión</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bankName">Banco:</label>
+                    <input type="text" id="bankName" placeholder="Ej: Banco Nacional" required>
+                </div>
+                <div class="form-group">
+                    <label for="bankAccountNumber">Número de cuenta (opcional):</label>
+                    <input type="text" id="bankAccountNumber" placeholder="Últimos 4 dígitos">
+                </div>
+                <div class="form-group">
+                    <label for="bankAccountBalance">Balance inicial:</label>
+                    <input type="number" id="bankAccountBalance" step="0.01" placeholder="0.00" value="0">
+                </div>
+                
+                <!-- Campos específicos para tarjetas de crédito -->
+                <div id="creditCardFields" style="display: none;">
+                    <div class="form-group">
+                        <label for="creditLimit">Límite de crédito:</label>
+                        <input type="number" id="creditLimit" step="0.01" placeholder="0.00" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="cutoffDate">Fecha de corte:</label>
+                        <input type="date" id="cutoffDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentDueDate">Fecha límite de pago:</label>
+                        <input type="date" id="paymentDueDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="minimumPayment">Pago mínimo:</label>
+                        <input type="number" id="minimumPayment" step="0.01" placeholder="0.00" value="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="bankAccountCurrency">Moneda:</label>
+                    <select id="bankAccountCurrency" required>
+                        <option value="DOP" selected>DOP - Peso Dominicano (RD$)</option>
+                        <option value="USD">USD - Dólar Estadounidense</option>
+                        <option value="EUR">EUR - Euro</option>
+                        <option value="COP">COP - Peso Colombiano</option>
+                        <option value="MXN">MXN - Peso Mexicano</option>
+                        <option value="ARS">ARS - Peso Argentino</option>
+                        <option value="CLP">CLP - Peso Chileno</option>
+                        <option value="PEN">PEN - Sol Peruano</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bankAccountColor">Color:</label>
+                    <input type="color" id="bankAccountColor" value="#007aff">
+                </div>
+                <div class="form-group">
+                    <label for="bankAccountNotes">Notas (opcional):</label>
+                    <textarea id="bankAccountNotes" placeholder="Información adicional sobre la cuenta..." rows="3"></textarea>
+                </div>
+                
+                <!-- Campos adicionales -->
+                <div class="form-group">
+                    <label for="accountStatus">Estado de la cuenta:</label>
+                    <select id="accountStatus">
+                        <option value="active" selected>Activa</option>
+                        <option value="inactive">Inactiva</option>
+                        <option value="suspended">Suspendida</option>
+                        <option value="closed">Cerrada</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="accountHolder">Titular de la cuenta:</label>
+                    <input type="text" id="accountHolder" placeholder="Nombre del titular">
+                </div>
+                
+                <div class="form-group">
+                    <label for="accountEmail">Email asociado:</label>
+                    <input type="email" id="accountEmail" placeholder="email@ejemplo.com">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Guardar Cuenta</button>
+                    <button type="button" class="btn-secondary" onclick="closeModal('bankAccountModal')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Pagos de Tarjetas de Crédito -->
+    <div id="pagoTarjetaModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('pagoTarjetaModal')">&times;</span>
+            <h2>💳 Pago de Tarjeta de Crédito</h2>
+            <form id="pagoTarjetaForm">
+                <div class="form-group">
+                    <label for="pagoTarjetaDescripcion">Descripción del pago:</label>
+                    <input type="text" id="pagoTarjetaDescripcion" placeholder="Ej: Pago tarjeta Visa, Pago mínimo, etc." required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pagoTarjetaMonto">Monto a pagar:</label>
+                    <input type="number" id="pagoTarjetaMonto" step="0.01" placeholder="0.00" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pagoTarjetaCuentaOrigen">Cuenta de origen:</label>
+                    <select id="pagoTarjetaCuentaOrigen" required>
+                        <option value="">Selecciona la cuenta desde donde pagarás</option>
+                    </select>
+                    <small class="form-help">Selecciona la cuenta bancaria desde donde harás el pago</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pagoTarjetaDestino">Tarjeta de crédito:</label>
+                    <select id="pagoTarjetaDestino" required>
+                        <option value="">Selecciona la tarjeta a pagar</option>
+                    </select>
+                    <small class="form-help">Selecciona la tarjeta de crédito que vas a pagar</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pagoTarjetaFecha">Fecha del pago:</label>
+                    <input type="date" id="pagoTarjetaFecha" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pagoTarjetaComentario">Comentario (opcional):</label>
+                    <textarea id="pagoTarjetaComentario" placeholder="Información adicional sobre el pago..." rows="3"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Realizar Pago</button>
+                    <button type="button" class="btn-secondary" onclick="closeModal('pagoTarjetaModal')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Importar Transacciones Bancarias -->
+    <div id="importBankTransactionsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('importBankTransactionsModal')">&times;</span>
+            <h2>📥 Importar Transacciones Bancarias</h2>
+            
+            <div class="import-steps">
+                <div class="step active" id="step1">
+                    <h3>1. Seleccionar Cuenta</h3>
+                    <div class="form-group">
+                        <label for="importAccountSelect">Cuenta bancaria:</label>
+                        <select id="importAccountSelect" required>
+                            <option value="">Selecciona una cuenta</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" onclick="nextStep(2)">Siguiente</button>
+                </div>
+                
+                <div class="step" id="step2">
+                    <h3>2. Subir Archivo CSV</h3>
+                    <div class="file-upload-area">
+                        <div class="file-drop-zone" id="bankFileDropZone">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h3>Arrastra tu archivo CSV aquí</h3>
+                            <p>o haz clic para seleccionar</p>
+                            <input type="file" id="bankFileInput" accept=".csv" style="display: none;">
+                        </div>
+                        <div class="file-info" id="bankFileInfo" style="display: none;">
+                            <div class="file-details">
+                                <i class="fas fa-file-csv"></i>
+                                <span id="bankFileName"></span>
+                                <span id="bankFileSize"></span>
+                            </div>
+                            <button id="processBankFileBtn" class="btn-primary">
+                                <i class="fas fa-cog"></i> Procesar Archivo
+                            </button>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button class="btn-secondary" onclick="prevStep(1)">Anterior</button>
+                    </div>
+                </div>
+                
+                <div class="step" id="step3">
+                    <h3>3. Revisar y Confirmar</h3>
+                    <div class="import-preview">
+                        <div class="preview-stats">
+                            <span id="bankTotalRows">Total: 0 filas</span>
+                            <span id="bankValidRows">Válidas: 0</span>
+                            <span id="bankInvalidRows">Con errores: 0</span>
+                        </div>
+                        <div class="preview-table">
+                            <div id="bankPreviewContent">
+                                <p class="no-preview">Sube un archivo para ver la vista previa</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button class="btn-secondary" onclick="prevStep(2)">Anterior</button>
+                        <button id="confirmBankImportBtn" class="btn-primary" disabled>
+                            <i class="fas fa-check"></i> Confirmar Importación
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Configuración de Sincronización -->
+    <div id="syncConfigModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cloud"></i> Configuración de Sincronización</h3>
+                <button class="close-btn" onclick="closeModal('syncConfigModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Estrategia de Resolución de Conflictos:</label>
+                    <select id="conflictResolution">
+                        <option value="smart-merge">Fusión Inteligente (Recomendado)</option>
+                        <option value="server-wins">Servidor Gana</option>
+                        <option value="client-wins">Cliente Gana</option>
+                        <option value="manual">Manual</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Frecuencia de Sincronización:</label>
+                    <select id="syncFrequency">
+                        <option value="300000">Cada 5 minutos</option>
+                        <option value="600000">Cada 10 minutos</option>
+                        <option value="1800000">Cada 30 minutos</option>
+                        <option value="3600000">Cada hora</option>
+                    </select>
+                </div>
+                <div class="sync-info">
+                    <p><i class="fas fa-info-circle"></i> La sincronización automática mantiene tus datos actualizados en todos tus dispositivos.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('syncConfigModal')">Cancelar</button>
+                <button class="btn-primary" onclick="saveSyncConfig()">Guardar</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html> 
