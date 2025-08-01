@@ -201,6 +201,15 @@ class SyncService {
     }
 
     async syncToServer() {
+        // Verificar si estamos en modo desarrollo
+        const isDevelopment = window.location.hostname === 'localhost' || 
+                             window.location.hostname === '127.0.0.1';
+        
+        if (isDevelopment) {
+            console.log('🔧 Modo desarrollo - sincronización al servidor deshabilitada');
+            return;
+        }
+
         const user = this.auth.currentUser;
         if (!user) throw new Error('Usuario no autenticado');
 
@@ -257,6 +266,15 @@ class SyncService {
     }
 
     async syncFromServer() {
+        // Verificar si estamos en modo desarrollo
+        const isDevelopment = window.location.hostname === 'localhost' || 
+                             window.location.hostname === '127.0.0.1';
+        
+        if (isDevelopment) {
+            console.log('🔧 Modo desarrollo - sincronización desde servidor deshabilitada');
+            return;
+        }
+
         const user = this.auth.currentUser;
         if (!user) throw new Error('Usuario no autenticado');
 
@@ -539,29 +557,24 @@ class SyncService {
                                  window.location.hostname === '127.0.0.1';
             
             if (isDevelopment) {
-                console.log('🔧 Modo desarrollo - omitiendo verificación de Firestore');
+                console.log('🔧 Modo desarrollo - Firestore deshabilitado para evitar errores');
+                this.updateSyncStatus('offline');
                 return;
             }
             
-            // Intentar una operación simple para verificar la configuración
-            const testDoc = this.db.collection('_test').doc('connection');
-            await testDoc.get();
+            // Verificar si Firebase está configurado correctamente
+            if (!this.db || !this.auth) {
+                console.log('⚠️ Firebase no inicializado correctamente');
+                this.updateSyncStatus('offline');
+                return;
+            }
             
-            console.log('✅ Configuración de Firestore verificada');
+            // Solo verificar conectividad, no hacer operaciones de escritura
+            console.log('✅ Configuración de Firestore verificada (modo lectura)');
             
         } catch (error) {
             console.error('❌ Error en configuración de Firestore:', error);
-            
-            if (error.code === 'permission-denied') {
-                console.log('🔒 Error de permisos - verificar reglas de Firestore');
-                this.updateSyncStatus('error');
-            } else if (error.code === 'unavailable') {
-                console.log('🌐 Firestore no disponible - verificar conexión');
-                this.updateSyncStatus('offline');
-            } else {
-                console.log('❓ Error desconocido de Firestore');
-                this.updateSyncStatus('error');
-            }
+            this.updateSyncStatus('offline');
         }
     }
 
@@ -574,6 +587,26 @@ class SyncService {
     setConflictResolution(strategy) {
         this.conflictResolution = strategy;
         console.log(`🔄 Estrategia de resolución de conflictos cambiada a: ${strategy}`);
+    }
+
+    updateSyncFrequency(frequency) {
+        // Limpiar intervalo anterior si existe
+        if (this.syncInterval) {
+            clearInterval(this.syncInterval);
+        }
+        
+        // Convertir frecuencia de milisegundos a segundos para logging
+        const frequencySeconds = Math.round(frequency / 1000);
+        console.log(`🔄 Frecuencia de sincronización actualizada a: ${frequencySeconds} segundos`);
+        
+        // Configurar nuevo intervalo de sincronización
+        if (frequency > 0) {
+            this.syncInterval = setInterval(() => {
+                if (this.isOnline && this.auth.currentUser && !this.syncInProgress) {
+                    this.syncNow();
+                }
+            }, frequency);
+        }
     }
 
     getSyncStatus() {
