@@ -523,21 +523,71 @@ class ProfessionalStorage {
                 device: navigator.userAgent
             };
 
-            // Guardar backup en IndexedDB
+            // Guardar backup en IndexedDB con manejo robusto de transacciones
             if (this.db) {
-                const transaction = this.db.transaction(['backups'], 'readwrite');
-                const store = transaction.objectStore('backups');
-                await store.add({
-                    key: 'auto_backup',
-                    data: await this.encrypt(backup),
-                    userId: currentUser,
-                    timestamp: new Date().toISOString()
-                });
+                try {
+                    // Crear una nueva transacción para cada operación
+                    const transaction = this.db.transaction(['backups'], 'readwrite');
+                    const store = transaction.objectStore('backups');
+                    
+                    // Preparar los datos antes de la transacción
+                    const encryptedBackup = await this.encrypt(backup);
+                    const backupData = {
+                        key: 'auto_backup',
+                        data: encryptedBackup,
+                        userId: currentUser || 'anonymous',
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    // Usar una Promise para manejar la transacción correctamente
+                    await new Promise((resolve, reject) => {
+                        const request = store.add(backupData);
+                        
+                        request.onsuccess = () => {
+                            console.log('✅ Backup guardado en IndexedDB');
+                            resolve();
+                        };
+                        
+                        request.onerror = () => {
+                            console.error('❌ Error al guardar backup en IndexedDB:', request.error);
+                            reject(request.error);
+                        };
+                        
+                        transaction.oncomplete = () => {
+                            console.log('✅ Transacción de backup completada');
+                        };
+                        
+                        transaction.onerror = () => {
+                            console.error('❌ Error en transacción de backup:', transaction.error);
+                            reject(transaction.error);
+                        };
+                    });
+                } catch (dbError) {
+                    console.warn('⚠️ Error con IndexedDB, guardando solo en localStorage:', dbError);
+                    // Fallback: guardar en localStorage
+                    localStorage.setItem('jmbudget_backup', JSON.stringify(backup));
+                }
+            } else {
+                // Si no hay IndexedDB, usar localStorage
+                localStorage.setItem('jmbudget_backup', JSON.stringify(backup));
             }
 
             console.log('✅ Backup automático creado');
         } catch (error) {
             console.error('❌ Error al crear backup:', error);
+            // Intentar guardar un backup básico en localStorage como último recurso
+            try {
+                const basicBackup = {
+                    timestamp: new Date().toISOString(),
+                    version: '1.0',
+                    error: 'Backup fallido, datos básicos guardados',
+                    device: navigator.userAgent
+                };
+                localStorage.setItem('jmbudget_backup_fallback', JSON.stringify(basicBackup));
+                console.log('🔄 Backup básico guardado como fallback');
+            } catch (fallbackError) {
+                console.error('❌ Error crítico: no se pudo guardar ningún backup:', fallbackError);
+            }
         }
     }
 
@@ -551,11 +601,38 @@ class ProfessionalStorage {
                 sessionStorage.removeItem(`jmbudget_${key}`);
             });
 
-            // Limpiar IndexedDB
+            // Limpiar IndexedDB con manejo robusto
             if (this.db) {
-                const transaction = this.db.transaction(['backups'], 'readwrite');
-                const store = transaction.objectStore('backups');
-                await store.clear();
+                try {
+                    const transaction = this.db.transaction(['backups'], 'readwrite');
+                    const store = transaction.objectStore('backups');
+                    
+                    await new Promise((resolve, reject) => {
+                        const request = store.clear();
+                        
+                        request.onsuccess = () => {
+                            console.log('✅ IndexedDB limpiado');
+                            resolve();
+                        };
+                        
+                        request.onerror = () => {
+                            console.error('❌ Error al limpiar IndexedDB:', request.error);
+                            reject(request.error);
+                        };
+                        
+                        transaction.oncomplete = () => {
+                            console.log('✅ Transacción de limpieza completada');
+                        };
+                        
+                        transaction.onerror = () => {
+                            console.error('❌ Error en transacción de limpieza:', transaction.error);
+                            reject(transaction.error);
+                        };
+                    });
+                } catch (dbError) {
+                    console.warn('⚠️ Error al limpiar IndexedDB:', dbError);
+                    // Continuar con la limpieza de localStorage
+                }
             }
 
             console.log('🗑️ Todos los datos eliminados');
