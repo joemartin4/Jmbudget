@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solución de Errores - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            line-height: 1.6;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .error-section {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .solution-section {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4CAF50;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .info-section {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid #2196F3;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: #2196F3;
+        }
+        .btn-secondary:hover {
+            background: #1976D2;
+        }
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        .step {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .step-number {
+            background: #4CAF50;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Solución de Errores - JM Budget</h1>
+        
+        <div class="error-section">
+            <h2>❌ Errores Detectados</h2>
+            <p>Los errores que estás viendo son normales cuando la aplicación corre en GitHub Pages sin configuración de Firebase:</p>
+            <ul>
+                <li><strong>CORS Errors:</strong> La aplicación intenta acceder a recursos externos</li>
+                <li><strong>Firebase Auth no está disponible:</strong> No hay configuración de Firebase</li>
+                <li><strong>Firebase Firestore no está disponible:</strong> Base de datos no configurada</li>
+            </ul>
+        </div>
+
+        <div class="solution-section">
+            <h2>✅ Solución Rápida (Recomendada)</h2>
+            <p>Para usar la aplicación inmediatamente sin configurar Firebase:</p>
+            
+            <div class="step">
+                <span class="step-number">1</span>
+                <strong>Usa la página de test-login:</strong>
+                <a href="test-login.html" class="btn">Ir a Test-Login</a>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">2</span>
+                <strong>O accede directamente con:</strong>
+                <div class="code-block">
+                    Email: test@example.com<br>
+                    Contraseña: password123
+                </div>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">3</span>
+                <strong>La aplicación funcionará en modo local</strong> con todas las características excepto sincronización en la nube.
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>🌐 Configurar Firebase para Producción</h2>
+            <p>Si quieres usar sincronización en la nube y Firebase:</p>
+            
+            <div class="step">
+                <span class="step-number">1</span>
+                <strong>Crear proyecto Firebase:</strong>
+                <a href="https://console.firebase.google.com" target="_blank" class="btn btn-secondary">Firebase Console</a>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">2</span>
+                <strong>Habilitar servicios:</strong>
+                <ul>
+                    <li>Authentication (Email/Password)</li>
+                    <li>Firestore Database</li>
+                </ul>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">3</span>
+                <strong>Configurar reglas de Firestore:</strong>
+                <div class="code-block">
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+                </div>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">4</span>
+                <strong>Actualizar configuración:</strong>
+                <p>Reemplaza la configuración en <code>firebase-config.js</code> con la tuya.</p>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>🔧 Comandos Útiles</h2>
+            <p>Puedes ejecutar estos comandos en la consola del navegador:</p>
+            
+            <div class="code-block">
+// Verificar estado de Firebase
+window.isFirebaseAvailable()
+
+// Configurar Firebase manualmente
+window.configureFirebase({
+    apiKey: "tu-api-key",
+    authDomain: "tu-proyecto.firebaseapp.com",
+    projectId: "tu-proyecto",
+    storageBucket: "tu-proyecto.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:abcdef"
+})
+
+// Limpiar transferencias duplicadas
+window.cleanTransferencias()
+
+// Debug de transacciones
+window.debugTransactions()
+            </div>
+        </div>
+
+        <div class="solution-section">
+            <h2>🚀 Acceso Directo</h2>
+            <a href="index.html" class="btn">Ir a la Aplicación Principal</a>
+            <a href="test-login.html" class="btn btn-secondary">Test-Login</a>
+        </div>
+
+        <div class="info-section">
+            <h2>📞 Soporte</h2>
+            <p>Si necesitas ayuda adicional:</p>
+            <ul>
+                <li><strong>Desarrollador:</strong> Joel Martinez - joemart4@gmail.com</li>
+                <li><strong>GitHub:</strong> <a href="https://github.com/joemartin4/Jmbudget" style="color: #4CAF50;">Repositorio del Proyecto</a></li>
+                <li><strong>Documentación:</strong> Revisa los archivos .md en el repositorio</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Función para mostrar información del entorno
+        function showEnvironmentInfo() {
+            const isLocal = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1';
+            
+            console.log('🌍 Información del entorno:');
+            console.log('Hostname:', window.location.hostname);
+            console.log('Es local:', isLocal);
+            console.log('Firebase disponible:', window.isFirebaseAvailable ? window.isFirebaseAvailable() : 'Función no disponible');
+        }
+
+        // Ejecutar al cargar
+        document.addEventListener('DOMContentLoaded', function() {
+            showEnvironmentInfo();
+        });
+    </script>
+</body>
+</html> 
