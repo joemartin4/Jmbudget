@@ -13,12 +13,12 @@ window.FIREBASE_CONFIG = {
     // 🔥 CONFIGURACIÓN CENTRALIZADA DE FIREBASE
     // Reemplaza estos valores con tu configuración real de Firebase Console
     
-    apiKey: "TU_API_KEY_AQUI",
-    authDomain: "tu-proyecto.firebaseapp.com",
-    projectId: "tu-proyecto-id",
-    storageBucket: "tu-proyecto.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef123456"
+    apiKey: "AIzaSyBlOdgzWaUGfw-neDpH4Gx9d9ehMrMSsWk",
+    authDomain: "jm-budget-central.firebaseapp.com",
+    projectId: "jm-budget-central",
+    storageBucket: "jm-budget-central.firebasestorage.app",
+    messagingSenderId: "506263793471",
+    appId: "1:506263793471:web:5ebdf740bc7312e3892d8a"
 };
 
 // Configuración adicional de la aplicación
