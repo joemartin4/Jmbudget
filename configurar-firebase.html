@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurar Firebase - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            line-height: 1.6;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .step {
+            background: rgba(255, 255, 255, 0.1);
+            margin: 20px 0;
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 4px solid #4CAF50;
+        }
+        .step h3 {
+            color: #4CAF50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .step-number {
+            background: #4CAF50;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        .highlight {
+            background: rgba(255, 255, 0, 0.2);
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #FFC107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: rgba(76, 175, 80, 0.2);
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: #2196F3;
+        }
+        .btn-secondary:hover {
+            background: #1976D2;
+        }
+        .config-form {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        .screenshot {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        .nav-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #4CAF50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-cloud"></i> Configurar Firebase para Sincronización en la Nube</h1>
+        <p>Esta guía te ayudará a configurar Firebase para usar JM Budget con sincronización en la nube.</p>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">1</span> Crear Proyecto Firebase</h3>
+            <p>Primero necesitas crear un proyecto en Firebase Console:</p>
+            <ol>
+                <li>Ve a <a href="https://console.firebase.google.com/" target="_blank" class="btn btn-secondary">Firebase Console</a></li>
+                <li>Haz clic en <strong>"Crear un proyecto"</strong></li>
+                <li>Nombra tu proyecto: <span class="highlight">JM-Budget-[TuNombre]</span></li>
+                <li>Habilita Google Analytics (opcional pero recomendado)</li>
+                <li>Haz clic en <strong>"Crear proyecto"</strong></li>
+            </ol>
+            <div class="success">
+                <strong>✅ Completado:</strong> Tu proyecto Firebase está listo
+            </div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">2</span> Configurar Authentication</h3>
+            <p>Habilita la autenticación por email y contraseña:</p>
+            <ol>
+                <li>En el panel de Firebase, ve a <strong>"Authentication"</strong></li>
+                <li>Haz clic en <strong>"Comenzar"</strong></li>
+                <li>Selecciona la pestaña <strong>"Sign-in method"</strong></li>
+                <li>Habilita <strong>"Email/Password"</strong></li>
+                <li>Guarda los cambios</li>
+            </ol>
+            <div class="success">
+                <strong>✅ Completado:</strong> Authentication configurado
+            </div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">3</span> Configurar Firestore Database</h3>
+            <p>Crea la base de datos para almacenar tus datos:</p>
+            <ol>
+                <li>Ve a <strong>"Firestore Database"</strong></li>
+                <li>Haz clic en <strong>"Crear base de datos"</strong></li>
+                <li>Selecciona <strong>"Comenzar en modo de prueba"</strong></li>
+                <li>Elige la ubicación más cercana (ej: <span class="highlight">us-central1</span>)</li>
+                <li>Haz clic en <strong>"Siguiente"</strong> y luego <strong>"Habilitar"</strong></li>
+            </ol>
+            <div class="warning">
+                <strong>⚠️ Importante:</strong> El modo de prueba permite acceso completo por 30 días. 
+                Después necesitarás configurar reglas de seguridad.
+            </div>
+            <div class="success">
+                <strong>✅ Completado:</strong> Firestore Database creado
+            </div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">4</span> Obtener Configuración</h3>
+            <p>Obtén la configuración necesaria para conectar la aplicación:</p>
+            <ol>
+                <li>Ve a <strong>"Configuración del proyecto"</strong> (ícono de engranaje)</li>
+                <li>Selecciona la pestaña <strong>"General"</strong></li>
+                <li>Desplázate hacia abajo hasta <strong>"Tus apps"</strong></li>
+                <li>Haz clic en el ícono de web <strong>&lt;/&gt;</strong></li>
+                <li>Nombra tu app: <span class="highlight">JM-Budget-Web</span></li>
+                <li>Haz clic en <strong>"Registrar app"</strong></li>
+                <li>Copia la configuración que aparece</li>
+            </ol>
+            
+            <div class="config-form">
+                <h4>Configuración de Firebase</h4>
+                <p>Reemplaza los valores en el archivo <code>firebase-user-config.js</code>:</p>
+                
+                <div class="form-group">
+                    <label>apiKey:</label>
+                    <input type="text" id="apiKey" placeholder="AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                </div>
+                
+                <div class="form-group">
+                    <label>authDomain:</label>
+                    <input type="text" id="authDomain" placeholder="tu-proyecto.firebaseapp.com">
+                </div>
+                
+                <div class="form-group">
+                    <label>projectId:</label>
+                    <input type="text" id="projectId" placeholder="tu-proyecto-id">
+                </div>
+                
+                <div class="form-group">
+                    <label>storageBucket:</label>
+                    <input type="text" id="storageBucket" placeholder="tu-proyecto.appspot.com">
+                </div>
+                
+                <div class="form-group">
+                    <label>messagingSenderId:</label>
+                    <input type="text" id="messagingSenderId" placeholder="123456789">
+                </div>
+                
+                <div class="form-group">
+                    <label>appId:</label>
+                    <input type="text" id="appId" placeholder="1:123456789:web:abcdef123456">
+                </div>
+                
+                <button class="btn" onclick="generateConfig()">Generar Configuración</button>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">5</span> Aplicar Configuración</h3>
+            <p>Una vez que tengas la configuración:</p>
+            <ol>
+                <li>Descarga el archivo <code>firebase-user-config.js</code></li>
+                <li>Reemplaza los valores con tu configuración</li>
+                <li>Sube el archivo actualizado a tu servidor</li>
+                <li>Recarga la aplicación</li>
+            </ol>
+            
+            <div class="code-block" id="generatedConfig" style="display: none;">
+                <pre id="configCode"></pre>
+            </div>
+            
+            <div class="success">
+                <strong>✅ Completado:</strong> Configuración aplicada
+            </div>
+        </div>
+
+        <div class="step">
+            <h3><span class="step-number">6</span> Crear Cuenta Personal</h3>
+            <p>Ahora puedes crear tu cuenta personal:</p>
+            <ol>
+                <li>Ve a la <a href="index.html" class="btn btn-secondary">Aplicación Principal</a></li>
+                <li>Haz clic en <strong>"Registrarse"</strong></li>
+                <li>Ingresa tu email y contraseña</li>
+                <li>Confirma tu email (si Firebase está configurado)</li>
+                <li>¡Inicia sesión y disfruta de la sincronización!</li>
+            </ol>
+            
+            <div class="success">
+                <strong>🎉 ¡Felicidades!</strong> Tu cuenta personal con sincronización en la nube está lista
+            </div>
+        </div>
+
+        <div class="nav-buttons">
+            <a href="index.html" class="btn">Volver a la Aplicación</a>
+            <a href="test-login.html" class="btn btn-secondary">Test Login</a>
+            <a href="GUIA_USUARIO_FINAL.md" class="btn btn-secondary">Guía del Usuario</a>
+        </div>
+
+        <div class="warning">
+            <h4><i class="fas fa-exclamation-triangle"></i> Notas Importantes:</h4>
+            <ul>
+                <li><strong>Seguridad:</strong> El modo de prueba de Firestore expira en 30 días</li>
+                <li><strong>Límites:</strong> Firebase tiene límites gratuitos generosos</li>
+                <li><strong>Backup:</strong> Siempre mantén backups locales de tus datos</li>
+                <li><strong>Soporte:</strong> Para problemas técnicos, consulta la documentación de Firebase</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Función para generar configuración
+        function generateConfig() {
+            const apiKey = document.getElementById('apiKey').value;
+            const authDomain = document.getElementById('authDomain').value;
+            const projectId = document.getElementById('projectId').value;
+            const storageBucket = document.getElementById('storageBucket').value;
+            const messagingSenderId = document.getElementById('messagingSenderId').value;
+            const appId = document.getElementById('appId').value;
+            
+            if (!apiKey || !authDomain || !projectId) {
+                alert('Por favor completa al menos los campos principales (apiKey, authDomain, projectId)');
+                return;
+            }
+            
+            const config = `window.FIREBASE_USER_CONFIG = {
+    apiKey: "${apiKey}",
+    authDomain: "${authDomain}",
+    projectId: "${projectId}",
+    storageBucket: "${storageBucket}",
+    messagingSenderId: "${messagingSenderId}",
+    appId: "${appId}"
+};`;
+            
+            document.getElementById('configCode').textContent = config;
+            document.getElementById('generatedConfig').style.display = 'block';
+            
+            // Actualizar progreso
+            updateProgress(80);
+        }
+        
+        // Función para actualizar barra de progreso
+        function updateProgress(percentage) {
+            document.getElementById('progressFill').style.width = percentage + '%';
+        }
+        
+        // Inicializar progreso
+        updateProgress(20);
+        
+        // Simular progreso al hacer scroll
+        window.addEventListener('scroll', () => {
+            const scrolled = window.scrollY;
+            const maxScroll = document.body.scrollHeight - window.innerHeight;
+            const progress = Math.min(100, (scrolled / maxScroll) * 100);
+            updateProgress(20 + (progress * 0.6));
+        });
+    </script>
+</body>
+</html> 
