@@ -4028,8 +4028,19 @@ function createTransactionItem(transaction) {
     const transactionItem = document.createElement('div');
     transactionItem.className = 'transaction-item';
     const date = createLocalDate(transaction.date).toLocaleDateString('es-ES');
-    const amountClass = transaction.type === 'ingreso' ? 'income' : 'expense';
-    const amountPrefix = transaction.type === 'ingreso' ? '+' : '-';
+    
+    // Corregir la lógica del signo para transferencias
+    let amountClass, amountPrefix;
+    if (transaction.type === 'transferencia') {
+        // Para transferencias, usar el signo basado en el monto real
+        amountClass = transaction.amount >= 0 ? 'income' : 'expense';
+        amountPrefix = transaction.amount >= 0 ? '+' : '-';
+    } else {
+        // Para transacciones normales, usar la lógica original
+        amountClass = transaction.type === 'ingreso' ? 'income' : 'expense';
+        amountPrefix = transaction.type === 'ingreso' ? '+' : '-';
+    }
+    
     const authorInfo = transaction.lastModifiedBy ? `<div class="transaction-author">por ${transaction.lastModifiedBy}</div>` : '';
     const commentHtml = transaction.comment ? `<div class="transaction-comment"><div class="transaction-comment-author">${transaction.lastModifiedBy || 'Usuario'}</div>${transaction.comment}</div>` : '';
     
@@ -4040,7 +4051,7 @@ function createTransactionItem(transaction) {
         accountInfo = `<div class="transaction-account"><i class="fas fa-university"></i> ${accountName}</div>`;
     }
     
-    // Información de transferencia
+    // Información de transferencia mejorada
     let transferInfo = '';
     if (transaction.type === 'transferencia') {
         if (transaction.transferToAccountId) {
@@ -4085,7 +4096,7 @@ function createTransactionItem(transaction) {
         </div>
         <div class="transaction-buttons">
             <div class="transaction-amount ${amountClass}">
-                ${amountPrefix}${formatCurrency(transaction.amount)}
+                ${amountPrefix}${formatCurrency(Math.abs(transaction.amount))}
             </div>
             <div class="transaction-actions">
                 <button class="btn-icon edit-transaction" data-id="${transaction.id}" title="Editar transacción">
@@ -7251,51 +7262,41 @@ function cleanDuplicateTransferencias() {
     transactions.forEach(transaction => {
         if (transaction.type === 'transferencia') {
             // Crear una clave única para cada transferencia basada en múltiples propiedades
-            const key = `${Math.abs(transaction.amount)}_${transaction.accountId}_${transaction.transferToAccountId || transaction.transferFromAccountId}_${transaction.date}_${transaction.description}`;
+            // Usar solo una clave por transferencia para evitar duplicados
+            const baseKey = `${Math.abs(transaction.amount)}_${transaction.date}_${transaction.transferToAccountId || transaction.transferFromAccountId}`;
             
-            if (!transferenciaGroups.has(key)) {
-                transferenciaGroups.set(key, []);
+            if (!transferenciaGroups.has(baseKey)) {
+                transferenciaGroups.set(baseKey, []);
             }
-            transferenciaGroups.get(key).push(transaction);
+            transferenciaGroups.get(baseKey).push(transaction);
         } else {
             cleanTransferencias.push(transaction);
         }
     });
     
-    // Procesar grupos de transferencias
+    // Procesar grupos de transferencias - mantener solo una por transferencia
     let duplicatesRemoved = 0;
     transferenciaGroups.forEach((group, key) => {
         if (group.length > 1) {
             console.log(`🔄 Grupo de transferencias duplicadas encontrado: ${group.length} elementos`);
             console.log('Transferencias en el grupo:', group.map(t => ({ id: t.id, description: t.description, amount: t.amount })));
-            duplicatesRemoved += group.length - 1;
-            // Mantener solo la primera transferencia del grupo
-            cleanTransferencias.push(group[0]);
+            
+            // Mantener solo la transacción de salida (negativa) para mostrar la transferencia
+            const outgoingTransaction = group.find(t => t.amount < 0);
+            if (outgoingTransaction) {
+                cleanTransferencias.push(outgoingTransaction);
+                duplicatesRemoved += group.length - 1;
+                console.log('✅ Manteniendo transacción de salida:', outgoingTransaction.description);
+            } else {
+                // Si no hay transacción de salida, mantener la primera
+                cleanTransferencias.push(group[0]);
+                duplicatesRemoved += group.length - 1;
+                console.log('✅ Manteniendo primera transacción del grupo');
+            }
         } else {
             cleanTransferencias.push(group[0]);
         }
     });
-    
-    // Limpieza específica para las transferencias de $30,000 que vemos en la imagen
-    const specificTransferencias = transactions.filter(t => 
-        t.type === 'transferencia' && 
-        Math.abs(t.amount) === 30000 && 
-        t.date === '2025-07-31'
-    );
-    
-    if (specificTransferencias.length > 2) {
-        console.log('🎯 Encontradas transferencias específicas de $30,000 duplicadas');
-        // Mantener solo las primeras 2 (una de salida y una de entrada)
-        const toKeep = specificTransferencias.slice(0, 2);
-        const toRemove = specificTransferencias.slice(2);
-        
-        console.log('Manteniendo:', toKeep.map(t => ({ id: t.id, description: t.description })));
-        console.log('Eliminando:', toRemove.map(t => ({ id: t.id, description: t.description })));
-        
-        // Eliminar las duplicadas específicas
-        transactions = transactions.filter(t => !toRemove.includes(t));
-        duplicatesRemoved += toRemove.length;
-    }
     
     // Actualizar transacciones
     transactions = cleanTransferencias;
@@ -7306,8 +7307,9 @@ function cleanDuplicateTransferencias() {
         updateUI(true);
         showNotification(`Se eliminaron ${duplicatesRemoved} transferencias duplicadas`, 'success');
     } else {
-            console.log('✅ No se encontraron transferencias duplicadas');
-    showNotification('No se encontraron transferencias duplicadas', 'info');
+        console.log('✅ No se encontraron transferencias duplicadas');
+        showNotification('No se encontraron transferencias duplicadas', 'info');
+    }
 }
 
 // Función global para limpiar transferencias duplicadas manualmente
@@ -7671,7 +7673,6 @@ window.showAccountsInfo = function() {
         console.log('Contenido del contenedor:', container.innerHTML.substring(0, 200) + '...');
     }
 };
-}
 
 // Funciones para configuración de servicios en la nube
 function setupCloudSyncTabs() {
