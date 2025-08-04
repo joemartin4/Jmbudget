@@ -3423,7 +3423,34 @@ function showAddSubcategoryInput() {
 }
 
 function updateMonthFilters() {
-    const months = [...new Set(transactions.map(t => t.date.substring(0, 7)))].sort().reverse();
+    // Obtener todos los meses disponibles desde las transacciones
+    const transactionMonths = [...new Set(transactions.map(t => t.date.substring(0, 7)))].sort().reverse();
+    
+    // Generar meses adicionales (últimos 12 meses y próximos 3 meses)
+    const currentDate = new Date();
+    const additionalMonths = [];
+    
+    // Últimos 12 meses
+    for (let i = 12; i >= 1; i--) {
+        const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+        const monthStr = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+        additionalMonths.push(monthStr);
+    }
+    
+    // Mes actual
+    const currentMonth = currentDate.getFullYear() + '-' + String(currentDate.getMonth() + 1).padStart(2, '0');
+    additionalMonths.push(currentMonth);
+    
+    // Próximos 3 meses
+    for (let i = 1; i <= 3; i++) {
+        const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+        const monthStr = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+        additionalMonths.push(monthStr);
+    }
+    
+    // Combinar y eliminar duplicados
+    const allMonths = [...new Set([...transactionMonths, ...additionalMonths])].sort().reverse();
+    
     const monthFilter = document.getElementById('monthFilter');
     const reportMonth = document.getElementById('reportMonth');
     const budgetMonth = document.getElementById('budgetMonth');
@@ -3432,7 +3459,7 @@ function updateMonthFilters() {
     reportMonth.innerHTML = '<option value="">Todos los meses</option>';
     budgetMonth.innerHTML = '<option value="">Mes actual</option>';
     
-    months.forEach(month => {
+    allMonths.forEach(month => {
         const monthName = new Date(month + '-01').toLocaleDateString('es-ES', { 
             year: 'numeric', 
             month: 'long' 
@@ -3453,6 +3480,8 @@ function updateMonthFilters() {
         option3.textContent = monthName;
         budgetMonth.appendChild(option3);
     });
+    
+    console.log('📅 Filtros de mes actualizados:', allMonths);
 }
 
 // Cache para evitar actualizaciones innecesarias
@@ -4222,7 +4251,7 @@ let filteredTransactionsCache = null;
 let lastFilterState = '';
 
 function filterTransactions() {
-    console.log('Aplicando filtros de transacciones...');
+    console.log('🔍 Aplicando filtros de transacciones...');
     
     const monthFilter = document.getElementById('monthFilter').value;
     const categoryFilter = document.getElementById('categoryFilter').value;
@@ -4230,7 +4259,7 @@ function filterTransactions() {
     const currentFilterState = `${monthFilter}-${categoryFilter}`;
     
     if (currentFilterState === lastFilterState && filteredTransactionsCache) {
-        console.log('Usando cache de filtros');
+        console.log('✅ Usando cache de filtros');
         return;
     }
     
@@ -4238,31 +4267,52 @@ function filterTransactions() {
     
     let filtered = [...transactions]; // Crear copia para no modificar el original
     
-    console.log('Transacciones antes de filtrar:', filtered.length);
+    console.log('📊 Transacciones antes de filtrar:', filtered.length);
+    console.log('📅 Filtro de mes seleccionado:', monthFilter);
+    console.log('🏷️ Filtro de categoría seleccionado:', categoryFilter);
     
     if (monthFilter) {
         // Usar createLocalDate para comparar fechas correctamente
         const filterYear = parseInt(monthFilter.split('-')[0]);
         const filterMonth = parseInt(monthFilter.split('-')[1]) - 1; // Meses van de 0-11
         
+        console.log(`🔍 Filtrando por año: ${filterYear}, mes: ${filterMonth} (${filterMonth + 1})`);
+        
+        const beforeFilter = filtered.length;
         filtered = filtered.filter(t => {
             const transactionDate = createLocalDate(t.date);
-            return transactionDate.getFullYear() === filterYear && 
-                   transactionDate.getMonth() === filterMonth;
+            const transactionYear = transactionDate.getFullYear();
+            const transactionMonth = transactionDate.getMonth();
+            
+            const matches = transactionYear === filterYear && transactionMonth === filterMonth;
+            
+            // Log detallado para debug
+            if (beforeFilter <= 10) { // Solo log para pocas transacciones
+                console.log(`📅 Transacción ${t.date} -> Año: ${transactionYear}, Mes: ${transactionMonth} (${transactionMonth + 1}) - Coincide: ${matches}`);
+            }
+            
+            return matches;
         });
-        console.log('Transacciones después de filtro de mes:', filtered.length);
+        
+        console.log(`✅ Transacciones después de filtro de mes: ${filtered.length} (de ${beforeFilter})`);
+        
+        // Mostrar algunas transacciones filtradas para verificación
+        if (filtered.length > 0 && filtered.length <= 5) {
+            console.log('📋 Transacciones filtradas:', filtered.map(t => `${t.date} - ${t.description} - ${t.amount}`));
+        }
     }
     
     if (categoryFilter) {
+        const beforeCategoryFilter = filtered.length;
         filtered = filtered.filter(t => t.category === categoryFilter);
-        console.log('Transacciones después de filtro de categoría:', filtered.length);
+        console.log(`✅ Transacciones después de filtro de categoría: ${filtered.length} (de ${beforeCategoryFilter})`);
     }
     
     // Ordenar por fecha (más reciente primero)
     filtered.sort((a, b) => createLocalDate(b.date) - createLocalDate(a.date));
     
     filteredTransactionsCache = filtered;
-    console.log('Transacciones filtradas finales:', filtered.length);
+    console.log(`🎯 Transacciones filtradas finales: ${filtered.length}`);
     
     updateGastosIngresosDisplay(filtered);
 }
