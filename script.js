@@ -10737,9 +10737,38 @@ function monitorPerformance() {
     };
     
     // Monitorear errores
-    window.addEventListener('error', () => {
+    window.addEventListener('error', (event) => {
+        // Filtrar errores de Google API que no son críticos
+        if (event.message && event.message.includes('gapi')) {
+            console.warn('⚠️ Google API error (no crítico):', event.message);
+            return;
+        }
+        
+        // Filtrar errores de scripts externos
+        if (event.filename && (event.filename.includes('gstatic.com') || event.filename.includes('googleapis.com'))) {
+            console.warn('⚠️ Error de script externo (no crítico):', event.message);
+            return;
+        }
+        
+        console.error('❌ Error detectado:', event.error || event.message);
         performanceData.errors++;
     });
+    
+    // Función para manejar Google API de forma segura
+    window.handleGoogleAPI = function() {
+        try {
+            if (typeof gapi !== 'undefined') {
+                console.log('✅ Google API disponible');
+                return true;
+            } else {
+                console.warn('⚠️ Google API no disponible (no crítico)');
+                return false;
+            }
+        } catch (error) {
+            console.warn('⚠️ Error al verificar Google API:', error.message);
+            return false;
+        }
+    };
     
     // Monitorear memoria (si está disponible)
     if (performance.memory) {

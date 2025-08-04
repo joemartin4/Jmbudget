@@ -1357,7 +1357,19 @@
         
         // Manejo de errores globales
         window.addEventListener('error', function(e) {
-            console.error('❌ Error en la aplicación:', e.error);
+            // Evitar errores de Google API que no son críticos
+            if (e.message && e.message.includes('gapi')) {
+                console.warn('⚠️ Google API error (no crítico):', e.message);
+                return;
+            }
+            
+            // Evitar errores de scripts externos que no son críticos
+            if (e.filename && (e.filename.includes('gstatic.com') || e.filename.includes('googleapis.com'))) {
+                console.warn('⚠️ Error de script externo (no crítico):', e.message);
+                return;
+            }
+            
+            console.error('❌ Error en la aplicación:', e.error || e.message);
             console.error('Error details:', {
                 message: e.message,
                 filename: e.filename,
@@ -1376,13 +1388,31 @@
             console.log('📱 Aplicación lista para usar');
         });
         
-        // Manejo específico de errores 400
+        // Manejo específico de errores de scripts
         window.addEventListener('error', function(e) {
             if (e.target && e.target.tagName === 'SCRIPT') {
-                console.warn('⚠️ Error al cargar script:', e.target.src);
-                if (e.target.src.includes('chart.js')) {
-                    console.log('🔄 Intentando cargar Chart.js desde CDN alternativo...');
+                const scriptSrc = e.target.src;
+                
+                // Manejar errores de Google API
+                if (scriptSrc && scriptSrc.includes('googleapis.com')) {
+                    console.warn('⚠️ Error al cargar Google API (no crítico):', scriptSrc);
+                    return;
                 }
+                
+                // Manejar errores de Chart.js
+                if (scriptSrc && scriptSrc.includes('chart.js')) {
+                    console.warn('⚠️ Error al cargar Chart.js:', scriptSrc);
+                    console.log('🔄 Intentando cargar Chart.js desde CDN alternativo...');
+                    return;
+                }
+                
+                // Otros scripts externos
+                if (scriptSrc && (scriptSrc.includes('gstatic.com') || scriptSrc.includes('cdnjs.cloudflare.com'))) {
+                    console.warn('⚠️ Error al cargar script externo (no crítico):', scriptSrc);
+                    return;
+                }
+                
+                console.warn('⚠️ Error al cargar script:', scriptSrc);
             }
         }, true);
     </script>
