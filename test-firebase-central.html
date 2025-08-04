@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Firebase Centralizado - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            line-height: 1.6;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .hero {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .hero h1 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .test-result {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success {
+            background: rgba(76, 175, 80, 0.2);
+            border-left: 4px solid #4CAF50;
+        }
+        .error {
+            background: rgba(244, 67, 54, 0.2);
+            border-left: 4px solid #F44336;
+        }
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #FFC107;
+        }
+        .info {
+            background: rgba(33, 150, 243, 0.2);
+            border-left: 4px solid #2196F3;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: #2196F3;
+        }
+        .btn-secondary:hover {
+            background: #1976D2;
+        }
+        .btn-warning {
+            background: #FF9800;
+        }
+        .btn-warning:hover {
+            background: #F57C00;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        .nav-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-online {
+            background: #4CAF50;
+        }
+        .status-offline {
+            background: #F44336;
+        }
+        .status-warning {
+            background: #FFC107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1><i class="fas fa-vial"></i> Test Firebase Centralizado</h1>
+            <p>Verificando que el sistema de registro centralizado funcione correctamente</p>
+        </div>
+
+        <div class="test-section">
+            <h3><i class="fas fa-cog"></i> Estado de la Configuración</h3>
+            <div id="configStatus" class="test-result warning">
+                <span class="status-indicator status-warning"></span>
+                Verificando configuración...
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3><i class="fas fa-fire"></i> Estado de Firebase</h3>
+            <div id="firebaseStatus" class="test-result warning">
+                <span class="status-indicator status-warning"></span>
+                Verificando Firebase...
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3><i class="fas fa-users"></i> Test de Registro de Usuario</h3>
+            <p>Prueba crear un usuario de prueba para verificar que el sistema funciona:</p>
+            
+            <div class="form-group">
+                <label>Email de prueba:</label>
+                <input type="email" id="testEmail" placeholder="test@example.com" value="test@example.com">
+            </div>
+            
+            <div class="form-group">
+                <label>Contraseña de prueba:</label>
+                <input type="password" id="testPassword" placeholder="password123" value="password123">
+            </div>
+            
+            <button class="btn" onclick="testUserRegistration()">Probar Registro</button>
+            <button class="btn btn-secondary" onclick="testUserLogin()">Probar Login</button>
+            
+            <div id="registrationResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3><i class="fas fa-database"></i> Test de Firestore</h3>
+            <button class="btn" onclick="testFirestore()">Probar Conexión a Firestore</button>
+            <div id="firestoreResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3><i class="fas fa-info-circle"></i> Información del Sistema</h3>
+            <div id="systemInfo" class="test-result info">
+                <strong>Proyecto Firebase:</strong> jm-budget-central<br>
+                <strong>Versión de la App:</strong> 2.0.9<br>
+                <strong>Modo:</strong> Producción<br>
+                <strong>URL:</strong> https://joemartin4.github.io/Jmbudget/
+            </div>
+        </div>
+
+        <div class="nav-buttons">
+            <a href="index.html" class="btn">Ir a la Aplicación Principal</a>
+            <a href="test-login.html" class="btn btn-secondary">Test Login Local</a>
+            <a href="configurar-firebase-rapido.html" class="btn btn-warning">Configuración</a>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Configuración de Firebase -->
+    <script src="firebase-config.js"></script>
+    <script src="firebase-init.js"></script>
+
+    <script>
+        // Función para mostrar resultado de test
+        function showTestResult(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `test-result ${type}`;
+            element.style.display = 'block';
+            
+            // Actualizar indicador de estado
+            const indicator = element.querySelector('.status-indicator');
+            if (indicator) {
+                indicator.className = `status-indicator status-${type === 'success' ? 'online' : type === 'error' ? 'offline' : 'warning'}`;
+            }
+        }
+
+        // Verificar configuración
+        function checkConfiguration() {
+            try {
+                if (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey) {
+                    const config = window.FIREBASE_CONFIG;
+                    
+                    // Verificar que no sean valores de ejemplo
+                    if (config.apiKey === "TU_API_KEY_AQUI" || 
+                        config.authDomain === "tu-proyecto.firebaseapp.com" ||
+                        config.projectId === "tu-proyecto-id") {
+                        showTestResult('configStatus', '❌ Configuración con valores de ejemplo. Necesitas configurar Firebase real.', 'error');
+                        return false;
+                    }
+                    
+                    showTestResult('configStatus', `✅ Configuración válida - Proyecto: ${config.projectId}`, 'success');
+                    return true;
+                } else {
+                    showTestResult('configStatus', '❌ Configuración de Firebase no encontrada', 'error');
+                    return false;
+                }
+            } catch (error) {
+                showTestResult('configStatus', `❌ Error al verificar configuración: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Verificar Firebase
+        function checkFirebase() {
+            try {
+                if (typeof firebase === 'undefined') {
+                    showTestResult('firebaseStatus', '❌ Firebase SDK no está cargado', 'error');
+                    return false;
+                }
+                
+                if (!firebase.apps.length) {
+                    showTestResult('firebaseStatus', '❌ Firebase no está inicializado', 'error');
+                    return false;
+                }
+                
+                const app = firebase.app();
+                showTestResult('firebaseStatus', `✅ Firebase inicializado - Proyecto: ${app.options.projectId}`, 'success');
+                return true;
+            } catch (error) {
+                showTestResult('firebaseStatus', `❌ Error al verificar Firebase: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Test de registro de usuario
+        async function testUserRegistration() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            if (!email || !password) {
+                showTestResult('registrationResult', '❌ Por favor ingresa email y contraseña', 'error');
+                return;
+            }
+            
+            try {
+                showTestResult('registrationResult', '⏳ Creando usuario de prueba...', 'warning');
+                
+                const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                showTestResult('registrationResult', `✅ Usuario creado exitosamente - UID: ${user.uid}`, 'success');
+                
+                // Limpiar usuario de prueba
+                setTimeout(async () => {
+                    try {
+                        await user.delete();
+                        console.log('Usuario de prueba eliminado');
+                    } catch (error) {
+                        console.log('No se pudo eliminar usuario de prueba:', error.message);
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                let errorMessage = 'Error desconocido';
+                
+                switch (error.code) {
+                    case 'auth/email-already-in-use':
+                        errorMessage = 'El email ya está registrado (esto es normal en pruebas)';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = 'Email inválido';
+                        break;
+                    case 'auth/weak-password':
+                        errorMessage = 'Contraseña muy débil';
+                        break;
+                    default:
+                        errorMessage = error.message;
+                }
+                
+                showTestResult('registrationResult', `❌ Error en registro: ${errorMessage}`, 'error');
+            }
+        }
+
+        // Test de login de usuario
+        async function testUserLogin() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            
+            if (!email || !password) {
+                showTestResult('registrationResult', '❌ Por favor ingresa email y contraseña', 'error');
+                return;
+            }
+            
+            try {
+                showTestResult('registrationResult', '⏳ Probando login...', 'warning');
+                
+                const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                showTestResult('registrationResult', `✅ Login exitoso - Usuario: ${user.email}`, 'success');
+                
+                // Cerrar sesión
+                await firebase.auth().signOut();
+                
+            } catch (error) {
+                let errorMessage = 'Error desconocido';
+                
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        errorMessage = 'Usuario no encontrado (prueba registrarlo primero)';
+                        break;
+                    case 'auth/wrong-password':
+                        errorMessage = 'Contraseña incorrecta';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = 'Email inválido';
+                        break;
+                    default:
+                        errorMessage = error.message;
+                }
+                
+                showTestResult('registrationResult', `❌ Error en login: ${errorMessage}`, 'error');
+            }
+        }
+
+        // Test de Firestore
+        async function testFirestore() {
+            try {
+                showTestResult('firestoreResult', '⏳ Probando conexión a Firestore...', 'warning');
+                
+                const db = firebase.firestore();
+                const testDoc = db.collection('test').doc('connection-test');
+                
+                await testDoc.set({
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    test: true,
+                    message: 'Conexión exitosa'
+                });
+                
+                showTestResult('firestoreResult', '✅ Conexión a Firestore exitosa - Base de datos funcionando', 'success');
+                
+                // Limpiar documento de prueba
+                setTimeout(async () => {
+                    try {
+                        await testDoc.delete();
+                        console.log('Documento de prueba eliminado');
+                    } catch (error) {
+                        console.log('No se pudo eliminar documento de prueba:', error.message);
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                showTestResult('firestoreResult', `❌ Error en Firestore: ${error.message}`, 'error');
+            }
+        }
+
+        // Ejecutar tests automáticamente
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                checkConfiguration();
+            }, 1000);
+            
+            setTimeout(() => {
+                checkFirebase();
+            }, 2000);
+        });
+    </script>
+</body>
+</html> 
