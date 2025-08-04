@@ -1,3 +1,190 @@
+// Detectar si estamos en Electron al inicio del script
+window.isElectronApp = false;
+window.electronStorage = null;
+
+// Función para detectar y configurar Electron
+function detectAndConfigureElectron() {
+    if (window.electronAPI && window.electronAPI.storage) {
+        console.log('🚀 Electron detectado - Configurando almacenamiento específico');
+        window.isElectronApp = true;
+        window.electronStorage = window.electronAPI.storage;
+        
+        // Migrar datos del navegador a Electron si es necesario
+        migrateDataToElectron();
+        
+        return true;
+    } else {
+        console.log('🌐 Ejecutando en navegador web');
+        window.isElectronApp = false;
+        return false;
+    }
+}
+
+// Función para migrar datos del navegador a Electron
+async function migrateDataToElectron() {
+    try {
+        // Verificar si ya hay datos en Electron
+        const electronData = await window.electronStorage.getItem('jm-budget-user-data');
+        
+        if (!electronData) {
+            // Intentar migrar desde localStorage del navegador
+            const webData = localStorage.getItem('jm-budget-user-data');
+            if (webData) {
+                await window.electronStorage.setItem('jm-budget-user-data', webData);
+                console.log('✅ Datos migrados desde navegador a Electron');
+            }
+        }
+    } catch (error) {
+        console.error('Error en migración de datos:', error);
+    }
+}
+
+// Función unificada para guardar datos
+async function saveDataUnified(key, data) {
+    try {
+        if (window.isElectronApp && window.electronStorage) {
+            // Usar almacenamiento de Electron
+            await window.electronStorage.setItem(key, JSON.stringify(data));
+            console.log(`✅ Datos guardados en Electron: ${key}`);
+        } else {
+            // Usar localStorage del navegador
+            localStorage.setItem(key, JSON.stringify(data));
+            console.log(`✅ Datos guardados en navegador: ${key}`);
+        }
+        return true;
+    } catch (error) {
+        console.error('Error al guardar datos:', error);
+        return false;
+    }
+}
+
+// Función unificada para cargar datos
+async function loadDataUnified(key) {
+    try {
+        if (window.isElectronApp && window.electronStorage) {
+            // Cargar desde Electron
+            const data = await window.electronStorage.getItem(key);
+            return data ? JSON.parse(data) : null;
+        } else {
+            // Cargar desde localStorage del navegador
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : null;
+        }
+    } catch (error) {
+        console.error('Error al cargar datos:', error);
+        return null;
+    }
+}
+
+// Función unificada para crear backup
+async function createBackupUnified() {
+    try {
+        if (window.isElectronApp && window.electronStorage) {
+            // Crear backup en Electron
+            const backupPath = await window.electronStorage.createBackup();
+            console.log('✅ Backup creado en Electron:', backupPath);
+            return backupPath;
+        } else {
+            // Crear backup en navegador (código existente)
+            return await createBackup();
+        }
+    } catch (error) {
+        console.error('Error al crear backup:', error);
+        return null;
+    }
+}
+
+// Función unificada para restaurar backup
+async function restoreBackupUnified(backupData) {
+    try {
+        if (window.isElectronApp && window.electronStorage) {
+            // Restaurar en Electron
+            const success = await window.electronStorage.restoreBackup(backupData);
+            if (success) {
+                console.log('✅ Backup restaurado en Electron');
+                // Recargar datos en la aplicación
+                await loadAllData();
+                return true;
+            }
+            return false;
+        } else {
+            // Restaurar en navegador (código existente)
+            return await restoreBackup(backupData);
+        }
+    } catch (error) {
+        console.error('Error al restaurar backup:', error);
+        return false;
+    }
+}
+
+// Función para cargar todos los datos
+async function loadAllData() {
+    try {
+        // Cargar datos del usuario
+        const userData = await loadDataUnified('jm-budget-user-data');
+        if (userData) {
+            currentUser = userData;
+            console.log('✅ Datos de usuario cargados');
+        }
+
+        // Cargar transacciones
+        const transactions = await loadDataUnified('jm-budget-transactions');
+        if (transactions) {
+            window.transactions = transactions;
+            console.log('✅ Transacciones cargadas:', transactions.length);
+        }
+
+        // Cargar categorías
+        const categories = await loadDataUnified('jm-budget-categories');
+        if (categories) {
+            window.categories = categories;
+            console.log('✅ Categorías cargadas:', categories.length);
+        }
+
+        // Cargar cuentas
+        const accounts = await loadDataUnified('jm-budget-accounts');
+        if (accounts) {
+            window.accounts = accounts;
+            console.log('✅ Cuentas cargadas:', accounts.length);
+        }
+
+        // Actualizar la interfaz
+        updateDisplay();
+        console.log('✅ Todos los datos cargados y interfaz actualizada');
+    } catch (error) {
+        console.error('Error al cargar todos los datos:', error);
+    }
+}
+
+// Función para guardar todos los datos
+async function saveAllData() {
+    try {
+        // Guardar datos del usuario
+        if (currentUser) {
+            await saveDataUnified('jm-budget-user-data', currentUser);
+        }
+
+        // Guardar transacciones
+        if (window.transactions) {
+            await saveDataUnified('jm-budget-transactions', window.transactions);
+        }
+
+        // Guardar categorías
+        if (window.categories) {
+            await saveDataUnified('jm-budget-categories', window.categories);
+        }
+
+        // Guardar cuentas
+        if (window.accounts) {
+            await saveDataUnified('jm-budget-accounts', window.accounts);
+        }
+
+        console.log('✅ Todos los datos guardados');
+    } catch (error) {
+        console.error('Error al guardar todos los datos:', error);
+    }
+}
+
 // Datos de la aplicación
 let categories = [];
 let transactions = [];
@@ -1876,10 +2063,14 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM cargado, inicializando aplicación...');
     
     try {
-        // Inicializar optimizaciones primero
+        // Detectar y configurar Electron primero
+        detectAndConfigureElectron();
+        
+        // Inicializar optimizaciones
         initializeOptimizations();
         
-        loadDataSafely();
+        // Cargar datos usando el sistema unificado
+        loadAllData();
         initializeLogin();
         
         // En modo desarrollo, forzar actualización del Service Worker
@@ -2333,45 +2524,45 @@ function setupEventListeners() {
         }
         
         // Configurar botones de desarrollo
-        const debugTransactionsBtn = document.getElementById('debugTransactionsBtn');
-        const resetTransactionsBtn = document.getElementById('resetTransactionsBtn');
-        const clearCacheBtn = document.getElementById('clearCacheBtn');
+    const debugTransactionsBtn = document.getElementById('debugTransactionsBtn');
+    const resetTransactionsBtn = document.getElementById('resetTransactionsBtn');
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
         const fixDuplicateAccountsBtn = document.getElementById('fixDuplicateAccountsBtn');
         const fixDuplicateTransferenciasBtn = document.getElementById('fixDuplicateTransferenciasBtn');
-        
-        if (debugTransactionsBtn) {
-            debugTransactionsBtn.addEventListener('click', debugTransactions);
-        }
-        
-        if (resetTransactionsBtn) {
-            resetTransactionsBtn.addEventListener('click', resetTransactionData);
-        }
-        
-        if (clearCacheBtn) {
-            clearCacheBtn.addEventListener('click', () => {
-                if (window.clearAppCache) {
-                    window.clearAppCache();
-                } else {
-                    console.log('Función clearAppCache no disponible');
-                    window.location.reload();
-                }
-            });
-        }
-        
-        if (fixDuplicateAccountsBtn) {
-            fixDuplicateAccountsBtn.addEventListener('click', () => {
-                const removedCount = removeDuplicateAccounts();
-                if (removedCount > 0) {
-                    updateBankAccountsDisplay();
-                    updateAccountSummary();
-                    showNotification(`${removedCount} cuentas duplicadas eliminadas`, 'success');
-                } else {
-                    showNotification('No se encontraron cuentas duplicadas', 'info');
-                }
-            });
-        }
-        
-        if (fixDuplicateTransferenciasBtn) {
+    
+    if (debugTransactionsBtn) {
+        debugTransactionsBtn.addEventListener('click', debugTransactions);
+    }
+    
+    if (resetTransactionsBtn) {
+        resetTransactionsBtn.addEventListener('click', resetTransactionData);
+    }
+    
+    if (clearCacheBtn) {
+        clearCacheBtn.addEventListener('click', () => {
+            if (window.clearAppCache) {
+                window.clearAppCache();
+            } else {
+                console.log('Función clearAppCache no disponible');
+                window.location.reload();
+            }
+        });
+    }
+    
+    if (fixDuplicateAccountsBtn) {
+        fixDuplicateAccountsBtn.addEventListener('click', () => {
+            const removedCount = removeDuplicateAccounts();
+            if (removedCount > 0) {
+                updateBankAccountsDisplay();
+                updateAccountSummary();
+                showNotification(`${removedCount} cuentas duplicadas eliminadas`, 'success');
+            } else {
+                showNotification('No se encontraron cuentas duplicadas', 'info');
+            }
+        });
+    }
+    
+    if (fixDuplicateTransferenciasBtn) {
             fixDuplicateTransferenciasBtn.addEventListener('click', cleanDuplicateTransferencias);
         }
     }
@@ -2405,10 +2596,48 @@ function setupEventListeners() {
     if (simpleRestoreBtn) {
         simpleRestoreBtn.addEventListener('click', async () => {
             console.log('📥 Iniciando restauración simple...');
-            if (window.googleDriveWeb) {
-                await window.googleDriveWeb.restoreFromBackup();
-            } else {
-                showNotification('Error: Sistema de restauración no disponible', 'error');
+            
+            try {
+                // Crear input de archivo para seleccionar backup
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.style.display = 'none';
+                
+                input.addEventListener('change', async (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        try {
+                            const reader = new FileReader();
+                            reader.onload = async (e) => {
+                                const backupData = JSON.parse(e.target.result);
+                                
+                                // Usar función unificada para restaurar
+                                const success = await restoreBackupUnified(backupData);
+                                
+                                if (success) {
+                                    showNotification('✅ Backup restaurado exitosamente', 'success');
+                                    // Recargar la aplicación
+                                    location.reload();
+                                } else {
+                                    showNotification('❌ Error al restaurar backup', 'error');
+                                }
+                            };
+                            reader.readAsText(file);
+                        } catch (error) {
+                            console.error('Error al leer archivo:', error);
+                            showNotification('❌ Error al leer archivo de backup', 'error');
+                        }
+                    }
+                });
+                
+                document.body.appendChild(input);
+                input.click();
+                document.body.removeChild(input);
+                
+            } catch (error) {
+                console.error('Error en restauración:', error);
+                showNotification('❌ Error en el sistema de restauración', 'error');
             }
         });
     }
@@ -5951,60 +6180,25 @@ function deleteGoal(goalId) {
 }
 
 // Función para crear backup de los datos del usuario
-function createBackup() {
+async function createBackup() {
     if (!currentUser) {
         alert('Debes estar logueado para crear un backup.');
         return;
     }
     
     try {
-        // Recopilar todos los datos del usuario
-        const backupData = {
-            user: currentUser,
-            timestamp: new Date().toISOString(),
-            version: '1.0',
-            data: {
-                categories: categories,
-                transactions: transactions,
-                categoryGroups: categoryGroups,
-                incomes: incomes,
-                goals: goals,
-                notifications: notifications,
-                bankAccounts: bankAccounts,
-                bankTransactions: bankTransactions,
-                reconciliationData: reconciliationData
-            }
-        };
+        // Usar función unificada para crear backup
+        const result = await createBackupUnified();
         
-        // Convertir a JSON
-        const dataStr = JSON.stringify(backupData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        
-        // Crear nombre de archivo con fecha y hora
-        const now = new Date();
-        const dateStr = now.toISOString().split('T')[0];
-        const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
-        const fileName = `jm_budget_backup_${currentUser}_${dateStr}_${timeStr}.json`;
-        
-        // Crear enlace de descarga
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        
-        // Simular clic para descargar
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // Limpiar URL
-        URL.revokeObjectURL(url);
-        
-        // Mostrar mensaje de éxito
-        alert(`Backup creado exitosamente: ${fileName}`);
-        
-        // Agregar al historial
-        addToHistory('Backup creado', `Se creó un backup completo de los datos`, 'backup');
+        if (result) {
+            // Mostrar mensaje de éxito
+            alert('Backup creado exitosamente');
+            
+            // Agregar al historial
+            addToHistory('Backup creado', `Se creó un backup completo de los datos`, 'backup');
+        } else {
+            alert('Error al crear el backup');
+        }
         
     } catch (error) {
         console.error('Error al crear backup:', error);
@@ -7468,11 +7662,11 @@ function cleanDuplicateTransferencias() {
             const outgoingTransaction = group.find(t => t.amount < 0);
             if (outgoingTransaction) {
                 cleanTransferencias.push(outgoingTransaction);
-                duplicatesRemoved += group.length - 1;
+            duplicatesRemoved += group.length - 1;
                 console.log('✅ Manteniendo transacción de salida:', outgoingTransaction.description);
             } else {
                 // Si no hay transacción de salida, mantener la primera
-                cleanTransferencias.push(group[0]);
+            cleanTransferencias.push(group[0]);
                 duplicatesRemoved += group.length - 1;
                 console.log('✅ Manteniendo primera transacción del grupo');
             }
@@ -7490,8 +7684,8 @@ function cleanDuplicateTransferencias() {
         updateUI(true);
         showNotification(`Se eliminaron ${duplicatesRemoved} transferencias duplicadas`, 'success');
     } else {
-        console.log('✅ No se encontraron transferencias duplicadas');
-        showNotification('No se encontraron transferencias duplicadas', 'info');
+            console.log('✅ No se encontraron transferencias duplicadas');
+    showNotification('No se encontraron transferencias duplicadas', 'info');
     }
 }
 
