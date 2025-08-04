@@ -22,12 +22,27 @@
     <title>JM Budget - Gestión de Presupuesto Familiar</title>
     
     <!-- Preload critical resources -->
-    <link rel="preload" href="styles.css" as="style">
+    <link rel="preload" href="styles-optimized.css" as="style">
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" as="style">
     
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="styles.css?v=1.0.3&t=1735689600">
+    <link rel="stylesheet" href="styles-optimized.css?v=2.0.1&t=1735689600">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Fallback CSS si el optimizado falla -->
+    <script>
+        // Verificar si el CSS optimizado se cargó correctamente
+        setTimeout(() => {
+            const optimizedCSS = document.querySelector('link[href*="styles-optimized.css"]');
+            if (!optimizedCSS || optimizedCSS.sheet === null) {
+                console.warn('⚠️ CSS optimizado no se cargó, cargando CSS original...');
+                const fallbackCSS = document.createElement('link');
+                fallbackCSS.rel = 'stylesheet';
+                fallbackCSS.href = 'styles.css?v=1.0.4&t=1735689600';
+                document.head.appendChild(fallbackCSS);
+            }
+        }, 1000);
+    </script>
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
@@ -72,6 +87,9 @@
     
     <!-- Configuración de la aplicación -->
     <script src="config.js"></script>
+    
+    <!-- Utilidades optimizadas -->
+    <script src="utils.js"></script>
     
     <!-- Configuración de rendimiento -->
     <script src="performance-config.js"></script>
@@ -177,60 +195,97 @@
                                 <i class="fas fa-bars"></i>
                             </button>
                             <div id="menuDropdown" class="menu-dropdown">
-                                <button class="menu-item" id="notificationsBtn" title="Notificaciones">
-                                    <i class="fas fa-bell"></i>
-                                    <span>Notificaciones</span>
-                                    <span id="notificationsCount" class="notifications-count">0</span>
-                                </button>
-                                <button class="menu-item" id="requestNotificationPermissionBtn" title="Solicitar permisos de notificación">
-                                    <i class="fas fa-bell-slash"></i>
-                                    <span>Activar Notificaciones</span>
-                                </button>
-                                <button class="menu-item" id="installAppBtn" title="Instalar App" style="display: none;">
-                                    <i class="fas fa-download"></i>
-                                    <span>Instalar App</span>
-                                </button>
-                                <button class="menu-item" id="menuThemeToggleBtn" title="Cambiar Tema">
-                                    <i class="fas fa-moon"></i>
-                                    <span>Cambiar Tema</span>
-                                </button>
-                                <div class="menu-divider"></div>
-                                <button class="menu-item" id="collaborationBtn" title="Gestionar colaboración">
-                                    <i class="fas fa-users"></i>
-                                    <span>Gestionar Colaboración</span>
-                                </button>
-                                <button class="menu-item" id="importBtn" title="Importar datos">
-                                    <i class="fas fa-file-import"></i>
-                                    <span>Importar Datos</span>
-                                </button>
-                                <button class="menu-item" id="backupBtn" title="Crear backup">
-                                    <i class="fas fa-download"></i>
-                                    <span>Crear Backup</span>
-                                </button>
-                                <button class="menu-item" id="resetCategoriesBtn" title="Restablecer categorías por defecto">
-                                    <i class="fas fa-refresh"></i>
-                                    <span>Restablecer Categorías</span>
-                                </button>
-                                <button class="menu-item" id="debugTransactionsBtn" title="Depurar transacciones (solo desarrollo)">
-                                    <i class="fas fa-bug"></i>
-                                    <span>Debug Transacciones</span>
-                                </button>
-                                <button class="menu-item" id="resetTransactionsBtn" title="Limpiar transacciones (solo desarrollo)">
-                                    <i class="fas fa-trash"></i>
-                                    <span>Limpiar Transacciones</span>
-                                </button>
-                                <button class="menu-item" id="clearCacheBtn" title="Limpiar cache (solo desarrollo)">
-                                    <i class="fas fa-broom"></i>
-                                    <span>Limpiar Cache</span>
-                                </button>
-                                <button class="menu-item" id="fixDuplicateAccountsBtn" title="Arreglar cuentas duplicadas (solo desarrollo)">
-                                    <i class="fas fa-tools"></i>
-                                    <span>Arreglar Cuentas Duplicadas</span>
-                                </button>
-                                <button class="menu-item" id="cloudSyncBtn" title="Configurar sincronización en la nube">
-                                    <i class="fas fa-cloud"></i>
-                                    <span>Sincronización en la Nube</span>
-                                </button>
+                                <!-- Botones principales -->
+                                <div class="menu-group">
+                                    <div class="menu-group-title">⚙️ Configuración</div>
+                                    <button class="menu-item" id="menuThemeToggleBtn" title="Cambiar Tema">
+                                        <i class="fas fa-moon"></i>
+                                        <span>Cambiar Tema</span>
+                                    </button>
+                                    <button class="menu-item" id="notificationsBtn" title="Notificaciones">
+                                        <i class="fas fa-bell"></i>
+                                        <span>Notificaciones</span>
+                                        <span id="notificationsCount" class="notifications-count">0</span>
+                                    </button>
+                                    <button class="menu-item" id="requestNotificationPermissionBtn" title="Solicitar permisos de notificación">
+                                        <i class="fas fa-bell-slash"></i>
+                                        <span>Activar Notificaciones</span>
+                                    </button>
+                                    <button class="menu-item" id="installAppBtn" title="Instalar App" style="display: none;">
+                                        <i class="fas fa-download"></i>
+                                        <span>Instalar App</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Botones de backup y sincronización (agrupados) -->
+                                <div class="menu-group">
+                                    <div class="menu-group-title">💾 Backup y Sincronización</div>
+                                    <button class="menu-item" id="simpleBackupBtn" title="Crear backup manual">
+                                        <i class="fas fa-download"></i>
+                                        <span>Crear Backup</span>
+                                    </button>
+                                    <button class="menu-item" id="simpleRestoreBtn" title="Restaurar desde backup">
+                                        <i class="fas fa-upload"></i>
+                                        <span>Restaurar Backup</span>
+                                    </button>
+                                    <button class="menu-item" id="autoBackupToggleBtn" title="Activar/Desactivar backup automático">
+                                        <i class="fas fa-sync-alt"></i>
+                                        <span>Auto Backup: <span id="autoBackupStatus">Activado</span></span>
+                                    </button>
+                                    <button class="menu-item" id="crossBrowserSyncToggleBtn" title="Activar/Desactivar sincronización entre navegadores">
+                                        <i class="fas fa-globe"></i>
+                                        <span>Sincronización: <span id="crossBrowserSyncStatus">Activada</span></span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Botones de herramientas avanzadas (ocultos por defecto) -->
+                                <div class="menu-group" id="advancedToolsGroup" style="display: none;">
+                                    <div class="menu-group-title">🔧 Herramientas Avanzadas</div>
+                                    <button class="menu-item" id="collaborationBtn" title="Gestionar colaboración">
+                                        <i class="fas fa-users"></i>
+                                        <span>Gestionar Colaboración</span>
+                                    </button>
+                                    <button class="menu-item" id="importBtn" title="Importar datos">
+                                        <i class="fas fa-file-import"></i>
+                                        <span>Importar Datos</span>
+                                    </button>
+                                    <button class="menu-item" id="backupBtn" title="Crear backup">
+                                        <i class="fas fa-download"></i>
+                                        <span>Crear Backup</span>
+                                    </button>
+                                    <button class="menu-item" id="resetCategoriesBtn" title="Restablecer categorías por defecto">
+                                        <i class="fas fa-refresh"></i>
+                                        <span>Restablecer Categorías</span>
+                                    </button>
+                                    <button class="menu-item" id="debugTransactionsBtn" title="Depurar transacciones (solo desarrollo)">
+                                        <i class="fas fa-bug"></i>
+                                        <span>Debug Transacciones</span>
+                                    </button>
+                                    <button class="menu-item" id="resetTransactionsBtn" title="Limpiar transacciones (solo desarrollo)">
+                                        <i class="fas fa-trash"></i>
+                                        <span>Limpiar Transacciones</span>
+                                    </button>
+                                    <button class="menu-item" id="clearCacheBtn" title="Limpiar cache (solo desarrollo)">
+                                        <i class="fas fa-broom"></i>
+                                        <span>Limpiar Cache</span>
+                                    </button>
+                                    <button class="menu-item" id="fixDuplicateAccountsBtn" title="Arreglar cuentas duplicadas (solo desarrollo)">
+                                        <i class="fas fa-tools"></i>
+                                        <span>Arreglar Cuentas Duplicadas</span>
+                                    </button>
+                                    <button class="menu-item" id="fixDuplicateTransferenciasBtn" title="Limpiar transferencias duplicadas (solo desarrollo)">
+                                        <i class="fas fa-exchange-alt"></i>
+                                        <span>Limpiar Transferencias Duplicadas</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Botón para mostrar herramientas avanzadas -->
+                                <div class="menu-group">
+                                    <button class="menu-item" id="showAdvancedToolsBtn" title="Mostrar herramientas avanzadas">
+                                        <i class="fas fa-cog"></i>
+                                        <span>Mostrar Herramientas Avanzadas</span>
+                                    </button>
+                                </div>
                                 <div class="menu-divider"></div>
                                 <button class="menu-item logout-item" id="logoutBtn" title="Cerrar sesión">
                                     <i class="fas fa-sign-out-alt"></i>
@@ -678,18 +733,18 @@
             <form id="transactionForm">
                 <div class="form-group">
                     <label for="transactionDescription">Descripción:</label>
-                    <input type="text" id="transactionDescription" required>
+                    <input type="text" id="transactionDescription" name="transactionDescription" required>
                 </div>
                 <div class="form-group">
                     <label for="transactionAmount">Monto:</label>
-                    <input type="number" id="transactionAmount" step="0.01" required>
+                    <input type="number" id="transactionAmount" name="transactionAmount" step="0.01" required>
                 </div>
                 <div class="form-group" style="display:none;">
-                    <input type="hidden" id="transactionType" value="gasto">
+                    <input type="hidden" id="transactionType" name="transactionType" value="gasto">
                 </div>
                 <div class="form-group">
                     <label for="transactionCategory">Categoría:</label>
-                    <select id="transactionCategory" required>
+                    <select id="transactionCategory" name="transactionCategory" required>
                         <option value="">Selecciona una categoría</option>
                     </select>
                 </div>
@@ -697,7 +752,7 @@
                 <!-- Campo para seleccionar cuenta bancaria -->
                 <div class="form-group" id="accountSelectionGroup">
                     <label for="transactionAccount">Cuenta bancaria:</label>
-                    <select id="transactionAccount" required>
+                    <select id="transactionAccount" name="transactionAccount" required>
                         <option value="">Selecciona una cuenta</option>
                     </select>
                     <small class="form-help">Selecciona desde qué cuenta se realizó el pago</small>
@@ -706,7 +761,7 @@
                 <!-- Campo para transferencias -->
                 <div class="form-group" id="transferToAccountGroup" style="display: none;">
                     <label for="transferToAccount">Transferir a cuenta:</label>
-                    <select id="transferToAccount" required>
+                    <select id="transferToAccount" name="transferToAccount">
                         <option value="">Selecciona cuenta destino</option>
                     </select>
                     <small class="form-help">Selecciona la cuenta que recibirá la transferencia</small>
@@ -714,11 +769,11 @@
                 
                 <div class="form-group">
                     <label for="transactionDate">Fecha:</label>
-                    <input type="date" id="transactionDate" required>
+                    <input type="date" id="transactionDate" name="transactionDate" required>
                 </div>
                 <div class="form-group">
                     <label for="transactionComment">Comentario (opcional):</label>
-                    <textarea id="transactionComment" placeholder="Agrega un comentario sobre esta transacción..." rows="3"></textarea>
+                    <textarea id="transactionComment" name="transactionComment" placeholder="Agrega un comentario sobre esta transacción..." rows="3"></textarea>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn-primary">Guardar</button>
@@ -1070,9 +1125,9 @@
 
     <!-- Modal de Sincronización en la Nube -->
     <div id="cloudSyncModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content large-modal">
             <span class="close" onclick="closeModal('cloudSyncModal')">&times;</span>
-            <h2>☁️ Sincronización en la Nube</h2>
+            <h2><i class="fas fa-cloud"></i> Sincronización en la Nube</h2>
             
             <!-- Estado de conexión -->
             <div class="connection-status">
@@ -1085,16 +1140,38 @@
                 </div>
             </div>
             
-            <!-- Pestañas simplificadas -->
+            <!-- Pestañas principales -->
             <div class="tab-container">
-                <button class="tab-button active" onclick="showTab('sync')">Sincronizar</button>
-                <button class="tab-button" onclick="showTab('restore')">Restaurar</button>
-                <button class="tab-button" onclick="showTab('history')">Historial</button>
+                <button class="tab-button active" onclick="showCloudTab('services')">Servicios</button>
+                <button class="tab-button" onclick="showCloudTab('sync')">Sincronizar</button>
+                <button class="tab-button" onclick="showCloudTab('restore')">Restaurar</button>
+                <button class="tab-button" onclick="showCloudTab('history')">Historial</button>
+            </div>
+            
+            <!-- Pestaña de Servicios -->
+            <div id="services-tab" class="tab-content active">
+                <h3>☁️ Elegir Servicio de Nube</h3>
+                <p class="tab-description">Selecciona el servicio de nube donde quieres sincronizar y hacer backup de tus datos:</p>
+                
+                <div class="cloud-services-grid" id="cloudServicesGrid">
+                    <!-- Los servicios se cargarán dinámicamente -->
+                </div>
+                
+                <div class="service-config" id="serviceConfig" style="display: none;">
+                    <h4 id="configServiceName">Configurar Servicio</h4>
+                    <div id="serviceConfigForm">
+                        <!-- El formulario se cargará dinámicamente según el servicio -->
+                    </div>
+                </div>
             </div>
             
             <!-- Pestaña de Sincronización -->
-            <div id="sync-tab" class="tab-content active">
+            <div id="sync-tab" class="tab-content">
                 <h3>📤 Sincronizar Datos</h3>
+                <div class="current-service-info" id="currentServiceInfo">
+                    <p>No hay servicio configurado</p>
+                </div>
+                
                 <div class="sync-options">
                     <div class="sync-option">
                         <input type="checkbox" id="autoSync" checked>
@@ -1113,17 +1190,31 @@
                         <input type="checkbox" id="syncBudgets" checked>
                         <label for="syncBudgets">Presupuestos</label>
                     </div>
+                    <div class="sync-option">
+                        <input type="checkbox" id="syncGoals" checked>
+                        <label for="syncGoals">Metas</label>
+                    </div>
+                    <div class="sync-option">
+                        <input type="checkbox" id="syncBankAccounts" checked>
+                        <label for="syncBankAccounts">Cuentas Bancarias</label>
+                    </div>
                 </div>
+                
                 <div class="sync-actions">
-                    <button onclick="syncToCloud()" class="btn btn-primary">
+                    <button onclick="syncToCloud()" class="btn btn-primary" id="syncNowBtn" disabled>
                         <span class="btn-icon">📤</span>
                         Sincronizar Ahora
                     </button>
-                    <button onclick="syncFromCloud()" class="btn btn-secondary">
+                    <button onclick="syncFromCloud()" class="btn btn-secondary" id="syncFromBtn" disabled>
                         <span class="btn-icon">📥</span>
                         Sincronizar desde la Nube
                     </button>
+                    <button onclick="testCloudConnection()" class="btn btn-info" id="testConnectionBtn" disabled>
+                        <span class="btn-icon">🔍</span>
+                        Probar Conexión
+                    </button>
                 </div>
+                
                 <div class="sync-progress" id="syncProgress" style="display: none;">
                     <div class="progress-bar">
                         <div class="progress-fill" id="progressFill"></div>
@@ -1149,7 +1240,7 @@
                     </div>
                 </div>
                 <div class="restore-actions">
-                    <button onclick="restoreFromCloud()" class="btn btn-warning">
+                    <button onclick="restoreFromCloud()" class="btn btn-warning" id="restoreBtn" disabled>
                         <span class="btn-icon">🔄</span>
                         Restaurar desde la Nube
                     </button>
@@ -1169,10 +1260,18 @@
         </div>
     </div>
 
+    <!-- Núcleo de la aplicación -->
+    <script src="app-core.js"></script>
+    
     <!-- Script principal -->
     <script src="storage.js"></script>
     <script src="cloud-services.js"></script>
-    <script src="script.js"></script>
+    <script src="cloud-sync-manager.js"></script>
+    <script src="cloud-ui-functions.js"></script>
+    <script src="google-drive-web.js"></script>
+    <script src="auto-backup-manager.js"></script>
+    <script src="cross-browser-sync.js"></script>
+    <script src="script.js?v=2.0.4&t=1735689600"></script>
     
     <!-- Service Worker Registration -->
     <script>
@@ -1284,12 +1383,22 @@
             // Verificar dependencias críticas
             if (typeof Chart === 'undefined') {
                 console.warn('⚠️ Chart.js no se cargó correctamente');
-                // Mostrar mensaje al usuario
-                const warning = document.createElement('div');
-                warning.style.cssText = 'position:fixed;top:20px;right:20px;background:#ff9500;color:white;padding:10px;border-radius:8px;z-index:10000;';
-                warning.innerHTML = '⚠️ Algunas funciones pueden no estar disponibles';
-                document.body.appendChild(warning);
-                setTimeout(() => warning.remove(), 5000);
+                // Intentar cargar desde CDN alternativo
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js';
+                fallbackScript.onload = function() {
+                    console.log('✅ Chart.js cargado desde CDN alternativo');
+                };
+                fallbackScript.onerror = function() {
+                    console.error('❌ No se pudo cargar Chart.js desde ningún CDN');
+                    // Mostrar mensaje al usuario
+                    const warning = document.createElement('div');
+                    warning.style.cssText = 'position:fixed;top:20px;right:20px;background:#ff9500;color:white;padding:10px;border-radius:8px;z-index:10000;';
+                    warning.innerHTML = '⚠️ Algunas funciones pueden no estar disponibles';
+                    document.body.appendChild(warning);
+                    setTimeout(() => warning.remove(), 5000);
+                };
+                document.head.appendChild(fallbackScript);
             }
             
             // Verificar localStorage
@@ -1328,6 +1437,16 @@
         window.addEventListener('load', function() {
             console.log('📱 Aplicación lista para usar');
         });
+        
+        // Manejo específico de errores 400
+        window.addEventListener('error', function(e) {
+            if (e.target && e.target.tagName === 'SCRIPT') {
+                console.warn('⚠️ Error al cargar script:', e.target.src);
+                if (e.target.src.includes('chart.js')) {
+                    console.log('🔄 Intentando cargar Chart.js desde CDN alternativo...');
+                }
+            }
+        }, true);
     </script>
     
     <!-- Modal para Nueva/Editar Cuenta Bancaria -->

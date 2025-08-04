@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test JM Budget Fix - Verificación Completa</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Test JM Budget - Verificación Completa de Errores</h1>
+        <p>Esta página verifica que todos los errores de JavaScript se hayan solucionado completamente.</p>
+        
+        <div id="testResults"></div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="runAllTests()">Ejecutar Todos los Tests</button>
+            <button onclick="runCriticalTests()">Tests Críticos</button>
+            <button onclick="runBankAccountTests()">Tests Cuentas Bancarias</button>
+            <button onclick="clearResults()">Limpiar Resultados</button>
+            <button onclick="openMainApp()">Abrir JM Budget</button>
+        </div>
+    </div>
+
+    <script>
+        function addResult(message, type = 'success') {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = message;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        function runCriticalTests() {
+            clearResults();
+            addResult('🧪 Ejecutando tests críticos...', 'warning');
+            
+            // Test 1: Verificar variables globales
+            setTimeout(() => {
+                try {
+                    if (typeof categories !== 'undefined' && Array.isArray(categories)) {
+                        addResult('✅ Variable "categories" está definida y es un array', 'success');
+                    } else {
+                        addResult('❌ Variable "categories" no está definida o no es un array', 'error');
+                    }
+                } catch (e) {
+                    addResult(`❌ Error verificando categories: ${e.message}`, 'error');
+                }
+            }, 100);
+
+            // Test 2: Verificar transactions
+            setTimeout(() => {
+                try {
+                    if (typeof transactions !== 'undefined' && Array.isArray(transactions)) {
+                        addResult('✅ Variable "transactions" está definida y es un array', 'success');
+                    } else {
+                        addResult('❌ Variable "transactions" no está definida o no es un array', 'error');
+                    }
+                } catch (e) {
+                    addResult(`❌ Error verificando transactions: ${e.message}`, 'error');
+                }
+            }, 200);
+
+            // Test 3: Verificar bankAccounts
+            setTimeout(() => {
+                try {
+                    if (typeof bankAccounts !== 'undefined' && Array.isArray(bankAccounts)) {
+                        addResult('✅ Variable "bankAccounts" está definida y es un array', 'success');
+                    } else {
+                        addResult('❌ Variable "bankAccounts" no está definida o no es un array', 'error');
+                    }
+                } catch (e) {
+                    addResult(`❌ Error verificando bankAccounts: ${e.message}`, 'error');
+                }
+            }, 300);
+
+            // Test 4: Verificar funciones críticas
+            setTimeout(() => {
+                try {
+                    if (typeof checkForNotifications === 'function') {
+                        checkForNotifications();
+                        addResult('✅ Función checkForNotifications ejecutada sin errores', 'success');
+                    } else {
+                        addResult('❌ Función checkForNotifications no está definida', 'error');
+                    }
+                } catch (e) {
+                    addResult(`❌ Error en checkForNotifications: ${e.message}`, 'error');
+                }
+            }, 400);
+
+            // Test 5: Verificar funciones de cuentas bancarias
+            setTimeout(() => {
+                try {
+                    if (typeof advanceCreditCardDates === 'function') {
+                        advanceCreditCardDates();
+                        addResult('✅ Función advanceCreditCardDates ejecutada sin errores', 'success');
+                    } else {
+                        addResult('❌ Función advanceCreditCardDates no está definida', 'error');
+                    }
+                } catch (e) {
+                    addResult(`❌ Error en advanceCreditCardDates: ${e.message}`, 'error');
+                }
+            }, 500);
+
+            // Test 6: Verificar localStorage
+            setTimeout(() => {
+                try {
+                    localStorage.setItem('test', 'test');
+                    localStorage.removeItem('test');
+                    addResult('✅ localStorage funciona correctamente', 'success');
+                } catch (e) {
+                    addResult(`❌ Error en localStorage: ${e.message}`, 'error');
+                }
+            }, 600);
+        }
+
+        function runBankAccountTests() {
+            clearResults();
+            addResult('🏦 Ejecutando tests de cuentas bancarias...', 'info');
+            
+            // Test 1: Verificar función normalizeAllAccountIds
+            setTimeout(() => {
+                try {
+                    if (typeof normalizeAllAccountIds === 'function') {
+                        const result = normalizeAllAccountIds();
+                        addResult('✅ Función normalizeAllAccountIds ejecutada sin errores', 'success');
+                    } else {
+                        addResult('❌ Función normalizeAllAccountIds no está definida', 'error');
+                    }
+                } catch (e) {
+                    addResult(`❌ Error en normalizeAllAccountIds: ${e.message}`, 'error');
+                }
+            }, 100);
+
+            // Test 2: Verificar función calculateTotalBalance
+            setTimeout(() => {
+                try {
+                    if (typeof calculateTotalBalance === 'function') {
+                        const result = calculateTotalBalance();
+                        addResult('✅ Función calculateTotalBalance ejecutada sin errores', 'success');
+                    } else {
+                        addResult('❌ Función calculateTotalBalance no está definida', 'error');
+                    }
+                } catch (e) {
+                    addResult(`❌ Error en calculateTotalBalance: ${e.message}`, 'error');
+                }
+            }, 200);
+
+            // Test 3: Verificar función updateAccountDropdowns
+            setTimeout(() => {
+                try {
+                    if (typeof updateAccountDropdowns === 'function') {
+                        updateAccountDropdowns();
+                        addResult('✅ Función updateAccountDropdowns ejecutada sin errores', 'success');
+                    } else {
+                        addResult('❌ Función updateAccountDropdowns no está definida', 'error');
+                    }
+                } catch (e) {
+                    addResult(`❌ Error en updateAccountDropdowns: ${e.message}`, 'error');
+                }
+            }, 300);
+
+            // Test 4: Verificar función cleanDuplicateAccounts
+            setTimeout(() => {
+                try {
+                    if (typeof cleanDuplicateAccounts === 'function') {
+                        const result = cleanDuplicateAccounts();
+                        addResult('✅ Función cleanDuplicateAccounts ejecutada sin errores', 'success');
+                    } else {
+                        addResult('❌ Función cleanDuplicateAccounts no está definida', 'error');
+                    }
+                } catch (e) {
+                    addResult(`❌ Error en cleanDuplicateAccounts: ${e.message}`, 'error');
+                }
+            }, 400);
+
+            // Test 5: Verificar función updateBankAccountsDisplay
+            setTimeout(() => {
+                try {
+                    if (typeof updateBankAccountsDisplay === 'function') {
+                        updateBankAccountsDisplay();
+                        addResult('✅ Función updateBankAccountsDisplay ejecutada sin errores', 'success');
+                    } else {
+                        addResult('❌ Función updateBankAccountsDisplay no está definida', 'error');
+                    }
+                } catch (e) {
+                    addResult(`❌ Error en updateBankAccountsDisplay: ${e.message}`, 'error');
+                }
+            }, 500);
+        }
+
+        function runAllTests() {
+            clearResults();
+            addResult('🚀 Ejecutando todos los tests...', 'warning');
+            
+            // Ejecutar tests críticos
+            setTimeout(() => {
+                runCriticalTests();
+            }, 100);
+
+            // Ejecutar tests de cuentas bancarias después
+            setTimeout(() => {
+                runBankAccountTests();
+            }, 2000);
+
+            // Test final
+            setTimeout(() => {
+                addResult('✅ Todos los tests completados. Revisa la consola del navegador para verificar que no hay errores.', 'success');
+                addResult('💡 Si ves mensajes de advertencia (⚠️), eso es normal - indica que las funciones están protegidas correctamente.', 'info');
+            }, 4000);
+        }
+
+        function openMainApp() {
+            window.open('index.html', '_blank');
+        }
+
+        // Ejecutar tests automáticamente al cargar la página
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addResult('🔄 Cargando tests automáticamente en 3 segundos...', 'info');
+                setTimeout(runAllTests, 3000);
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

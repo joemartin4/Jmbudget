@@ -4,10 +4,12 @@
  */
 
 // Detectar si estamos en desarrollo
-const isDevelopment = window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1';
+if (typeof window.isDevelopment === 'undefined') {
+    window.isDevelopment = window.location.hostname === 'localhost' || 
+                          window.location.hostname === '127.0.0.1';
+}
 
-if (isDevelopment) {
+if (window.isDevelopment) {
     console.log('🔧 Modo desarrollo detectado - Firebase configurado para desarrollo local');
     
     // Configuración mínima para desarrollo

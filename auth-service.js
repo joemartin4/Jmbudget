@@ -21,15 +21,20 @@ class AuthService {
             console.log('🔧 Inicializando servicio de autenticación...');
             
             // Verificar si estamos en modo desarrollo
-            const isDevelopment = window.location.hostname === 'localhost' || 
-                                 window.location.hostname === '127.0.0.1' ||
-                                 window.location.hostname.includes('localhost');
+            if (typeof window.isDevelopment === 'undefined') {
+                window.isDevelopment = window.location.hostname === 'localhost' || 
+                                      window.location.hostname === '127.0.0.1' ||
+                                      window.location.hostname.includes('localhost');
+            }
             
-            if (isDevelopment) {
+            if (window.isDevelopment) {
                 console.log('🔧 Modo desarrollo detectado - Usando autenticación local');
                 this.useLocalMode = true;
                 this.isInitialized = true;
                 await this.setupLocalAuth();
+                
+                // En modo local, NO configurar Firebase Auth listeners
+                // para evitar que se dispare logout automático en refresh
                 console.log('✅ Servicio de autenticación inicializado en modo local');
                 return;
             }
@@ -116,6 +121,15 @@ class AuthService {
             
             // Configurar monitoreo de actividad
             this.setupActivityMonitoring();
+            
+            // Intentar restaurar sesión existente
+            const sessionRestored = await this.restoreLocalSession();
+            
+            if (sessionRestored) {
+                console.log('✅ Sesión local restaurada exitosamente');
+            } else {
+                console.log('ℹ️ No se pudo restaurar sesión local');
+            }
             
             console.log('✅ Autenticación local configurada');
             
@@ -575,6 +589,75 @@ class AuthService {
         }
     }
 
+    async restoreLocalSession() {
+        try {
+            console.log('🔄 Intentando restaurar sesión local...');
+            
+            const sessionData = localStorage.getItem('jm_budget_user_session');
+            if (sessionData) {
+                const session = JSON.parse(sessionData);
+                const now = Date.now();
+                
+                // Verificar si la sesión no ha expirado (24 horas)
+                if (now - session.timestamp < 24 * 60 * 60 * 1000) {
+                    this.currentUser = session.user;
+                    this.updateLastActivity();
+                    console.log('✅ Sesión local restaurada automáticamente:', this.currentUser.displayName);
+                    
+                    // Disparar evento de login exitoso
+                    window.dispatchEvent(new CustomEvent('userLoggedIn', { 
+                        detail: this.currentUser 
+                    }));
+                    
+                    return true;
+                } else {
+                    console.log('⏰ Sesión local expirada, limpiando...');
+                    this.clearUserSession();
+                }
+            } else {
+                console.log('ℹ️ No hay sesión local para restaurar');
+                
+                // En modo desarrollo, verificar si hay datos de usuario en localStorage
+                if (window.isDevelopment) {
+                    const userData = localStorage.getItem('jm_budget_user_data');
+                    if (userData) {
+                        try {
+                            const user = JSON.parse(userData);
+                            if (user && user.email) {
+                                console.log('🔧 Modo desarrollo: restaurando usuario desde datos guardados:', user.email);
+                                
+                                const restoredUser = {
+                                    uid: user.uid || 'local_user',
+                                    email: user.email,
+                                    displayName: user.displayName || user.email,
+                                    isLocalUser: true
+                                };
+                                
+                                this.currentUser = restoredUser;
+                                this.saveUserSession();
+                                
+                                // Disparar evento de login exitoso
+                                window.dispatchEvent(new CustomEvent('userLoggedIn', { 
+                                    detail: this.currentUser 
+                                }));
+                                
+                                console.log('✅ Usuario restaurado desde datos guardados');
+                                return true;
+                            }
+                        } catch (error) {
+                            console.error('❌ Error al parsear datos de usuario:', error);
+                        }
+                    }
+                }
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('❌ Error al restaurar sesión local:', error);
+            return false;
+        }
+    }
+
     // Función para hashear contraseñas (simplificada para modo local)
     async hashPassword(password) {
         // En producción, usar bcrypt o similar
@@ -644,10 +727,138 @@ class AuthService {
     async clearEncryptedData(key) {
         localStorage.removeItem(`jm_budget_encrypted_${key}`);
     }
+    
+    // Función global para forzar la restauración de sesión (solo para uso manual)
+    forceRestoreSession() {
+        console.log('🔧 Forzando restauración de sesión...');
+        if (window.isDevelopment) {
+            const testUser = {
+                uid: 'local_test_user',
+                email: 'test@example.com',
+                displayName: 'Usuario de Prueba',
+                isLocalUser: true
+            };
+            
+            this.currentUser = testUser;
+            this.saveUserSession();
+            
+            // Disparar evento de login exitoso
+            window.dispatchEvent(new CustomEvent('userLoggedIn', { 
+                detail: this.currentUser 
+            }));
+            
+            console.log('✅ Sesión forzada creada');
+            return true;
+        }
+        return false;
+    }
 }
 
 // Instancia global del servicio de autenticación
 const authService = new AuthService();
 
 // Exportar para uso global
-window.authService = authService; 
+window.authService = authService;
+
+// Función global para forzar la restauración de sesión
+window.forceRestoreSession = function() {
+    if (window.authService) {
+        return window.authService.forceRestoreSession();
+    } else {
+        console.error('❌ AuthService no está disponible');
+        return false;
+    }
+};
+
+// Función global para limpiar la sesión actual
+window.clearCurrentSession = function() {
+    if (window.authService) {
+        window.authService.clearUserSession();
+        window.authService.currentUser = null;
+        console.log('✅ Sesión actual limpiada');
+        
+        // Disparar evento de logout
+        window.dispatchEvent(new CustomEvent('userLoggedOut'));
+        
+        // Recargar la página para mostrar la pantalla de login
+        window.location.reload();
+        return true;
+    } else {
+        console.error('❌ AuthService no está disponible');
+        return false;
+    }
+};
+
+// Función global para verificar el estado de la sesión
+window.checkSessionStatus = function() {
+    console.log('🔍 Verificando estado de la sesión...');
+    
+    if (window.authService) {
+        const currentUser = window.authService.getCurrentUser();
+        console.log('Usuario actual:', currentUser);
+        
+        const sessionData = localStorage.getItem('jm_budget_user_session');
+        console.log('Datos de sesión en localStorage:', sessionData ? 'Presentes' : 'No encontrados');
+        
+        const userData = localStorage.getItem('jm_budget_user_data');
+        console.log('Datos de usuario en localStorage:', userData ? 'Presentes' : 'No encontrados');
+        
+        if (currentUser) {
+            console.log('✅ Usuario autenticado:', currentUser.email);
+            return true;
+        } else {
+            console.log('❌ No hay usuario autenticado');
+            return false;
+        }
+    } else {
+        console.error('❌ AuthService no está disponible');
+        return false;
+    }
+};
+
+// Función global para forzar la restauración desde datos guardados
+window.restoreFromSavedData = function() {
+    console.log('🔄 Forzando restauración desde datos guardados...');
+    
+    const userData = localStorage.getItem('jm_budget_user_data');
+    if (!userData) {
+        console.error('❌ No hay datos de usuario guardados');
+        return false;
+    }
+    
+    try {
+        const user = JSON.parse(userData);
+        if (user && user.email) {
+            console.log('🔧 Restaurando usuario:', user.email);
+            
+            const restoredUser = {
+                uid: user.uid || 'local_user',
+                email: user.email,
+                displayName: user.displayName || user.email,
+                isLocalUser: true
+            };
+            
+            if (window.authService) {
+                window.authService.currentUser = restoredUser;
+                window.authService.saveUserSession();
+                
+                // Disparar evento de login exitoso
+                window.dispatchEvent(new CustomEvent('userLoggedIn', { 
+                    detail: restoredUser 
+                }));
+                
+                console.log('✅ Usuario restaurado exitosamente');
+                return true;
+            } else {
+                console.error('❌ AuthService no está disponible');
+                return false;
+            }
+        } else {
+            console.error('❌ Datos de usuario inválidos');
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Error al parsear datos de usuario:', error);
+        return false;
+    }
+}; 

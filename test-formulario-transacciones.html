@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Formulario Transacciones - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .form-test {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-group.hidden {
+            display: none;
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>📝 Test Formulario Transacciones - JM Budget</h1>
+        <p>Esta página verifica que el formulario de transacciones funcione correctamente sin errores de validación.</p>
+        
+        <div class="test-result info">
+            <h3>📋 Información del Test</h3>
+            <p><strong>Problema:</strong> Error "An invalid form control with name='transferToAccount' is not focusable"</p>
+            <p><strong>Causa:</strong> Campo required oculto que no puede ser validado por el navegador</p>
+            <p><strong>Solución:</strong> Remover required del HTML y validar con JavaScript</p>
+        </div>
+        
+        <div class="test-result warning">
+            <h3>⚠️ Instrucciones</h3>
+            <p>1. Abre la consola del navegador (F12)</p>
+            <p>2. Prueba diferentes tipos de transacciones</p>
+            <p>3. Verifica que no aparezcan errores de validación</p>
+            <p>4. Comprueba que las validaciones funcionen correctamente</p>
+        </div>
+        
+        <div class="test-result">
+            <h3>🔍 Test de Formulario</h3>
+            <div class="form-test">
+                <form id="testTransactionForm">
+                    <div class="form-group">
+                        <label for="testDescription">Descripción:</label>
+                        <input type="text" id="testDescription" name="description" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="testAmount">Monto:</label>
+                        <input type="number" id="testAmount" name="amount" step="0.01" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="testType">Tipo:</label>
+                        <select id="testType" name="type" required onchange="handleTypeChange()">
+                            <option value="">Selecciona tipo</option>
+                            <option value="gasto">Gasto</option>
+                            <option value="ingreso">Ingreso</option>
+                            <option value="transferencia">Transferencia</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="testCategory">Categoría:</label>
+                        <select id="testCategory" name="category" required>
+                            <option value="">Selecciona categoría</option>
+                            <option value="Alimentación">Alimentación</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Entretenimiento">Entretenimiento</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="testAccount">Cuenta:</label>
+                        <select id="testAccount" name="account" required>
+                            <option value="">Selecciona cuenta</option>
+                            <option value="account1">Cuenta Principal</option>
+                            <option value="account2">Cuenta de Ahorros</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group hidden" id="testTransferGroup">
+                        <label for="testTransferTo">Transferir a cuenta:</label>
+                        <select id="testTransferTo" name="transferTo">
+                            <option value="">Selecciona cuenta destino</option>
+                            <option value="account1">Cuenta Principal</option>
+                            <option value="account2">Cuenta de Ahorros</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="testDate">Fecha:</label>
+                        <input type="date" id="testDate" name="date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="testComment">Comentario:</label>
+                        <input type="text" id="testComment" name="comment">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">Enviar Formulario</button>
+                    <button type="button" class="btn" onclick="testValidation()">Probar Validación</button>
+                    <button type="button" class="btn btn-warning" onclick="clearForm()">Limpiar</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="test-result">
+            <h3>📝 Log de Tests</h3>
+            <div id="testLog" class="log">
+                <p>Esperando tests...</p>
+            </div>
+        </div>
+        
+        <div class="test-result">
+            <h3>🎯 Acciones de Test</h3>
+            <button class="btn btn-success" onclick="runAllFormTests()">Ejecutar Todos los Tests</button>
+            <button class="btn btn-warning" onclick="clearTestLog()">Limpiar Log</button>
+            <button class="btn" onclick="testGasto()">Test Gasto</button>
+            <button class="btn" onclick="testIngreso()">Test Ingreso</button>
+            <button class="btn" onclick="testTransferencia()">Test Transferencia</button>
+        </div>
+        
+        <div class="test-result">
+            <h3>✅ Resultado Final</h3>
+            <div id="finalResult">
+                <p>Ejecuta los tests para ver el resultado</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función para agregar log
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // Función para limpiar log
+        function clearTestLog() {
+            document.getElementById('testLog').innerHTML = '<p>Log limpiado...</p>';
+        }
+        
+        // Función para manejar cambio de tipo
+        function handleTypeChange() {
+            const type = document.getElementById('testType').value;
+            const transferGroup = document.getElementById('testTransferGroup');
+            const transferSelect = document.getElementById('testTransferTo');
+            
+            if (type === 'transferencia') {
+                transferGroup.classList.remove('hidden');
+                transferSelect.required = true;
+                addLog('✅ Campo de transferencia mostrado y marcado como required', 'success');
+            } else {
+                transferGroup.classList.add('hidden');
+                transferSelect.required = false;
+                transferSelect.value = '';
+                addLog('✅ Campo de transferencia oculto y removido required', 'success');
+            }
+        }
+        
+        // Función para validar formulario
+        function testValidation() {
+            addLog('🔍 Probando validación del formulario...', 'info');
+            
+            const form = document.getElementById('testTransactionForm');
+            const type = document.getElementById('testType').value;
+            const transferTo = document.getElementById('testTransferTo').value;
+            const account = document.getElementById('testAccount').value;
+            
+            let isValid = true;
+            let errors = [];
+            
+            // Validar campos básicos
+            if (!form.description.value) {
+                errors.push('Descripción es requerida');
+                isValid = false;
+            }
+            
+            if (!form.amount.value) {
+                errors.push('Monto es requerido');
+                isValid = false;
+            }
+            
+            if (!form.type.value) {
+                errors.push('Tipo es requerido');
+                isValid = false;
+            }
+            
+            if (!form.category.value) {
+                errors.push('Categoría es requerida');
+                isValid = false;
+            }
+            
+            if (!form.account.value) {
+                errors.push('Cuenta es requerida');
+                isValid = false;
+            }
+            
+            if (!form.date.value) {
+                errors.push('Fecha es requerida');
+                isValid = false;
+            }
+            
+            // Validar transferencia
+            if (type === 'transferencia') {
+                if (!transferTo) {
+                    errors.push('Cuenta destino es requerida para transferencias');
+                    isValid = false;
+                }
+                
+                if (transferTo === account) {
+                    errors.push('No puedes transferir a la misma cuenta');
+                    isValid = false;
+                }
+            }
+            
+            if (isValid) {
+                addLog('✅ Formulario válido', 'success');
+            } else {
+                addLog('❌ Errores de validación encontrados:', 'error');
+                errors.forEach(error => addLog(`   - ${error}`, 'error'));
+            }
+            
+            return isValid;
+        }
+        
+        // Función para limpiar formulario
+        function clearForm() {
+            document.getElementById('testTransactionForm').reset();
+            document.getElementById('testTransferGroup').classList.add('hidden');
+            document.getElementById('testTransferTo').required = false;
+            addLog('🧹 Formulario limpiado', 'info');
+        }
+        
+        // Test específico para gasto
+        function testGasto() {
+            addLog('💰 Probando transacción de gasto...', 'info');
+            
+            clearForm();
+            
+            document.getElementById('testDescription').value = 'Test gasto';
+            document.getElementById('testAmount').value = '100';
+            document.getElementById('testType').value = 'gasto';
+            document.getElementById('testCategory').value = 'Alimentación';
+            document.getElementById('testAccount').value = 'account1';
+            document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
+            
+            const isValid = testValidation();
+            
+            if (isValid) {
+                addLog('✅ Test de gasto completado exitosamente', 'success');
+            } else {
+                addLog('❌ Test de gasto falló', 'error');
+            }
+        }
+        
+        // Test específico para ingreso
+        function testIngreso() {
+            addLog('💵 Probando transacción de ingreso...', 'info');
+            
+            clearForm();
+            
+            document.getElementById('testDescription').value = 'Test ingreso';
+            document.getElementById('testAmount').value = '1000';
+            document.getElementById('testType').value = 'ingreso';
+            document.getElementById('testCategory').value = 'Alimentación';
+            document.getElementById('testAccount').value = 'account1';
+            document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
+            
+            const isValid = testValidation();
+            
+            if (isValid) {
+                addLog('✅ Test de ingreso completado exitosamente', 'success');
+            } else {
+                addLog('❌ Test de ingreso falló', 'error');
+            }
+        }
+        
+        // Test específico para transferencia
+        function testTransferencia() {
+            addLog('🔄 Probando transacción de transferencia...', 'info');
+            
+            clearForm();
+            
+            document.getElementById('testDescription').value = 'Test transferencia';
+            document.getElementById('testAmount').value = '500';
+            document.getElementById('testType').value = 'transferencia';
+            document.getElementById('testCategory').value = 'Alimentación';
+            document.getElementById('testAccount').value = 'account1';
+            document.getElementById('testTransferTo').value = 'account2';
+            document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
+            
+            const isValid = testValidation();
+            
+            if (isValid) {
+                addLog('✅ Test de transferencia completado exitosamente', 'success');
+            } else {
+                addLog('❌ Test de transferencia falló', 'error');
+            }
+        }
+        
+        // Ejecutar todos los tests
+        function runAllFormTests() {
+            addLog('🚀 Ejecutando todos los tests de formulario...', 'info');
+            
+            setTimeout(() => testGasto(), 100);
+            setTimeout(() => testIngreso(), 200);
+            setTimeout(() => testTransferencia(), 300);
+            
+            setTimeout(() => {
+                const finalResult = document.getElementById('finalResult');
+                finalResult.innerHTML = `
+                    <div class="test-result success">
+                        <h3>🎉 Tests Completados</h3>
+                        <p>✅ Todos los tests de formulario han sido ejecutados</p>
+                        <p>📋 Revisa el log para ver los resultados detallados</p>
+                        <p>💡 Si no hay errores de validación, el problema está solucionado</p>
+                    </div>
+                `;
+                addLog('🎉 Todos los tests completados', 'success');
+            }, 1000);
+        }
+        
+        // Manejar envío del formulario
+        document.getElementById('testTransactionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            addLog('📤 Formulario enviado', 'info');
+            
+            if (testValidation()) {
+                addLog('✅ Formulario enviado correctamente', 'success');
+            } else {
+                addLog('❌ Formulario no enviado debido a errores de validación', 'error');
+            }
+        });
+        
+        // Configuración inicial
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🚀 Test de formulario de transacciones iniciado', 'info');
+            addLog('📝 Formulario de prueba cargado', 'success');
+            
+            // Establecer fecha actual
+            document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html> 

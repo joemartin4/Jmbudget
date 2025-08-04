@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpiar Cache Forzado - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .btn:hover {
+            background-color: #c82333;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Limpiar Cache Forzado - JM Budget</h1>
+        
+        <div class="warning">
+            <h3>⚠️ ADVERTENCIA</h3>
+            <p>Esta herramienta limpiará completamente el cache del navegador y recargará la aplicación.</p>
+            <p><strong>Se perderán temporalmente:</strong></p>
+            <ul>
+                <li>Datos de formularios no guardados</li>
+                <li>Pestañas abiertas</li>
+                <li>Configuraciones temporales</li>
+            </ul>
+            <p><strong>NO se perderán:</strong></p>
+            <ul>
+                <li>Datos guardados en localStorage</li>
+                <li>Configuraciones permanentes</li>
+                <li>Transacciones y categorías</li>
+            </ul>
+        </div>
+        
+        <div class="log" id="log">
+            <p>Listo para limpiar cache...</p>
+        </div>
+        
+        <button class="btn" onclick="limpiarCacheCompleto()">
+            🗑️ LIMPIAR CACHE COMPLETO Y RECARGAR
+        </button>
+        
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        function addLog(message) {
+            const log = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function showResult(content, type = 'success') {
+            const resultadoDiv = document.getElementById('resultado');
+            resultadoDiv.innerHTML = `<div class="${type}">${content}</div>`;
+        }
+        
+        async function limpiarCacheCompleto() {
+            addLog('🚀 Iniciando limpieza completa de cache...');
+            
+            try {
+                // 1. Limpiar Cache API
+                addLog('🗑️ Limpiando Cache API...');
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    addLog(`📊 Encontrados ${cacheNames.length} caches`);
+                    
+                    for (const cacheName of cacheNames) {
+                        addLog(`🗑️ Eliminando cache: ${cacheName}`);
+                        await caches.delete(cacheName);
+                    }
+                    addLog('✅ Cache API limpiado');
+                }
+                
+                // 2. Desregistrar Service Workers
+                addLog('🔧 Desregistrando Service Workers...');
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    addLog(`📊 Encontrados ${registrations.length} Service Workers`);
+                    
+                    for (const registration of registrations) {
+                        addLog(`🔧 Desregistrando: ${registration.scope}`);
+                        await registration.unregister();
+                    }
+                    addLog('✅ Service Workers desregistrados');
+                }
+                
+                // 3. Limpiar IndexedDB
+                addLog('💾 Limpiando IndexedDB...');
+                if ('indexedDB' in window) {
+                    try {
+                        const databases = await indexedDB.databases();
+                        for (const db of databases) {
+                            addLog(`🗑️ Eliminando IndexedDB: ${db.name}`);
+                            indexedDB.deleteDatabase(db.name);
+                        }
+                        addLog('✅ IndexedDB limpiado');
+                    } catch (e) {
+                        addLog(`⚠️ Error limpiando IndexedDB: ${e.message}`);
+                    }
+                }
+                
+                // 4. Limpiar SessionStorage
+                addLog('🗑️ Limpiando SessionStorage...');
+                sessionStorage.clear();
+                addLog('✅ SessionStorage limpiado');
+                
+                // 5. Limpiar localStorage temporal (solo claves de cache)
+                addLog('💾 Verificando localStorage...');
+                const keysToKeep = ['userData', 'categories', 'transactions', 'bankAccounts', 'notifications', 'goals', 'incomes'];
+                const allKeys = Object.keys(localStorage);
+                const keysToRemove = allKeys.filter(key => !keysToKeep.includes(key));
+                
+                if (keysToRemove.length > 0) {
+                    addLog(`🗑️ Limpiando ${keysToRemove.length} claves de cache de localStorage`);
+                    keysToRemove.forEach(key => localStorage.removeItem(key));
+                }
+                
+                // 6. Forzar recarga con parámetros de cache bust
+                addLog('🔄 Preparando recarga forzada...');
+                const timestamp = new Date().getTime();
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('v', timestamp);
+                currentUrl.searchParams.set('cache_bust', 'true');
+                currentUrl.searchParams.set('force_reload', 'true');
+                
+                showResult(`
+                    <h3>✅ Cache Limpiado Exitosamente</h3>
+                    <p><strong>Timestamp:</strong> ${timestamp}</p>
+                    <p><strong>URL de recarga:</strong> ${currentUrl.toString()}</p>
+                    <p>La aplicación se recargará automáticamente en 3 segundos...</p>
+                    <p><strong>Después de la recarga:</strong></p>
+                    <ol>
+                        <li>Ir a la sección "Transacciones"</li>
+                        <li>Probar filtros de fecha (julio, agosto, etc.)</li>
+                        <li>Verificar que funcionen correctamente</li>
+                    </ol>
+                `, 'success');
+                
+                addLog('⏰ Esperando 3 segundos antes de recargar...');
+                
+                setTimeout(() => {
+                    addLog('🔄 Recargando aplicación...');
+                    window.location.href = currentUrl.toString();
+                }, 3000);
+                
+            } catch (error) {
+                addLog(`❌ Error durante la limpieza: ${error.message}`);
+                showResult(`
+                    <h3>❌ Error en la Limpieza</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Intenta recargar manualmente con Ctrl+Shift+R</p>
+                `, 'warning');
+            }
+        }
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🚀 Herramienta de limpieza de cache iniciada');
+            addLog('📊 URL actual: ' + window.location.href);
+        });
+    </script>
+</body>
+</html> 

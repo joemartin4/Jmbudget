@@ -24,10 +24,12 @@ class SyncService {
             console.log('🔄 Inicializando servicio de sincronización...');
             
             // Verificar si estamos en modo desarrollo
-            const isDevelopment = window.location.hostname === 'localhost' || 
-                                 window.location.hostname === '127.0.0.1';
+            if (typeof window.isDevelopment === 'undefined') {
+                window.isDevelopment = window.location.hostname === 'localhost' || 
+                                      window.location.hostname === '127.0.0.1';
+            }
             
-            if (isDevelopment) {
+            if (window.isDevelopment) {
                 console.log('🔧 Modo desarrollo detectado - Firebase en modo debug');
                 // Habilitar logs de Firebase en desarrollo (solo si está disponible)
                 if (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.setLogLevel) {
@@ -102,10 +104,12 @@ class SyncService {
                 console.log('👤 Usuario autenticado');
                 
                 // Verificar si estamos en modo desarrollo
-                const isDevelopment = window.location.hostname === 'localhost' || 
-                                     window.location.hostname === '127.0.0.1';
+                if (typeof window.isDevelopment === 'undefined') {
+                    window.isDevelopment = window.location.hostname === 'localhost' || 
+                                          window.location.hostname === '127.0.0.1';
+                }
                 
-                if (isDevelopment) {
+                if (window.isDevelopment) {
                     console.log('🔧 Modo desarrollo - sincronización local habilitada');
                     this.updateSyncStatus('synced');
                 } else {
@@ -121,10 +125,12 @@ class SyncService {
 
     setupAutoSync() {
         // Verificar si estamos en modo desarrollo
-        const isDevelopment = window.location.hostname === 'localhost' || 
-                             window.location.hostname === '127.0.0.1';
+        if (typeof window.isDevelopment === 'undefined') {
+            window.isDevelopment = window.location.hostname === 'localhost' || 
+                                  window.location.hostname === '127.0.0.1';
+        }
         
-        if (isDevelopment) {
+        if (window.isDevelopment) {
             console.log('🔧 Modo desarrollo detectado - sincronización automática deshabilitada');
             return;
         }
@@ -142,10 +148,12 @@ class SyncService {
         this.setupAutoSync();
         
         // Verificar si estamos en modo desarrollo
-        const isDevelopment = window.location.hostname === 'localhost' || 
-                             window.location.hostname === '127.0.0.1';
+        if (typeof window.isDevelopment === 'undefined') {
+            window.isDevelopment = window.location.hostname === 'localhost' || 
+                                  window.location.hostname === '127.0.0.1';
+        }
         
-        if (!isDevelopment) {
+        if (!window.isDevelopment) {
             // Sincronizar datos existentes solo en producción
             await this.syncNow();
         } else {
@@ -202,10 +210,12 @@ class SyncService {
 
     async syncToServer() {
         // Verificar si estamos en modo desarrollo
-        const isDevelopment = window.location.hostname === 'localhost' || 
-                             window.location.hostname === '127.0.0.1';
+        if (typeof window.isDevelopment === 'undefined') {
+            window.isDevelopment = window.location.hostname === 'localhost' || 
+                                  window.location.hostname === '127.0.0.1';
+        }
         
-        if (isDevelopment) {
+        if (window.isDevelopment) {
             console.log('🔧 Modo desarrollo - sincronización al servidor deshabilitada');
             return;
         }
@@ -267,10 +277,12 @@ class SyncService {
 
     async syncFromServer() {
         // Verificar si estamos en modo desarrollo
-        const isDevelopment = window.location.hostname === 'localhost' || 
-                             window.location.hostname === '127.0.0.1';
+        if (typeof window.isDevelopment === 'undefined') {
+            window.isDevelopment = window.location.hostname === 'localhost' || 
+                                  window.location.hostname === '127.0.0.1';
+        }
         
-        if (isDevelopment) {
+        if (window.isDevelopment) {
             console.log('🔧 Modo desarrollo - sincronización desde servidor deshabilitada');
             return;
         }
@@ -553,10 +565,12 @@ class SyncService {
             console.log('🔍 Verificando configuración de Firestore...');
             
             // Verificar si estamos en modo desarrollo
-            const isDevelopment = window.location.hostname === 'localhost' || 
-                                 window.location.hostname === '127.0.0.1';
+            if (typeof window.isDevelopment === 'undefined') {
+                window.isDevelopment = window.location.hostname === 'localhost' || 
+                                      window.location.hostname === '127.0.0.1';
+            }
             
-            if (isDevelopment) {
+            if (window.isDevelopment) {
                 console.log('🔧 Modo desarrollo - Firestore deshabilitado para evitar errores');
                 this.updateSyncStatus('offline');
                 return;

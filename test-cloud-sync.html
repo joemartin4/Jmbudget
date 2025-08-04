@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Cloud Sync - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f2f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Test de Sincronización en la Nube</h1>
+        
+        <div id="status" class="status info">
+            Inicializando prueba...
+        </div>
+        
+        <h3>Pruebas Disponibles:</h3>
+        
+        <button class="test-button" onclick="testCloudSyncManager()">
+            🔍 Verificar CloudSyncManager
+        </button>
+        
+        <button class="test-button" onclick="testCloudUIFunctions()">
+            🎨 Verificar Cloud UI Functions
+        </button>
+        
+        <button class="test-button" onclick="testModal()">
+            📱 Abrir Modal de Sincronización
+        </button>
+        
+        <button class="test-button" onclick="testServices()">
+            ☁️ Verificar Servicios Disponibles
+        </button>
+        
+        <div id="results"></div>
+    </div>
+
+    <!-- Cargar los archivos necesarios -->
+    <script src="cloud-sync-manager.js"></script>
+    <script src="cloud-ui-functions.js"></script>
+    
+    <script>
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+        
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+        
+        function testCloudSyncManager() {
+            addResult('🔍 Probando CloudSyncManager...', 'info');
+            
+            if (typeof window.cloudSyncManager !== 'undefined') {
+                addResult('✅ CloudSyncManager disponible', 'success');
+                
+                const services = window.cloudSyncManager.supportedServices;
+                addResult(`📊 Servicios soportados: ${Object.keys(services).length}`, 'success');
+                
+                Object.entries(services).forEach(([key, service]) => {
+                    addResult(`☁️ ${service.name}: ${service.enabled ? '✅ Habilitado' : '❌ Deshabilitado'}`, 'info');
+                });
+            } else {
+                addResult('❌ CloudSyncManager NO disponible', 'error');
+            }
+        }
+        
+        function testCloudUIFunctions() {
+            addResult('🎨 Probando Cloud UI Functions...', 'info');
+            
+            const functions = [
+                'openCloudSyncModal',
+                'loadCloudServices',
+                'configureCloudService',
+                'saveServiceConfig',
+                'testCloudService'
+            ];
+            
+            functions.forEach(funcName => {
+                if (typeof window[funcName] === 'function') {
+                    addResult(`✅ ${funcName} disponible`, 'success');
+                } else {
+                    addResult(`❌ ${funcName} NO disponible`, 'error');
+                }
+            });
+        }
+        
+        function testModal() {
+            addResult('📱 Probando apertura de modal...', 'info');
+            
+            if (typeof openCloudSyncModal === 'function') {
+                try {
+                    openCloudSyncModal();
+                    addResult('✅ Modal abierto correctamente', 'success');
+                } catch (error) {
+                    addResult(`❌ Error al abrir modal: ${error.message}`, 'error');
+                }
+            } else {
+                addResult('❌ Función openCloudSyncModal no disponible', 'error');
+            }
+        }
+        
+        function testServices() {
+            addResult('☁️ Probando servicios de nube...', 'info');
+            
+            if (window.cloudSyncManager) {
+                const services = window.cloudSyncManager.supportedServices;
+                
+                Object.entries(services).forEach(([key, service]) => {
+                    addResult(`☁️ ${service.name}:`, 'info');
+                    addResult(`   - Descripción: ${service.description}`, 'info');
+                    addResult(`   - Color: ${service.color}`, 'info');
+                    addResult(`   - Estado: ${service.enabled ? 'Habilitado' : 'Deshabilitado'}`, 'info');
+                });
+            } else {
+                addResult('❌ CloudSyncManager no disponible', 'error');
+            }
+        }
+        
+        // Inicialización
+        window.addEventListener('load', () => {
+            updateStatus('✅ Pruebas cargadas correctamente', 'success');
+            addResult('🚀 Sistema de pruebas inicializado', 'success');
+        });
+    </script>
+</body>
+</html> 

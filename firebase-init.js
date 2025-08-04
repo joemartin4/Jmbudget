@@ -6,11 +6,13 @@
 console.log('🔥 Script firebase-init.js cargado y ejecutándose...');
 
 // Verificar si estamos en modo desarrollo
-const isDevelopment = window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1' ||
-                     window.location.hostname.includes('localhost');
+if (typeof window.isDevelopment === 'undefined') {
+    window.isDevelopment = window.location.hostname === 'localhost' || 
+                          window.location.hostname === '127.0.0.1' ||
+                          window.location.hostname.includes('localhost');
+}
 
-if (isDevelopment) {
+if (window.isDevelopment) {
     console.log('🔧 Modo desarrollo detectado - Firebase deshabilitado para evitar errores');
     window.firebaseInitialized = false;
     window.firebaseDisabled = true;
@@ -107,4 +109,16 @@ if (!window.firebaseDisabled) {
             console.log(`⏳ Esperando Firebase... (${attempts}/${maxAttempts})`);
         }
     }, 100);
-} 
+}
+}
+
+// Exportar la función para uso externo
+window.initializeFirebase = initializeFirebase;
+
+// Verificar el estado de inicialización
+console.log('📊 Estado de Firebase:', {
+    disabled: window.firebaseDisabled,
+    initialized: window.firebaseInitialized,
+    firebaseAvailable: typeof firebase !== 'undefined',
+    configAvailable: typeof window.FIREBASE_CONFIG !== 'undefined'
+}); 

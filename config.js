@@ -1,163 +1,228 @@
-// Configuración de JM Budget
-const JM_BUDGET_CONFIG = {
-    // Información de la aplicación
-    APP_NAME: 'JM Budget',
-    VERSION: '1.0.0',
-    AUTHOR: 'Sistema de Presupuesto Familiar',
-    
-    // Configuración de almacenamiento
-    STORAGE_KEYS: {
-        USERS: 'jm_budget_users',
-        CURRENT_USER: 'jm_budget_current_user',
-        CATEGORIES: 'jm_budget_categories',
-        TRANSACTIONS: 'jm_budget_transactions',
-        CATEGORY_GROUPS: 'jm_budget_category_groups',
-        COLLABORATIONS: 'jm_budget_collaborations',
-        INVITATIONS: 'jm_budget_invitations',
-        CHANGE_HISTORY: 'jm_budget_change_history',
-        IMPORT_DATA: 'jm_budget_import_data'
-    },
-    
-    // Configuración de la interfaz
-    UI: {
-        DEFAULT_COLORS: [
-            '#007aff', '#34c759', '#ff3b30', '#ff9500', '#af52de',
-            '#5856d6', '#ff2d92', '#5ac8fa', '#ffcc02', '#4cd964'
-        ],
-        ANIMATION_DURATION: 300,
-        DEBOUNCE_DELAY: 300,
-        MODAL_Z_INDEX: 1000,
-        TOAST_Z_INDEX: 10000
-    },
-    
-    // Configuración de validación
-    VALIDATION: {
-        MIN_USERNAME_LENGTH: 3,
-        MIN_PASSWORD_LENGTH: 4,
-        MAX_DESCRIPTION_LENGTH: 100,
-        MAX_COMMENT_LENGTH: 500,
-        MIN_AMOUNT: 0.01,
-        MAX_AMOUNT: 999999.99
-    },
-    
-    // Configuración de importación
-    IMPORT: {
-        SUPPORTED_FORMATS: ['.csv', '.xlsx', '.xls'],
-        MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
-        REQUIRED_COLUMNS: ['descripción', 'monto', 'tipo', 'categoría', 'fecha'],
-        DATE_FORMATS: ['YYYY-MM-DD', 'DD/MM/YYYY', 'MM/DD/YYYY']
-    },
-    
-    // Configuración de gráficos
-    CHARTS: {
-        DOUGHNUT_HEIGHT: 300,
-        BAR_HEIGHT: 300,
-        COLORS: [
-            '#007aff', '#34c759', '#ff3b30', '#ff9500', '#af52de',
-            '#5856d6', '#ff2d92', '#5ac8fa', '#ffcc02', '#4cd964'
-        ]
-    },
-    
-    // Mensajes del sistema
-    MESSAGES: {
-        SUCCESS: {
-            LOGIN: 'Inicio de sesión exitoso',
-            REGISTER: 'Registro exitoso',
-            SAVE: 'Datos guardados correctamente',
-            DELETE: 'Elemento eliminado correctamente',
-            IMPORT: 'Datos importados correctamente'
-        },
-        ERROR: {
-            LOGIN_FAILED: 'Usuario o contraseña incorrectos',
-            REGISTER_FAILED: 'Error al registrar usuario',
-            SAVE_FAILED: 'Error al guardar datos',
-            DELETE_FAILED: 'Error al eliminar elemento',
-            IMPORT_FAILED: 'Error al importar datos',
-            NETWORK_ERROR: 'Error de conexión',
-            STORAGE_ERROR: 'Error de almacenamiento'
-        },
-        WARNING: {
-            UNSAVED_CHANGES: 'Tienes cambios sin guardar',
-            LARGE_FILE: 'El archivo es muy grande',
-            INVALID_FORMAT: 'Formato de archivo no válido'
+// Configuración centralizada de JM Budget
+window.JMBudgetConfig = {
+    // Configuración de la aplicación
+    app: {
+        name: 'JM Budget',
+        version: '2.0.0',
+        description: 'Gestión de Presupuesto Familiar',
+        defaultCurrency: 'DOP',
+        supportedCurrencies: ['DOP', 'USD', 'EUR', 'MXN', 'COP', 'ARS', 'CLP', 'PEN'],
+        exchangeRates: {
+            'USD': 58.50,
+            'EUR': 63.20,
+            'MXN': 3.45,
+            'COP': 0.015,
+            'ARS': 0.065,
+            'CLP': 0.062,
+            'PEN': 15.80,
+            'DOP': 1.00
         }
     },
-    
+
+    // Configuración de desarrollo
+    development: {
+        enabled: window.location.hostname === 'localhost' || 
+                window.location.hostname === '127.0.0.1' ||
+                window.location.hostname.includes('localhost'),
+        debugLogs: true,
+        autoRefresh: false
+    },
+
+    // Configuración de almacenamiento
+    storage: {
+        prefix: 'jmBudget_',
+        encryption: true,
+        compression: true,
+        maxCacheSize: 50 * 1024 * 1024 // 50MB
+    },
+
+    // Configuración de sincronización
+    sync: {
+        autoSync: true,
+        syncInterval: 5 * 60 * 1000, // 5 minutos
+        conflictResolution: 'smart-merge',
+        maxRetries: 3,
+        timeout: 30000
+    },
+
+    // Configuración de notificaciones
+    notifications: {
+        enabled: true,
+        position: 'top-right',
+        duration: 5000,
+        maxNotifications: 5
+    },
+
+    // Configuración de temas
+    themes: {
+        default: 'light',
+        autoDetect: true,
+        transition: true
+    },
+
+    // Configuración de rendimiento
+    performance: {
+        debounceDelay: 300,
+        throttleDelay: 100,
+        maxChartDataPoints: 100,
+        lazyLoading: true,
+        virtualScrolling: true
+    },
+
+    // Configuración de validación
+    validation: {
+        email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        password: {
+            minLength: 8,
+            requireUppercase: true,
+            requireLowercase: true,
+            requireNumbers: true,
+            requireSpecialChars: false
+        }
+    },
+
     // Configuración de categorías por defecto
-    DEFAULT_CATEGORIES: {
-        'Vivienda': {
-            color: '#007aff',
-            subcategories: ['Alquiler', 'Hipoteca', 'Servicios', 'Mantenimiento', 'Seguro Hogar']
-        },
+    defaultCategories: {
         'Alimentación y Bebidas': {
-            color: '#34c759',
-            subcategories: ['Supermercado', 'Restaurantes', 'Delivery', 'Café', 'Snacks']
+            color: '#FF6B6B',
+            icon: 'fas fa-utensils',
+            subcategories: ['Supermercado', 'Restaurantes', 'Delivery', 'Café']
         },
         'Transporte': {
-            color: '#ff3b30',
-            subcategories: ['Gasolina', 'Transporte Público', 'Taxi/Uber', 'Mantenimiento Auto', 'Seguro Auto']
+            color: '#4ECDC4',
+            icon: 'fas fa-car',
+            subcategories: ['Gasolina', 'Mantenimiento', 'Transporte público', 'Taxi']
+        },
+        'Vivienda': {
+            color: '#45B7D1',
+            icon: 'fas fa-home',
+            subcategories: ['Alquiler', 'Servicios', 'Mantenimiento', 'Decoración']
         },
         'Salud': {
-            color: '#ff9500',
-            subcategories: ['Médicos', 'Medicamentos', 'Seguro Médico', 'Dentista', 'Óptica']
+            color: '#96CEB4',
+            icon: 'fas fa-heartbeat',
+            subcategories: ['Médicos', 'Medicamentos', 'Seguro médico', 'Gimnasio']
         },
         'Entretenimiento': {
-            color: '#af52de',
-            subcategories: ['Cine', 'Deportes', 'Hobbies', 'Videojuegos', 'Libros']
-        },
-        'Ropa y Accesorios': {
-            color: '#5856d6',
-            subcategories: ['Vestimenta', 'Calzado', 'Accesorios', 'Joyería', 'Cosméticos']
+            color: '#FFEAA7',
+            icon: 'fas fa-gamepad',
+            subcategories: ['Cine', 'Eventos', 'Hobbies', 'Deportes']
         },
         'Educación': {
-            color: '#ff2d92',
-            subcategories: ['Cursos', 'Libros', 'Material Escolar', 'Tecnología', 'Idiomas']
+            color: '#DDA0DD',
+            icon: 'fas fa-graduation-cap',
+            subcategories: ['Matrícula', 'Libros', 'Cursos', 'Material escolar']
+        },
+        'Ropa y Accesorios': {
+            color: '#FFB6C1',
+            icon: 'fas fa-tshirt',
+            subcategories: ['Ropa', 'Zapatos', 'Accesorios', 'Cosméticos']
         },
         'Tecnología': {
-            color: '#5ac8fa',
-            subcategories: ['Dispositivos', 'Software', 'Internet', 'Telefonía', 'Accesorios']
+            color: '#87CEEB',
+            icon: 'fas fa-laptop',
+            subcategories: ['Electrónicos', 'Software', 'Internet', 'Reparaciones']
         },
-        'Viajes': {
-            color: '#ffcc02',
-            subcategories: ['Vacaciones', 'Escapadas', 'Transporte', 'Hospedaje', 'Actividades']
+        'Ahorros e Inversiones': {
+            color: '#98FB98',
+            icon: 'fas fa-piggy-bank',
+            subcategories: ['Ahorros', 'Inversiones', 'Fondos de emergencia']
         },
-        'Seguros': {
-            color: '#4cd964',
-            subcategories: ['Vida', 'Hogar', 'Auto', 'Salud', 'Viajes']
-        },
-        'Inversiones': {
-            color: '#007aff',
-            subcategories: ['Ahorros', 'Fondos', 'Acciones', 'Criptomonedas', 'Bienes Raíces']
-        },
-        'Deudas': {
-            color: '#ff3b30',
-            subcategories: ['Tarjetas de Crédito', 'Préstamos', 'Hipoteca', 'Otros Préstamos', 'Pagos Mínimos']
-        },
-        'Ingresos': {
-            color: '#34c759',
-            subcategories: ['Salario', 'Freelance', 'Inversiones', 'Negocios', 'Otros Ingresos']
+        'Otros': {
+            color: '#D3D3D3',
+            icon: 'fas fa-ellipsis-h',
+            subcategories: ['Gastos varios', 'Regalos', 'Donaciones']
         }
     },
-    
-    // Configuración de rendimiento
-    PERFORMANCE: {
-        CACHE_DURATION: 5 * 60 * 1000, // 5 minutos
-        MAX_CACHE_SIZE: 100,
-        DEBOUNCE_DELAY: 300,
-        THROTTLE_DELAY: 100
+
+    // Configuración de tipos de cuenta bancaria
+    accountTypes: {
+        checking: {
+            name: 'Cuenta Corriente',
+            icon: 'fas fa-university',
+            color: '#007aff'
+        },
+        savings: {
+            name: 'Cuenta de Ahorros',
+            icon: 'fas fa-piggy-bank',
+            color: '#34c759'
+        },
+        credit: {
+            name: 'Tarjeta de Crédito',
+            icon: 'fas fa-credit-card',
+            color: '#ff9500'
+        },
+        investment: {
+            name: 'Cuenta de Inversión',
+            icon: 'fas fa-chart-line',
+            color: '#5856d6'
+        }
     },
-    
-    // Configuración de seguridad
-    SECURITY: {
-        SESSION_TIMEOUT: 24 * 60 * 60 * 1000, // 24 horas
-        MAX_LOGIN_ATTEMPTS: 5,
-        PASSWORD_MIN_LENGTH: 4
+
+    // Configuración de estados de cuenta
+    accountStatus: {
+        active: {
+            name: 'Activa',
+            color: '#28a745'
+        },
+        inactive: {
+            name: 'Inactiva',
+            color: '#6c757d'
+        },
+        suspended: {
+            name: 'Suspendida',
+            color: '#ffc107'
+        },
+        closed: {
+            name: 'Cerrada',
+            color: '#dc3545'
+        }
     }
 };
 
-// Exportar configuración para uso global
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = JM_BUDGET_CONFIG;
-} else {
-    window.JM_BUDGET_CONFIG = JM_BUDGET_CONFIG;
-} 
+// Configuración global
+window.isDevelopment = JMBudgetConfig.development.enabled;
+window.DEFAULT_CURRENCY = JMBudgetConfig.app.defaultCurrency;
+window.EXCHANGE_RATES = JMBudgetConfig.app.exchangeRates;
+
+// Configuración de Chart.js
+window.chartConfig = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: 'bottom',
+            labels: {
+                usePointStyle: true,
+                padding: 20,
+                font: {
+                    size: 12
+                }
+            }
+        },
+        tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            borderColor: '#007aff',
+            borderWidth: 1,
+            cornerRadius: 8,
+            displayColors: true
+        }
+    }
+};
+
+// Configuración de colores para gráficos
+window.chartColors = {
+    primary: '#007aff',
+    secondary: '#34c759',
+    warning: '#ff9500',
+    danger: '#ff3b30',
+    info: '#5856d6',
+    light: '#8e8e93',
+    dark: '#1c1c1e',
+    success: '#28a745',
+    muted: '#6c757d'
+};
+
+console.log('✅ Configuración de JM Budget cargada correctamente'); 

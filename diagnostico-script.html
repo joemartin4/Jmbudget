@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico Script - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnóstico Completo del Script - JM Budget</h1>
+        <p>Esta herramienta diagnostica por qué las funciones no están disponibles en el navegador.</p>
+        
+        <div class="warning">
+            <h3>⚠️ Problema Detectado</h3>
+            <p>Las funciones <code>createLocalDate</code>, <code>filterTransactions</code> y <code>updateMonthlySummary</code> no están disponibles en el navegador.</p>
+        </div>
+        
+        <div class="log" id="log">
+            <p>Iniciando diagnóstico...</p>
+        </div>
+        
+        <div>
+            <button class="btn btn-warning" onclick="diagnosticoCompleto()">🔍 Diagnóstico Completo</button>
+            <button class="btn btn-success" onclick="verificarScriptCargado()">📄 Verificar Script Cargado</button>
+            <button class="btn btn-danger" onclick="cargarScriptManual()">📥 Cargar Script Manual</button>
+            <button class="btn" onclick="verificarFunciones()">🔧 Verificar Funciones</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        function showResult(content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = type;
+            resultDiv.innerHTML = content;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        // Diagnóstico completo
+        async function diagnosticoCompleto() {
+            addLog('🚀 Iniciando diagnóstico completo...', 'warning');
+            clearResults();
+            
+            try {
+                // 1. Verificar scripts cargados
+                addLog('📄 Verificando scripts cargados...', 'info');
+                const scripts = document.querySelectorAll('script[src*="script.js"]');
+                let scriptInfo = '<h3>📄 Scripts Encontrados</h3>';
+                
+                scripts.forEach((script, index) => {
+                    const src = script.src;
+                    const hasVersion = src.includes('?v=');
+                    const version = hasVersion ? src.split('?v=')[1] : 'Sin versión';
+                    
+                    scriptInfo += `
+                        <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                            <strong>Script ${index + 1}:</strong><br>
+                            <strong>URL:</strong> ${src}<br>
+                            <strong>Versión:</strong> ${version}<br>
+                            <strong>Estado:</strong> ${hasVersion ? '✅ Con versión' : '❌ Sin versión'}
+                        </div>
+                    `;
+                    
+                    addLog(`📄 Script ${index + 1}: ${src}`, 'info');
+                });
+                
+                // 2. Verificar si el script se cargó correctamente
+                addLog('🔍 Verificando carga del script...', 'info');
+                const scriptElement = document.querySelector('script[src*="script.js"]');
+                if (scriptElement) {
+                    addLog(`✅ Elemento script encontrado: ${scriptElement.src}`, 'success');
+                } else {
+                    addLog(`❌ No se encontró elemento script`, 'error');
+                }
+                
+                // 3. Verificar funciones disponibles
+                addLog('🔧 Verificando funciones disponibles...', 'info');
+                const functionsToCheck = [
+                    'createLocalDate',
+                    'filterTransactions',
+                    'updateMonthlySummary',
+                    'loadDataSafely',
+                    'showNotification'
+                ];
+                
+                let functionInfo = '<h3>🔧 Verificación de Funciones</h3>';
+                functionsToCheck.forEach(funcName => {
+                    const isAvailable = typeof window[funcName] === 'function';
+                    functionInfo += `
+                        <div style="margin: 5px 0;">
+                            <strong>${funcName}:</strong> ${isAvailable ? '✅ Disponible' : '❌ No disponible'}
+                        </div>
+                    `;
+                    addLog(`🔧 ${funcName}: ${isAvailable ? 'Disponible' : 'No disponible'}`, isAvailable ? 'success' : 'error');
+                });
+                
+                // 4. Verificar variables globales
+                addLog('📊 Verificando variables globales...', 'info');
+                const variablesToCheck = [
+                    'transactions',
+                    'categories',
+                    'bankAccounts',
+                    'notifications'
+                ];
+                
+                let variableInfo = '<h3>📊 Verificación de Variables</h3>';
+                variablesToCheck.forEach(varName => {
+                    const isAvailable = typeof window[varName] !== 'undefined';
+                    const isArray = Array.isArray(window[varName]);
+                    variableInfo += `
+                        <div style="margin: 5px 0;">
+                            <strong>${varName}:</strong> ${isAvailable ? '✅ Disponible' : '❌ No disponible'} 
+                            ${isAvailable && isArray ? '(Array)' : isAvailable ? '(No Array)' : ''}
+                        </div>
+                    `;
+                    addLog(`📊 ${varName}: ${isAvailable ? 'Disponible' : 'No disponible'} ${isAvailable && isArray ? '(Array)' : ''}`, isAvailable ? 'success' : 'error');
+                });
+                
+                // 5. Verificar errores de carga
+                addLog('🚨 Verificando errores de carga...', 'info');
+                const scriptErrors = [];
+                window.addEventListener('error', function(e) {
+                    if (e.target && e.target.tagName === 'SCRIPT') {
+                        scriptErrors.push(e.target.src);
+                    }
+                });
+                
+                setTimeout(() => {
+                    if (scriptErrors.length > 0) {
+                        addLog(`❌ Errores de carga detectados: ${scriptErrors.join(', ')}`, 'error');
+                    } else {
+                        addLog(`✅ No se detectaron errores de carga`, 'success');
+                    }
+                }, 1000);
+                
+                showResult(scriptInfo + functionInfo + variableInfo, 'info');
+                
+            } catch (error) {
+                addLog(`❌ Error durante el diagnóstico: ${error.message}`, 'error');
+                showResult(`
+                    <h3>❌ Error en el Diagnóstico</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+        
+        // Verificar script cargado
+        function verificarScriptCargado() {
+            addLog('📄 Verificando script cargado...', 'info');
+            clearResults();
+            
+            // Intentar cargar el script manualmente
+            const scriptUrl = 'script.js?v=2.0.3&t=1735689600';
+            
+            fetch(scriptUrl)
+                .then(response => {
+                    if (response.ok) {
+                        addLog(`✅ Script disponible en: ${scriptUrl}`, 'success');
+                        return response.text();
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                })
+                .then(scriptContent => {
+                    addLog(`✅ Script cargado correctamente (${scriptContent.length} caracteres)`, 'success');
+                    
+                    // Verificar si contiene las funciones
+                    const hasCreateLocalDate = scriptContent.includes('function createLocalDate');
+                    const hasFilterTransactions = scriptContent.includes('function filterTransactions');
+                    const hasUpdateMonthlySummary = scriptContent.includes('function updateMonthlySummary');
+                    
+                    let contentInfo = '<h3>📄 Contenido del Script</h3>';
+                    contentInfo += `
+                        <div style="margin: 10px 0;">
+                            <strong>Tamaño:</strong> ${scriptContent.length} caracteres<br>
+                            <strong>createLocalDate:</strong> ${hasCreateLocalDate ? '✅ Encontrada' : '❌ No encontrada'}<br>
+                            <strong>filterTransactions:</strong> ${hasFilterTransactions ? '✅ Encontrada' : '❌ No encontrada'}<br>
+                            <strong>updateMonthlySummary:</strong> ${hasUpdateMonthlySummary ? '✅ Encontrada' : '❌ No encontrada'}
+                        </div>
+                    `;
+                    
+                    if (hasCreateLocalDate && hasFilterTransactions && hasUpdateMonthlySummary) {
+                        contentInfo += '<div class="success">✅ El script contiene todas las funciones necesarias</div>';
+                        addLog('✅ Script contiene todas las funciones necesarias', 'success');
+                    } else {
+                        contentInfo += '<div class="error">❌ El script NO contiene todas las funciones necesarias</div>';
+                        addLog('❌ Script NO contiene todas las funciones necesarias', 'error');
+                    }
+                    
+                    // Mostrar fragmento del script
+                    const startIndex = scriptContent.indexOf('function createLocalDate');
+                    if (startIndex !== -1) {
+                        const endIndex = startIndex + 200;
+                        const fragment = scriptContent.substring(startIndex, endIndex);
+                        contentInfo += `
+                            <h4>Fragmento del script:</h4>
+                            <div class="code-block">${fragment}...</div>
+                        `;
+                    }
+                    
+                    showResult(contentInfo, 'info');
+                })
+                .catch(error => {
+                    addLog(`❌ Error cargando script: ${error.message}`, 'error');
+                    showResult(`
+                        <h3>❌ Error Cargando Script</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p><strong>URL:</strong> ${scriptUrl}</p>
+                    `, 'error');
+                });
+        }
+        
+        // Cargar script manualmente
+        function cargarScriptManual() {
+            addLog('📥 Cargando script manualmente...', 'warning');
+            clearResults();
+            
+            const script = document.createElement('script');
+            script.src = 'script.js?v=2.0.3&t=1735689600&manual=' + Date.now();
+            script.onload = function() {
+                addLog('✅ Script cargado manualmente', 'success');
+                setTimeout(() => {
+                    verificarFunciones();
+                }, 1000);
+            };
+            script.onerror = function() {
+                addLog('❌ Error cargando script manualmente', 'error');
+            };
+            
+            document.head.appendChild(script);
+            
+            showResult(`
+                <h3>📥 Cargando Script Manualmente</h3>
+                <p>Se está cargando el script con URL: ${script.src}</p>
+                <p>Verificando funciones en 1 segundo...</p>
+            `, 'info');
+        }
+        
+        // Verificar funciones
+        function verificarFunciones() {
+            addLog('🔧 Verificando funciones...', 'info');
+            clearResults();
+            
+            const functionsToCheck = [
+                'createLocalDate',
+                'filterTransactions',
+                'updateMonthlySummary',
+                'loadDataSafely',
+                'showNotification'
+            ];
+            
+            let functionInfo = '<h3>🔧 Estado de las Funciones</h3>';
+            let allAvailable = true;
+            
+            functionsToCheck.forEach(funcName => {
+                const isAvailable = typeof window[funcName] === 'function';
+                if (!isAvailable) allAvailable = false;
+                
+                functionInfo += `
+                    <div style="margin: 5px 0;">
+                        <strong>${funcName}:</strong> ${isAvailable ? '✅ Disponible' : '❌ No disponible'}
+                    </div>
+                `;
+                addLog(`🔧 ${funcName}: ${isAvailable ? 'Disponible' : 'No disponible'}`, isAvailable ? 'success' : 'error');
+            });
+            
+            if (allAvailable) {
+                functionInfo += '<div class="success">🎉 ¡Todas las funciones están disponibles!</div>';
+                addLog('🎉 ¡Todas las funciones están disponibles!', 'success');
+            } else {
+                functionInfo += '<div class="error">❌ Algunas funciones no están disponibles</div>';
+                addLog('❌ Algunas funciones no están disponibles', 'error');
+            }
+            
+            showResult(functionInfo, 'info');
+        }
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🚀 Herramienta de diagnóstico iniciada', 'success');
+            addLog('📊 URL actual: ' + window.location.href, 'info');
+            
+            // Ejecutar diagnóstico automático
+            setTimeout(() => {
+                diagnosticoCompleto();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

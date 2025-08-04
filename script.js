@@ -98,15 +98,21 @@ function loadDataSafely() {
         const incomesData = localStorage.getItem(getStorageKey('incomes'));
         const notificationsData = localStorage.getItem(getStorageKey('notifications'));
         const goalsData = localStorage.getItem(getStorageKey('goals'));
+        const bankAccountsData = localStorage.getItem(getStorageKey('bankAccounts'));
+        const bankTransactionsData = localStorage.getItem(getStorageKey('bankTransactions'));
         
         incomes = incomesData ? JSON.parse(incomesData) : [];
         notifications = notificationsData ? JSON.parse(notificationsData) : [];
         goals = goalsData ? JSON.parse(goalsData) : [];
+        bankAccounts = bankAccountsData ? JSON.parse(bankAccountsData) : [];
+        bankTransactions = bankTransactionsData ? JSON.parse(bankTransactionsData) : [];
         
         // Validar datos adicionales
         if (!Array.isArray(incomes)) incomes = [];
         if (!Array.isArray(notifications)) notifications = [];
         if (!Array.isArray(goals)) goals = [];
+        if (!Array.isArray(bankAccounts)) bankAccounts = [];
+        if (!Array.isArray(bankTransactions)) bankTransactions = [];
         
         console.log('📊 Datos cargados correctamente:', {
             categories: categories.length,
@@ -114,7 +120,9 @@ function loadDataSafely() {
             categoryGroups: Object.keys(categoryGroups).length,
             incomes: incomes.length,
             notifications: notifications.length,
-            goals: goals.length
+            goals: goals.length,
+            bankAccounts: bankAccounts.length,
+            bankTransactions: bankTransactions.length
         });
         
     } catch (error) {
@@ -125,6 +133,8 @@ function loadDataSafely() {
         incomes = [];
         notifications = [];
         goals = [];
+        bankAccounts = [];
+        bankTransactions = [];
     }
 }
 
@@ -146,6 +156,68 @@ function initializeLogin() {
     if (window.authService.isAuthenticated()) {
         const user = window.authService.getCurrentUser();
         loginUser(user.email);
+        return;
+    }
+    
+    // En modo desarrollo, intentar restaurar sesión automáticamente
+    if (window.isDevelopment) {
+        console.log('🔧 Modo desarrollo: intentando restaurar sesión automáticamente...');
+        
+        // Verificar si hay datos de usuario guardados
+        const userData = localStorage.getItem('jm_budget_user_data');
+        if (userData) {
+            try {
+                const user = JSON.parse(userData);
+                if (user && user.email) {
+                    console.log('🔧 Restaurando sesión desde datos guardados:', user.email);
+                    
+                    // Crear sesión temporal
+                    const tempUser = {
+                        uid: user.uid || 'local_user',
+                        email: user.email,
+                        displayName: user.displayName || user.email,
+                        isLocalUser: true
+                    };
+                    
+                    // Guardar en authService
+                    window.authService.currentUser = tempUser;
+                    window.authService.saveUserSession();
+                    
+                    // Disparar evento de login
+                    window.dispatchEvent(new CustomEvent('userLoggedIn', { 
+                        detail: tempUser 
+                    }));
+                    
+                    console.log('✅ Sesión restaurada automáticamente');
+                    return;
+                }
+            } catch (error) {
+                console.error('❌ Error al parsear datos de usuario:', error);
+            }
+        }
+        
+        // Si no hay datos, crear usuario de prueba
+        console.log('🔧 Creando usuario de prueba automáticamente...');
+        const testUser = {
+            uid: 'local_test_user',
+            email: 'test@example.com',
+            displayName: 'Usuario de Prueba',
+            isLocalUser: true
+        };
+        
+        // Guardar datos de usuario
+        localStorage.setItem('jm_budget_user_data', JSON.stringify(testUser));
+        
+        // Guardar en authService
+        window.authService.currentUser = testUser;
+        window.authService.saveUserSession();
+        
+        // Disparar evento de login
+        window.dispatchEvent(new CustomEvent('userLoggedIn', { 
+            detail: testUser 
+        }));
+        
+        console.log('✅ Usuario de prueba creado automáticamente');
         return;
     }
     
@@ -284,7 +356,10 @@ function saveSyncConfig() {
             window.syncService.updateSyncFrequency(config.syncFrequency);
         }
         
-        showNotification('Configuración de sincronización guardada', 'success');
+        // Notificación silenciosa - solo en consola para desarrollo
+        if (window.isDevelopment) {
+            console.log('✅ Configuración de sincronización guardada');
+        }
         closeModal('syncConfigModal');
         console.log('✅ Configuración de sincronización guardada:', config);
     } catch (error) {
@@ -342,7 +417,10 @@ function restoreDefaultSyncConfig() {
             window.syncService.updateSyncFrequency(defaultConfig.syncFrequency);
         }
         
-        showNotification('Configuración restaurada a valores por defecto', 'success');
+        // Notificación silenciosa - solo en consola para desarrollo
+        if (window.isDevelopment) {
+            console.log('✅ Configuración restaurada a valores por defecto');
+        }
         console.log('✅ Configuración de sincronización restaurada a valores por defecto');
     } catch (error) {
         console.error('❌ Error al restaurar configuración:', error);
@@ -606,12 +684,16 @@ async function handleLogin() {
     try {
         const result = await window.authService.login(email, password);
         
-        if (result.success) {
-            showNotification('Inicio de sesión exitoso', 'success');
-        } else {
-            showNotification(result.error, 'error');
-        }
+                        if (result.success) {
+                    // Disparar evento de login exitoso para que se ejecute el flujo completo
+                    window.dispatchEvent(new CustomEvent('userLoggedIn', { 
+                        detail: result.user 
+                    }));
+                } else {
+                    showNotification(result.error, 'error');
+                }
     } catch (error) {
+        console.error('Error en handleLogin:', error);
         showNotification('Error al iniciar sesión', 'error');
     }
 }
@@ -716,7 +798,10 @@ function logoutUser() {
     if (passwordValidation) passwordValidation.innerHTML = '';
     if (passwordStrength) passwordStrength.innerHTML = '';
     
-    showNotification('Sesión cerrada exitosamente', 'info');
+    // Notificación silenciosa - solo en consola para desarrollo
+    if (window.isDevelopment) {
+        console.log('✅ Sesión cerrada exitosamente');
+    }
 }
 
 async function loadUserData() {
@@ -1784,7 +1869,7 @@ const addTransactionBtn = document.getElementById('addTransactionBtn');
 const categoryModal = document.getElementById('categoryModal');
 const transactionModal = document.getElementById('transactionModal');
 const categoryForm = document.getElementById('categoryForm');
-const transactionForm = document.getElementById('transactionForm');
+// transactionForm se define más adelante para evitar conflictos
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
@@ -1835,6 +1920,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configurar eventos de sincronización
     setupSyncEventListeners();
     
+    // Verificar y restaurar sesión después de un retraso
+    setTimeout(() => {
+        if (window.checkAndRestoreSession) {
+            window.checkAndRestoreSession();
+        }
+    }, 500);
+    
     // Cargar configuración de sincronización
     setTimeout(() => {
         loadSyncConfig();
@@ -1879,6 +1971,19 @@ async function initializeApp() {
     
     // Cargar cuentas bancarias
     loadBankAccounts();
+    
+    // En modo desarrollo, crear cuentas de prueba si no hay ninguna
+    if (window.isDevelopment && (!bankAccounts || bankAccounts.length === 0)) {
+        console.log('🔧 Modo desarrollo: creando cuentas de prueba automáticamente...');
+        setTimeout(() => {
+            if (typeof window.createTestAccount === 'function') {
+                window.createTestAccount();
+            }
+            if (typeof window.createTestCreditAccount === 'function') {
+                window.createTestCreditAccount();
+            }
+        }, 1000);
+    }
     
     // Inicializar notificaciones después de cargar datos
     setTimeout(() => {
@@ -1930,6 +2035,13 @@ async function initializeApp() {
     
     // Actualizar la interfaz con force update para asegurar que todo se cargue correctamente
     updateUI(true);
+    
+    // Reparar datos corruptos (sin limpieza automática de transferencias)
+    setTimeout(() => {
+        repairCorruptedData();
+        // La limpieza de transferencias duplicadas solo se ejecutará manualmente
+        console.log('✅ Reparación de datos completada');
+    }, 1000);
 }
 
 function setupEventListeners() {
@@ -2022,16 +2134,24 @@ function setupEventListeners() {
     });
 
     // Formularios
+    console.log('🔍 Verificando formularios...');
+    console.log('🔍 categoryForm:', categoryForm ? 'Encontrado' : 'No encontrado');
+    console.log('🔍 transactionForm:', transactionForm ? 'Encontrado' : 'No encontrado');
+    
     if (categoryForm) {
+        console.log('✅ Agregando event listener a categoryForm...');
         categoryForm.addEventListener('submit', handleCategorySubmit);
+        console.log('✅ Event listener agregado a categoryForm');
     } else {
-        console.error('No se encontró el formulario categoryForm');
+        console.error('❌ No se encontró el formulario categoryForm');
     }
     
     if (transactionForm) {
+        console.log('✅ Formulario transactionForm encontrado, agregando event listener...');
         transactionForm.addEventListener('submit', handleTransactionSubmit);
+        console.log('✅ Event listener agregado a transactionForm');
     } else {
-        console.error('No se encontró el formulario transactionForm');
+        console.error('❌ No se encontró el formulario transactionForm');
     }
     
     // Formulario de pago de tarjetas
@@ -2242,38 +2362,137 @@ function setupEventListeners() {
         });
     }
     
-    // Botón de sincronización en la nube
-    const cloudSyncBtn = document.getElementById('cloudSyncBtn');
-    console.log('🔍 Buscando botón de sincronización en la nube:', cloudSyncBtn);
-    if (cloudSyncBtn) {
-        console.log('✅ Botón de sincronización encontrado, agregando event listener');
-        cloudSyncBtn.addEventListener('click', () => {
-            console.log('🔄 Abriendo modal de sincronización en la nube');
-            openModal('cloudSyncModal');
-            setupCloudSyncTabs();
-            updateSyncStatus();
+    // Botón para limpiar transferencias duplicadas
+    const fixDuplicateTransferenciasBtn = document.getElementById('fixDuplicateTransferenciasBtn');
+    if (fixDuplicateTransferenciasBtn) {
+        fixDuplicateTransferenciasBtn.addEventListener('click', () => {
+            cleanDuplicateTransferencias();
         });
-    } else {
-        console.error('❌ Botón de sincronización en la nube NO encontrado');
-        // Verificar si el elemento existe en el DOM
-        setTimeout(() => {
-            const retryCloudSyncBtn = document.getElementById('cloudSyncBtn');
-            console.log('🔄 Reintentando buscar botón de sincronización:', retryCloudSyncBtn);
-            if (retryCloudSyncBtn) {
-                console.log('✅ Botón encontrado en segundo intento');
-                retryCloudSyncBtn.addEventListener('click', () => {
-                    openModal('cloudSyncModal');
-                    setupCloudSyncTabs();
-                    updateSyncStatus();
-                });
-            }
-        }, 1000);
     }
+    
+    // Nota: El botón de sincronización en la nube fue movido al menú agrupado
+    // y ahora se maneja a través de los botones individuales de backup y sincronización
     
     // Botón de backup
     const backupBtn = document.getElementById('backupBtn');
     if (backupBtn) {
         backupBtn.addEventListener('click', createBackup);
+    }
+    
+    // Botones de backup simple
+    const simpleBackupBtn = document.getElementById('simpleBackupBtn');
+    if (simpleBackupBtn) {
+        simpleBackupBtn.addEventListener('click', async () => {
+            console.log('📤 Iniciando backup simple...');
+            if (window.googleDriveWeb) {
+                const data = window.googleDriveWeb.getCurrentAppData();
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `jmbudget_backup_${timestamp}.json`;
+                await window.googleDriveWeb.createBackup(data, filename);
+            } else {
+                showNotification('Error: Sistema de backup no disponible', 'error');
+            }
+        });
+    }
+    
+    const simpleRestoreBtn = document.getElementById('simpleRestoreBtn');
+    if (simpleRestoreBtn) {
+        simpleRestoreBtn.addEventListener('click', async () => {
+            console.log('📥 Iniciando restauración simple...');
+            if (window.googleDriveWeb) {
+                await window.googleDriveWeb.restoreFromBackup();
+            } else {
+                showNotification('Error: Sistema de restauración no disponible', 'error');
+            }
+        });
+    }
+    
+    // Botón de auto backup
+    const autoBackupToggleBtn = document.getElementById('autoBackupToggleBtn');
+    const autoBackupStatus = document.getElementById('autoBackupStatus');
+    
+    if (autoBackupToggleBtn && autoBackupStatus) {
+        // Actualizar estado inicial
+        const updateAutoBackupStatus = () => {
+            if (window.autoBackupManager) {
+                const status = window.autoBackupManager.getStatus();
+                autoBackupStatus.textContent = status.isEnabled ? 'Activado' : 'Desactivado';
+                autoBackupStatus.style.color = status.isEnabled ? '#4CAF50' : '#f44336';
+            }
+        };
+        
+        // Actualizar cada 5 segundos
+        setInterval(updateAutoBackupStatus, 5000);
+        updateAutoBackupStatus();
+        
+        autoBackupToggleBtn.addEventListener('click', () => {
+            if (window.autoBackupManager) {
+                const status = window.autoBackupManager.getStatus();
+                
+                if (status.isEnabled) {
+                    window.autoBackupManager.disable();
+                } else {
+                    window.autoBackupManager.enable();
+                }
+                
+                updateAutoBackupStatus();
+            } else {
+                showNotification('Error: Auto backup no disponible', 'error');
+            }
+        });
+    }
+    
+    // Botón de sincronización entre navegadores
+    const crossBrowserSyncToggleBtn = document.getElementById('crossBrowserSyncToggleBtn');
+    const crossBrowserSyncStatus = document.getElementById('crossBrowserSyncStatus');
+    
+    if (crossBrowserSyncToggleBtn && crossBrowserSyncStatus) {
+        // Actualizar estado inicial
+        const updateCrossBrowserSyncStatus = () => {
+            if (window.crossBrowserSync) {
+                const status = window.crossBrowserSync.getStatus();
+                crossBrowserSyncStatus.textContent = status.isEnabled ? 'Activada' : 'Desactivada';
+                crossBrowserSyncStatus.style.color = status.isEnabled ? '#4CAF50' : '#f44336';
+            }
+        };
+        
+        // Actualizar cada 5 segundos
+        setInterval(updateCrossBrowserSyncStatus, 5000);
+        updateCrossBrowserSyncStatus();
+        
+        crossBrowserSyncToggleBtn.addEventListener('click', () => {
+            if (window.crossBrowserSync) {
+                const status = window.crossBrowserSync.getStatus();
+                
+                if (status.isEnabled) {
+                    window.crossBrowserSync.disable();
+                } else {
+                    window.crossBrowserSync.enable();
+                }
+                
+                updateCrossBrowserSyncStatus();
+            } else {
+                showNotification('Error: Sincronización entre navegadores no disponible', 'error');
+            }
+        });
+    }
+    
+    // Botón para mostrar/ocultar herramientas avanzadas
+    const showAdvancedToolsBtn = document.getElementById('showAdvancedToolsBtn');
+    const advancedToolsGroup = document.getElementById('advancedToolsGroup');
+    
+    if (showAdvancedToolsBtn && advancedToolsGroup) {
+        showAdvancedToolsBtn.addEventListener('click', () => {
+            const isVisible = advancedToolsGroup.style.display !== 'none';
+            
+            if (isVisible) {
+                advancedToolsGroup.style.display = 'none';
+                showAdvancedToolsBtn.innerHTML = '<i class="fas fa-cog"></i><span>Mostrar Herramientas Avanzadas</span>';
+            } else {
+                advancedToolsGroup.style.display = 'block';
+                showAdvancedToolsBtn.innerHTML = '<i class="fas fa-times"></i><span>Ocultar Herramientas Avanzadas</span>';
+            }
+        });
     }
     
     // Menú desplegable
@@ -2552,10 +2771,20 @@ function closeModal(modalId) {
         document.getElementById('transactionModalTitle').textContent = 'Nueva Transacción';
         const submitBtn = document.querySelector('#transactionForm .btn-primary');
         submitBtn.textContent = 'Guardar';
+        
+        // Ocultar y limpiar campos de transferencia
+        const transferToAccountGroup = document.getElementById('transferToAccountGroup');
+        const transferToAccountSelect = document.getElementById('transferToAccount');
+        if (transferToAccountGroup && transferToAccountSelect) {
+            transferToAccountGroup.style.display = 'none';
+            transferToAccountSelect.required = false;
+            transferToAccountSelect.value = '';
+        }
     }
 }
 
 function handleCategorySubmit(e) {
+    console.log('📝 handleCategorySubmit ejecutado');
     e.preventDefault();
     
     const categoryId = document.getElementById('categoryForm').dataset.editId;
@@ -2619,17 +2848,18 @@ function handleCategorySubmit(e) {
     updateUI();
     closeModal('categoryModal');
     
-    // Mostrar confirmación
-    const categoryName = document.getElementById('categoryName').value;
-    showVisualNotification(
-        categoryId ? 'Categoría actualizada' : 'Categoría agregada',
-        `La categoría "${categoryName}" se ha ${categoryId ? 'actualizado' : 'agregado'} correctamente.`,
-        'budget'
-    );
+    // Notificación silenciosa - solo en consola para desarrollo
+    if (window.isDevelopment) {
+        const categoryName = document.getElementById('categoryName').value;
+        console.log(`✅ ${categoryId ? 'Categoría actualizada' : 'Categoría agregada'}: ${categoryName}`);
+    }
 }
 
 function handleTransactionSubmit(e) {
+    console.log('💰 handleTransactionSubmit ejecutado');
     e.preventDefault();
+    
+    console.log('🔄 Iniciando handleTransactionSubmit...');
     
     const description = document.getElementById('transactionDescription').value.trim();
     const amount = parseFloat(document.getElementById('transactionAmount').value);
@@ -2641,16 +2871,46 @@ function handleTransactionSubmit(e) {
     const comment = document.getElementById('transactionComment').value.trim();
     const editId = transactionForm.dataset.editId;
     
+    console.log('📝 Datos del formulario:', {
+        description,
+        amount,
+        type,
+        category,
+        accountId,
+        transferToAccountId,
+        date,
+        comment,
+        editId
+    });
+    
     if (!description || !amount || !category || !date) {
+        console.error('❌ Campos requeridos faltantes:', { description, amount, category, date });
         showNotification('Por favor completa todos los campos requeridos', 'error');
         return;
     }
     
     // Validar cuenta bancaria
     if (!accountId) {
+        console.error('❌ Cuenta bancaria no seleccionada');
         showNotification('Por favor selecciona una cuenta bancaria', 'error');
         return;
     }
+    
+    // Validar cuenta destino para transferencias
+    if (type === 'transferencia' && !transferToAccountId) {
+        console.error('❌ Cuenta destino no seleccionada para transferencia');
+        showNotification('Por favor selecciona la cuenta destino para la transferencia', 'error');
+        return;
+    }
+    
+    // Validar que no se transfiera a la misma cuenta
+    if (type === 'transferencia' && transferToAccountId === accountId) {
+        console.error('❌ No puedes transferir a la misma cuenta');
+        showNotification('No puedes transferir a la misma cuenta', 'error');
+        return;
+    }
+    
+    console.log('✅ Validaciones pasadas, procediendo con la transacción...');
     
     if (editId) {
         // Editar transacción existente
@@ -2658,33 +2918,98 @@ function handleTransactionSubmit(e) {
         if (transactionIndex !== -1) {
             const oldTransaction = transactions[transactionIndex];
             
-            // Ajustar spent en categorías
-            if (oldTransaction.type === 'gasto') {
-                const oldCategory = categories.find(c => c.name === oldTransaction.category);
-                if (oldCategory) {
-                    oldCategory.spent -= oldTransaction.amount;
+            // Si es una transferencia, eliminar las transacciones relacionadas y crear nuevas
+            if (oldTransaction.type === 'transferencia' || type === 'transferencia') {
+                // Eliminar transacciones relacionadas existentes
+                const relatedTransactions = transactions.filter(t => 
+                    t.type === 'transferencia' && 
+                    t.date === oldTransaction.date && 
+                    Math.abs(t.amount) === Math.abs(oldTransaction.amount) &&
+                    (t.transferToAccountId === oldTransaction.transferToAccountId || 
+                     t.transferFromAccountId === oldTransaction.transferFromAccountId)
+                );
+                
+                relatedTransactions.forEach(relatedTransaction => {
+                    transactions = transactions.filter(t => t.id !== relatedTransaction.id);
+                });
+                
+                // Crear nuevas transacciones de transferencia
+                if (transferToAccountId && transferToAccountId !== accountId) {
+                    // Generar IDs únicos para evitar duplicados
+                    const baseId = Date.now();
+                    const outgoingId = baseId + Math.random();
+                    const incomingId = baseId + Math.random() + 1;
+                    
+                    // Crear transacción de salida
+                    const outgoingTransaction = {
+                        id: outgoingId,
+                        description: `Transferencia a ${getAccountName(transferToAccountId)}`,
+                        amount: -Math.abs(amount),
+                        type: 'transferencia',
+                        category: category || 'Transferencia',
+                        accountId: accountId,
+                        transferToAccountId: transferToAccountId,
+                        date: date,
+                        comment: comment || null,
+                        createdBy: currentUser,
+                        createdAt: new Date().toISOString(),
+                        lastModifiedBy: currentUser,
+                        lastModifiedAt: new Date().toISOString()
+                    };
+                    
+                    // Crear transacción de entrada
+                    const incomingTransaction = {
+                        id: incomingId,
+                        description: `Transferencia desde ${getAccountName(accountId)}`,
+                        amount: Math.abs(amount),
+                        type: 'transferencia',
+                        category: category || 'Transferencia',
+                        accountId: transferToAccountId,
+                        transferFromAccountId: accountId,
+                        date: date,
+                        comment: comment || null,
+                        createdBy: currentUser,
+                        createdAt: new Date().toISOString(),
+                        lastModifiedBy: currentUser,
+                        lastModifiedAt: new Date().toISOString()
+                    };
+                    
+                    transactions.push(outgoingTransaction, incomingTransaction);
+                    
+                    // Actualizar balances de cuentas
+                    updateAccountBalance(accountId, -Math.abs(amount), `Transferencia a ${getAccountName(transferToAccountId)}`);
+                    updateAccountBalance(transferToAccountId, Math.abs(amount), `Transferencia desde ${getAccountName(accountId)}`);
                 }
-            }
-            
-            // Actualizar transacción
-            transactions[transactionIndex] = {
-                ...oldTransaction,
-                description,
-                amount,
-                type,
-                category,
-                accountId,
-                date,
-                comment: comment || null,
-                lastModifiedBy: currentUser,
-                lastModifiedAt: new Date().toISOString()
-            };
-            
-            // Ajustar spent en nueva categoría si es gasto
-            if (type === 'gasto') {
-                const newCategory = categories.find(c => c.name === category);
-                if (newCategory) {
-                    newCategory.spent += amount;
+            } else {
+                // Para transacciones normales
+                // Ajustar spent en categorías
+                if (oldTransaction.type === 'gasto') {
+                    const oldCategory = categories.find(c => c.name === oldTransaction.category);
+                    if (oldCategory) {
+                        oldCategory.spent -= oldTransaction.amount;
+                    }
+                }
+                
+                // Actualizar transacción
+                transactions[transactionIndex] = {
+                    ...oldTransaction,
+                    description,
+                    amount,
+                    type,
+                    category,
+                    accountId,
+                    date,
+                    comment: comment || null,
+                    lastModifiedBy: currentUser,
+                    lastModifiedAt: new Date().toISOString()
+                };
+                
+                // Ajustar spent en nueva categoría si es gasto
+                if (type === 'gasto') {
+                    const newCategory = categories.find(c => c.name === category);
+                    if (newCategory) {
+                        newCategory.spent += amount;
+                    }
                 }
             }
             
@@ -2702,11 +3027,27 @@ function handleTransactionSubmit(e) {
             submitBtn.textContent = 'Guardar';
         }
     } else {
+        // Obtener la moneda de la cuenta
+        const accountCurrency = getAccountCurrency(accountId);
+        const originalAmount = amount;
+        
+        // Convertir el monto a DOP si la cuenta está en otra moneda
+        const convertedAmount = convertToDOP(amount, accountCurrency);
+        
+        console.log('💱 Conversión de moneda:', {
+            originalAmount,
+            accountCurrency,
+            convertedAmount,
+            rate: EXCHANGE_RATES[accountCurrency]
+        });
+        
         // Crear nueva transacción
         const newTransaction = {
             id: Date.now(),
             description,
-            amount,
+            amount: convertedAmount, // Usar el monto convertido a DOP
+            originalAmount: originalAmount, // Guardar el monto original
+            originalCurrency: accountCurrency, // Guardar la moneda original
             type,
             category,
             accountId,
@@ -2723,10 +3064,15 @@ function handleTransactionSubmit(e) {
             newTransaction.type = 'transferencia';
             newTransaction.transferToAccountId = transferToAccountId;
             
+            // Generar IDs únicos para evitar duplicados
+            const baseId = Date.now();
+            const outgoingId = baseId + Math.random();
+            const incomingId = baseId + Math.random() + 1;
+            
             // Crear transacción de salida
             const outgoingTransaction = {
                 ...newTransaction,
-                id: Date.now() + 1,
+                id: outgoingId,
                 description: `Transferencia a ${getAccountName(transferToAccountId)}`,
                 amount: -Math.abs(amount)
             };
@@ -2734,7 +3080,7 @@ function handleTransactionSubmit(e) {
             // Crear transacción de entrada
             const incomingTransaction = {
                 ...newTransaction,
-                id: Date.now() + 2,
+                id: incomingId,
                 description: `Transferencia desde ${getAccountName(accountId)}`,
                 amount: Math.abs(amount),
                 accountId: transferToAccountId,
@@ -2747,23 +3093,46 @@ function handleTransactionSubmit(e) {
             updateAccountBalance(accountId, -Math.abs(amount), `Transferencia a ${getAccountName(transferToAccountId)}`);
             updateAccountBalance(transferToAccountId, Math.abs(amount), `Transferencia desde ${getAccountName(accountId)}`);
             
-            showNotification('Transferencia realizada exitosamente', 'success');
+            // Notificación silenciosa - solo en consola para desarrollo
+        if (window.isDevelopment) {
+            console.log('✅ Transferencia realizada exitosamente');
+        }
         } else {
             // Transacción normal (gasto o ingreso)
             transactions.push(newTransaction);
             
-            // Actualizar balance de la cuenta
-            const balanceChange = newTransaction.amount;
+            // Actualizar balance de la cuenta (usar monto original para la cuenta)
+            // Para tarjetas de crédito: gastos aumentan el balance pendiente, ingresos lo disminuyen
+            let balanceChange = originalAmount;
+            
+            // Obtener información de la cuenta para determinar el tipo
+            const account = findAccountById(accountId);
+            if (account && account.type === 'credit') {
+                // Para tarjetas de crédito:
+                // - Gastos (negativos) aumentan el balance pendiente (deuda)
+                // - Ingresos (positivos) disminuyen el balance pendiente (pagos)
+                // La función updateAccountBalance ya maneja la lógica correcta
+                console.log('💳 Actualizando balance de tarjeta de crédito:', {
+                    tipo: type,
+                    montoOriginal: originalAmount,
+                    balanceChange: balanceChange,
+                    descripcion: description
+                });
+            }
+            
             updateAccountBalance(accountId, balanceChange, description);
             
-            showNotification('Transacción agregada exitosamente', 'success');
+            // Notificación silenciosa - solo en consola para desarrollo
+        if (window.isDevelopment) {
+            console.log('✅ Transacción agregada exitosamente');
+        }
         }
         
-        // Ajustar spent en categoría si es gasto
+        // Ajustar spent en categoría si es gasto (usar monto convertido a DOP)
         if (type === 'gasto') {
             const category = categories.find(c => c.name === newTransaction.category);
             if (category) {
-                category.spent += amount;
+                category.spent += convertedAmount; // Usar monto convertido para el presupuesto
             }
         }
         
@@ -3658,7 +4027,7 @@ function updateGastosIngresosDisplay(transactionsToShow = null) {
 function createTransactionItem(transaction) {
     const transactionItem = document.createElement('div');
     transactionItem.className = 'transaction-item';
-    const date = new Date(transaction.date).toLocaleDateString('es-ES');
+    const date = createLocalDate(transaction.date).toLocaleDateString('es-ES');
     const amountClass = transaction.type === 'ingreso' ? 'income' : 'expense';
     const amountPrefix = transaction.type === 'ingreso' ? '+' : '-';
     const authorInfo = transaction.lastModifiedBy ? `<div class="transaction-author">por ${transaction.lastModifiedBy}</div>` : '';
@@ -3695,6 +4064,12 @@ function createTransactionItem(transaction) {
         }
     }
     
+    // Información de conversión de moneda
+    let currencyInfo = '';
+    if (transaction.originalCurrency && transaction.originalCurrency !== 'DOP' && transaction.originalAmount) {
+        currencyInfo = `<div class="transaction-currency"><i class="fas fa-exchange-alt"></i> ${formatCurrency(transaction.originalAmount, transaction.originalCurrency)} → ${formatCurrency(transaction.amount)}</div>`;
+    }
+    
     transactionItem.innerHTML = `
         <div class="transaction-description">
             <h4>${transaction.description}</h4>
@@ -3704,6 +4079,7 @@ function createTransactionItem(transaction) {
             ${accountInfo}
             ${transferInfo}
             ${pagoTarjetaInfo}
+            ${currencyInfo}
             ${authorInfo}
             ${commentHtml}
         </div>
@@ -3723,11 +4099,17 @@ function createTransactionItem(transaction) {
     `;
     // Event listeners para editar/eliminar
     transactionItem.querySelector('.edit-transaction').addEventListener('click', (e) => {
-        const transactionId = parseInt(e.currentTarget.dataset.id);
+        const rawId = e.currentTarget.dataset.id;
+        // Usar Number() en lugar de parseInt() para manejar números grandes
+        const transactionId = Number(rawId);
+        console.log('🔄 Intentando editar transacción:', { rawId, transactionId, type: typeof transactionId });
         editTransaction(transactionId);
     });
     transactionItem.querySelector('.delete-transaction').addEventListener('click', (e) => {
-        const transactionId = parseInt(e.currentTarget.dataset.id);
+        const rawId = e.currentTarget.dataset.id;
+        // Usar Number() en lugar de parseInt() para manejar números grandes
+        const transactionId = Number(rawId);
+        console.log('🗑️ Intentando eliminar transacción:', { rawId, transactionId, type: typeof transactionId });
         deleteTransaction(transactionId);
     });
     return transactionItem;
@@ -3757,7 +4139,15 @@ function filterTransactions() {
     console.log('Transacciones antes de filtrar:', filtered.length);
     
     if (monthFilter) {
-        filtered = filtered.filter(t => t.date.startsWith(monthFilter));
+        // Usar createLocalDate para comparar fechas correctamente
+        const filterYear = parseInt(monthFilter.split('-')[0]);
+        const filterMonth = parseInt(monthFilter.split('-')[1]) - 1; // Meses van de 0-11
+        
+        filtered = filtered.filter(t => {
+            const transactionDate = createLocalDate(t.date);
+            return transactionDate.getFullYear() === filterYear && 
+                   transactionDate.getMonth() === filterMonth;
+        });
         console.log('Transacciones después de filtro de mes:', filtered.length);
     }
     
@@ -3767,7 +4157,7 @@ function filterTransactions() {
     }
     
     // Ordenar por fecha (más reciente primero)
-    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+    filtered.sort((a, b) => createLocalDate(b.date) - createLocalDate(a.date));
     
     filteredTransactionsCache = filtered;
     console.log('Transacciones filtradas finales:', filtered.length);
@@ -3793,11 +4183,15 @@ function updateMonthlySummary() {
     console.log('Total de transacciones:', transactions.length);
     
     if (selectedMonth) {
-        // Verificar que el formato de fecha sea correcto
-        const monthPattern = new RegExp(`^${selectedMonth.replace('-', '-')}`);
+        // Usar createLocalDate para comparar fechas correctamente
+        const filterYear = parseInt(selectedMonth.split('-')[0]);
+        const filterMonth = parseInt(selectedMonth.split('-')[1]) - 1; // Meses van de 0-11
+        
         filteredTransactions = transactions.filter(t => {
-            const matches = monthPattern.test(t.date);
-            console.log(`Transacción ${t.date} - Patrón ${monthPattern} - Coincide: ${matches}`);
+            const transactionDate = createLocalDate(t.date);
+            const matches = transactionDate.getFullYear() === filterYear && 
+                           transactionDate.getMonth() === filterMonth;
+            console.log(`Transacción ${t.date} - Año: ${transactionDate.getFullYear()}, Mes: ${transactionDate.getMonth()} - Coincide: ${matches}`);
             return matches;
         });
         console.log('Transacciones filtradas por mes:', filteredTransactions.length);
@@ -3837,7 +4231,15 @@ function updateCategoryChart() {
     console.log('Transacciones de gastos totales:', filteredTransactions.length);
     
     if (selectedMonth) {
-        filteredTransactions = filteredTransactions.filter(t => t.date.startsWith(selectedMonth));
+        // Usar createLocalDate para comparar fechas correctamente
+        const filterYear = parseInt(selectedMonth.split('-')[0]);
+        const filterMonth = parseInt(selectedMonth.split('-')[1]) - 1; // Meses van de 0-11
+        
+        filteredTransactions = filteredTransactions.filter(t => {
+            const transactionDate = createLocalDate(t.date);
+            return transactionDate.getFullYear() === filterYear && 
+                   transactionDate.getMonth() === filterMonth;
+        });
         console.log('Transacciones de gastos filtradas por mes:', filteredTransactions.length);
     }
 
@@ -3895,7 +4297,12 @@ function updateCategoryChart() {
 }
 
 function updateMonthlyChart() {
-    const months = [...new Set(transactions.map(t => t.date.substring(0, 7)))].sort();
+    // Obtener meses únicos usando createLocalDate para manejo correcto de fechas
+    const months = [...new Set(transactions.map(t => {
+        const date = createLocalDate(t.date);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    }))].sort();
+    
     const monthlyData = {
         income: [],
         expenses: []
@@ -3905,7 +4312,15 @@ function updateMonthlyChart() {
     console.log('Total de transacciones:', transactions.length);
 
     months.forEach(month => {
-        const monthTransactions = transactions.filter(t => t.date.startsWith(month));
+        const filterYear = parseInt(month.split('-')[0]);
+        const filterMonth = parseInt(month.split('-')[1]) - 1; // Meses van de 0-11
+        
+        const monthTransactions = transactions.filter(t => {
+            const transactionDate = createLocalDate(t.date);
+            return transactionDate.getFullYear() === filterYear && 
+                   transactionDate.getMonth() === filterMonth;
+        });
+        
         const income = monthTransactions
             .filter(t => t.type === 'ingreso')
             .reduce((sum, t) => sum + t.amount, 0);
@@ -4005,26 +4420,53 @@ function updateMonthlyChart() {
     });
 }
 
-// Cache para formateo de moneda
-const currencyCache = new Map();
+// Configuración de monedas (usando las de utils.js)
+const DEFAULT_CURRENCY = 'DOP'; // Peso Dominicano
+const EXCHANGE_RATES = {
+    'USD': 58.50, // 1 USD = 58.50 DOP (aproximado)
+    'EUR': 63.20, // 1 EUR = 63.20 DOP (aproximado)
+    'MXN': 3.45,  // 1 MXN = 3.45 DOP (aproximado)
+    'DOP': 1.00   // 1 DOP = 1.00 DOP
+};
 
-function formatCurrency(amount) {
-    const key = amount.toString();
-    if (currencyCache.has(key)) {
-        return currencyCache.get(key);
+function formatCurrency(amount, currency = DEFAULT_CURRENCY) {
+    return FormatUtils.currency(amount, currency);
+}
+
+// Función para convertir monedas a DOP
+function convertToDOP(amount, fromCurrency) {
+    if (!fromCurrency || fromCurrency === 'DOP') {
+        return amount;
     }
     
-    const formatted = new Intl.NumberFormat('es-MX', {
-        style: 'currency',
-        currency: 'MXN'
-    }).format(amount);
+    const rate = EXCHANGE_RATES[fromCurrency];
+    if (!rate) {
+        console.warn(`Tasa de cambio no encontrada para ${fromCurrency}, usando 1:1`);
+        return amount;
+    }
     
-    currencyCache.set(key, formatted);
-    return formatted;
+    return amount * rate;
+}
+
+// Función para obtener la moneda de una cuenta
+function getAccountCurrency(accountId) {
+    const account = findAccountById(accountId);
+    return account ? account.currency : DEFAULT_CURRENCY;
+}
+
+// Función auxiliar para crear fechas de manera consistente
+function createLocalDate(dateString) {
+    if (typeof dateString === 'string' && dateString.includes('-')) {
+        // Si es una fecha en formato YYYY-MM-DD, crear la fecha de manera local
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(year, month - 1, day); // month - 1 porque los meses van de 0-11
+    } else {
+        return new Date(dateString);
+    }
 }
 
 function formatDate(dateString) {
-    const date = new Date(dateString);
+    const date = createLocalDate(dateString);
     return date.toLocaleDateString('es-ES', {
         day: 'numeric',
         month: 'short'
@@ -4388,12 +4830,72 @@ function deleteCategory(categoryId) {
 }
 
 function editTransaction(transactionId) {
-    const transaction = transactions.find(t => t.id === transactionId);
-    if (!transaction) return;
+    console.log('🔍 Buscando transacción para editar:', transactionId, 'Tipo:', typeof transactionId);
+    
+    // Buscar por ID exacto primero
+    let transaction = transactions.find(t => t.id === transactionId);
+    
+    // Si no se encuentra, buscar por ID como string
+    if (!transaction) {
+        transaction = transactions.find(t => t.id.toString() === transactionId.toString());
+    }
+    
+    // Si aún no se encuentra, buscar por ID como número
+    if (!transaction) {
+        transaction = transactions.find(t => Number(t.id) === Number(transactionId));
+    }
+    
+    if (!transaction) {
+        console.error('❌ Transacción no encontrada:', transactionId);
+        // Solo mostrar IDs si hay transacciones disponibles
+        if (transactions.length > 0) {
+            console.log('🔍 IDs disponibles:', transactions.slice(0, 5).map(t => ({ id: t.id, type: typeof t.id, description: t.description })));
+        } else {
+            console.log('🔍 No hay transacciones disponibles');
+        }
+        return;
+    }
+    console.log('✅ Transacción encontrada:', transaction);
+    
+    // Actualizar dropdowns antes de llenar el formulario
+    updateCategoryDropdowns();
+    updateAccountDropdowns();
+    
+    // Si es una transferencia, usar el modal de transacciones pero configurado para transferencia
+    if (transaction.type === 'transferencia') {
+        // Llenar el formulario de transacción para transferencia
+        document.getElementById('transactionDescription').value = transaction.description;
+        document.getElementById('transactionAmount').value = Math.abs(transaction.amount);
+        document.getElementById('transactionType').value = 'transferencia';
+        document.getElementById('transactionCategory').value = transaction.category || 'Transferencia';
+        document.getElementById('transactionAccount').value = transaction.accountId || '';
+        document.getElementById('transactionDate').value = transaction.date;
+        document.getElementById('transactionComment').value = transaction.comment || '';
+        
+        // Configurar campos de transferencia si existen
+        const transferToAccountSelect = document.getElementById('transferToAccount');
+        if (transferToAccountSelect) {
+            transferToAccountSelect.value = transaction.transferToAccountId || transaction.transferFromAccountId;
+        }
+        
+        // Marcar como edición
+        transactionForm.dataset.editId = transactionId;
+        
+        // Cambiar título y botón
+        document.getElementById('transactionModalTitle').textContent = 'Editar Transferencia';
+        const submitBtn = transactionForm.querySelector('.btn-primary');
+        submitBtn.textContent = 'Actualizar Transferencia';
+        
+        openModal('transactionModal');
+        return;
+    }
+    
+    // Para transacciones normales
     document.getElementById('transactionDescription').value = transaction.description;
     document.getElementById('transactionAmount').value = transaction.amount;
     document.getElementById('transactionType').value = transaction.type;
     document.getElementById('transactionCategory').value = transaction.category;
+    document.getElementById('transactionAccount').value = transaction.accountId || '';
     document.getElementById('transactionDate').value = transaction.date;
     document.getElementById('transactionComment').value = transaction.comment || '';
     transactionForm.dataset.editId = transactionId;
@@ -4448,23 +4950,65 @@ function addSelectedCategoryToBudget() {
 }
 
 function deleteTransaction(transactionId) {
-    const transaction = transactions.find(t => t.id === transactionId);
-    if (!transaction) return;
+    console.log('🔍 Buscando transacción para eliminar:', transactionId, 'Tipo:', typeof transactionId);
+    
+    // Buscar por ID exacto primero
+    let transaction = transactions.find(t => t.id === transactionId);
+    
+    // Si no se encuentra, buscar por ID como string
+    if (!transaction) {
+        transaction = transactions.find(t => t.id.toString() === transactionId.toString());
+    }
+    
+    // Si aún no se encuentra, buscar por ID como número
+    if (!transaction) {
+        transaction = transactions.find(t => Number(t.id) === Number(transactionId));
+    }
+    
+    if (!transaction) {
+        console.error('❌ Transacción no encontrada:', transactionId);
+        // Solo mostrar IDs si hay transacciones disponibles
+        if (transactions.length > 0) {
+            console.log('🔍 IDs disponibles:', transactions.slice(0, 5).map(t => ({ id: t.id, type: typeof t.id, description: t.description })));
+        } else {
+            console.log('🔍 No hay transacciones disponibles');
+        }
+        return;
+    }
+    console.log('✅ Transacción encontrada para eliminar:', transaction);
     
     if (!confirm(`¿Estás seguro de que quieres eliminar la transacción "${transaction.description}"?`)) {
         return;
     }
     
-    // Restar el gasto de la categoría si es un gasto
-    if (transaction.type === 'gasto') {
-        const category = categories.find(cat => cat.name === transaction.category);
-        if (category) {
-            category.spent -= transaction.amount;
+    // Si es una transferencia, eliminar ambas transacciones relacionadas
+    if (transaction.type === 'transferencia') {
+        const relatedTransactions = transactions.filter(t => 
+            t.type === 'transferencia' && 
+            t.date === transaction.date && 
+            Math.abs(t.amount) === Math.abs(transaction.amount) &&
+            (t.transferToAccountId === transaction.transferToAccountId || 
+             t.transferFromAccountId === transaction.transferFromAccountId)
+        );
+        
+        // Eliminar todas las transacciones relacionadas
+        relatedTransactions.forEach(relatedTransaction => {
+            transactions = transactions.filter(t => t.id !== relatedTransaction.id);
+        });
+        
+        console.log(`✅ Se eliminaron ${relatedTransactions.length} transacciones de transferencia relacionadas`);
+    } else {
+        // Restar el gasto de la categoría si es un gasto
+        if (transaction.type === 'gasto') {
+            const category = categories.find(cat => cat.name === transaction.category);
+            if (category) {
+                category.spent -= transaction.amount;
+            }
         }
+        
+        // Eliminar la transacción
+        transactions = transactions.filter(t => t.id !== transactionId);
     }
-    
-    // Eliminar la transacción
-    transactions = transactions.filter(t => t.id !== transactionId);
     
     saveData();
     updateUI();
@@ -5058,7 +5602,10 @@ async function handleGoalSubmit(e) {
     
     // Mostrar notificación
     const action = editId ? 'actualizada' : 'creada';
-    showNotification(`Meta ${action} exitosamente`, 'success');
+            // Notificación silenciosa - solo en consola para desarrollo
+        if (window.isDevelopment) {
+            console.log(`✅ Meta ${action} exitosamente`);
+        }
     
     // Agregar al historial
     addToHistory(
@@ -5200,7 +5747,10 @@ function deleteGoal(goalId) {
     updateUI();
     
     // Mostrar notificación
-    showNotification('Meta eliminada exitosamente', 'success');
+            // Notificación silenciosa - solo en consola para desarrollo
+        if (window.isDevelopment) {
+            console.log('✅ Meta eliminada exitosamente');
+        }
     
     // Agregar al historial
     addToHistory('Meta eliminada', `Meta: ${goal.name}`, 'goal');
@@ -5416,6 +5966,12 @@ function updateTopCategories() {
 }
 
 function updateMonthComparison() {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(transactions) || !Array.isArray(categories)) {
+        console.warn('⚠️ Variables no inicializadas en updateMonthComparison, saltando...');
+        return;
+    }
+    
     const selectedMonth = document.getElementById('reportMonth').value;
     if (!selectedMonth) {
         document.getElementById('monthComparison').innerHTML = '<p style="color: #666; text-align: center; font-style: italic;">Selecciona un mes para comparar</p>';
@@ -5470,6 +6026,12 @@ function updateMonthComparison() {
 }
 
 function calculateMonthData(month) {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(transactions)) {
+        console.warn('⚠️ Variables no inicializadas en calculateMonthData, saltando...');
+        return { income: 0, expenses: 0, balance: 0 };
+    }
+    
     const monthTransactions = transactions.filter(t => t.date.startsWith(month));
     const income = monthTransactions
         .filter(t => t.type === 'ingreso')
@@ -5486,6 +6048,12 @@ function calculateMonthData(month) {
 }
 
 function updateDetailedCategoryChart() {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(transactions)) {
+        console.warn('⚠️ Variables no inicializadas en updateDetailedCategoryChart, saltando...');
+        return;
+    }
+    
     const selectedMonth = document.getElementById('reportMonth').value;
     const monthTransactions = selectedMonth 
         ? transactions.filter(t => t.date.startsWith(selectedMonth))
@@ -5558,6 +6126,12 @@ function updateDetailedCategoryChart() {
 }
 
 function exportReport() {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(transactions) || !Array.isArray(categories)) {
+        console.warn('⚠️ Variables no inicializadas en exportReport, saltando...');
+        return;
+    }
+    
     const selectedMonth = document.getElementById('reportMonth').value;
     const reportType = document.getElementById('reportType').value;
     
@@ -5580,6 +6154,12 @@ function exportReport() {
 }
 
 function generateReportData(selectedMonth, reportType) {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(transactions) || !Array.isArray(categories)) {
+        console.warn('⚠️ Variables no inicializadas en generateReportData, saltando...');
+        return [];
+    }
+    
     const monthTransactions = selectedMonth 
         ? transactions.filter(t => t.date.startsWith(selectedMonth))
         : transactions;
@@ -5609,6 +6189,12 @@ function generateOverviewData(transactions) {
 }
 
 function generateTrendsData(transactions) {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(transactions)) {
+        console.warn('⚠️ Variables no inicializadas en generateTrendsData, saltando...');
+        return [];
+    }
+    
     // Agrupar por mes
     const monthlyData = {};
     transactions.forEach(t => {
@@ -5637,6 +6223,12 @@ function generateTrendsData(transactions) {
 }
 
 function generateCategoriesData(transactions) {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(transactions)) {
+        console.warn('⚠️ Variables no inicializadas en generateCategoriesData, saltando...');
+        return [];
+    }
+    
     const categoryTotals = {};
     transactions.filter(t => t.type === 'gasto').forEach(t => {
         const key = `${t.category} - ${t.subcategory}`;
@@ -5653,6 +6245,12 @@ function generateCategoriesData(transactions) {
 }
 
 function generateComparisonData(selectedMonth) {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(transactions) || !Array.isArray(categories)) {
+        console.warn('⚠️ Variables no inicializadas en generateComparisonData, saltando...');
+        return [];
+    }
+    
     if (!selectedMonth) return [['Error', 'Selecciona un mes para comparar']];
     
     const currentData = calculateMonthData(selectedMonth);
@@ -5922,25 +6520,43 @@ function setupNotificationEventListeners() {
 }
 
 function checkForNotifications() {
-    try {
-        checkBudgetAlerts();
-        checkRecurringExpenses();
-        checkUpcomingReminders();
-        
-        // Verificar cada 5 minutos
-        setTimeout(checkForNotifications, 5 * 60 * 1000);
-    } catch (error) {
-        console.error('Error al verificar notificaciones:', error);
+    // Verificar que las variables estén inicializadas antes de proceder
+    if (!Array.isArray(transactions) || !Array.isArray(categories) || !Array.isArray(notifications)) {
+        console.warn('⚠️ Variables no inicializadas en checkForNotifications, saltando...');
+        return;
     }
+    
+    console.log('🔔 Verificando notificaciones...');
+    
+    // Verificar alertas de presupuesto
+    checkBudgetAlerts();
+    
+    // Verificar gastos recurrentes
+    checkRecurringExpenses();
+    
+    // Verificar recordatorios próximos
+    checkUpcomingReminders();
+    
+    // Limpiar notificaciones antiguas
+    clearOldNotifications();
+    
+    // Actualizar display de notificaciones
+    updateNotificationsDisplay();
 }
 
 function checkBudgetAlerts() {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(transactions) || !Array.isArray(categories) || !Array.isArray(notifications)) {
+        console.warn('⚠️ Variables no inicializadas en checkBudgetAlerts, saltando...');
+        return;
+    }
+    
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     
     // Obtener transacciones del mes actual
     const currentMonthTransactions = transactions.filter(t => {
-        const transactionDate = new Date(t.date);
+        const transactionDate = createLocalDate(t.date);
         return transactionDate.getMonth() === currentMonth && 
                transactionDate.getFullYear() === currentYear &&
                t.type === 'gasto';
@@ -5998,7 +6614,7 @@ function checkBudgetAlerts() {
         const year = currentMonth - i < 0 ? currentYear - 1 : currentYear;
         
         const monthTransactions = transactions.filter(t => {
-            const transactionDate = new Date(t.date);
+            const transactionDate = createLocalDate(t.date);
             return transactionDate.getMonth() === month && 
                    transactionDate.getFullYear() === year &&
                    t.type === 'gasto';
@@ -6035,96 +6651,47 @@ function checkBudgetAlerts() {
     
     categories.forEach(category => {
         const categoryTransactions = currentMonthTransactions.filter(t => 
-            t.category === category.name || t.category === category.subcategory
+            t.category === category.name
         );
         
         const categorySpent = categoryTransactions.reduce((sum, t) => sum + t.amount, 0);
         const categoryBudget = category.adjustedBudget;
         const categoryPercentage = categoryBudget > 0 ? (categorySpent / categoryBudget) * 100 : 0;
         
-        // Alerta si una categoría específica supera el 90%
+        // Alerta al 90% del presupuesto de categoría
         if (categoryPercentage >= 90 && categoryPercentage < 100) {
             const existingAlert = notifications.find(n => 
                 n.type === 'category' && 
                 n.title.includes(category.name) && 
+                n.title.includes('90%') && 
                 !n.read
             );
             
             if (!existingAlert) {
                 addNotification(
-                    `⚠️ ${category.name} - 90% del Presupuesto`,
-                    `Has gastado ${categoryPercentage.toFixed(1)}% del presupuesto en ${category.name}. Restante: ${formatCurrency(categoryBudget - categorySpent)}.`,
+                    `Alerta de Categoría - ${category.name}`,
+                    `Has gastado el ${categoryPercentage.toFixed(1)}% del presupuesto en ${category.name}.`,
                     'category',
-                    'normal'
+                    'medium'
                 );
             }
         }
         
-        // Alerta crítica si una categoría específica se excede
+        // Alerta crítica al 100% o más del presupuesto de categoría
         if (categoryPercentage >= 100) {
             const existingAlert = notifications.find(n => 
                 n.type === 'category' && 
-                n.title.includes(`${category.name} - Excedido`) && 
+                n.title.includes(category.name) && 
+                n.title.includes('100%') && 
                 !n.read
             );
             
             if (!existingAlert) {
                 addNotification(
-                    `🚨 ${category.name} - Presupuesto Excedido`,
+                    `Alerta Crítica - ${category.name}`,
                     `Has excedido el presupuesto de ${category.name} en ${formatCurrency(categorySpent - categoryBudget)}.`,
-                    'category',
+                    'warning',
                     'high'
-                );
-            }
-        }
-    });
-    
-    // === ALERTAS DE TENDENCIAS ===
-    
-    // Detectar si hay un patrón de gastos crecientes
-    if (last3Months.length >= 2) {
-        const trend = last3Months[0] - last3Months[1]; // Comparar últimos dos meses
-        const trendPercentage = last3Months[1] > 0 ? (trend / last3Months[1]) * 100 : 0;
-        
-        if (trendPercentage > 15) { // Si el gasto aumentó más del 15%
-            const existingAlert = notifications.find(n => 
-                n.type === 'trend' && 
-                n.title.includes('Tendencia Creciente') && 
-                !n.read
-            );
-            
-            if (!existingAlert) {
-                addNotification(
-                    '📈 Tendencia de Gastos Creciente',
-                    `Tu gasto ha aumentado ${trendPercentage.toFixed(1)}% comparado con el mes anterior. Considera revisar tus hábitos de gasto.`,
-                    'trend',
-                    'normal'
-                );
-            }
-        }
-    }
-    
-    // === ALERTAS DE GASTOS INUSUALES ===
-    
-    // Detectar gastos inusualmente altos (más del doble del promedio diario)
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const averageDailySpending = totalSpent / daysInMonth;
-    
-    currentMonthTransactions.forEach(transaction => {
-        if (transaction.amount > averageDailySpending * 2) {
-            const existingAlert = notifications.find(n => 
-                n.type === 'unusual' && 
-                n.title.includes('Gasto Inusual') && 
-                n.message.includes(transaction.description) && 
-                !n.read
-            );
-            
-            if (!existingAlert) {
-                addNotification(
-                    '💡 Gasto Inusual Detectado',
-                    `El gasto "${transaction.description}" (${formatCurrency(transaction.amount)}) es significativamente mayor al promedio diario (${formatCurrency(averageDailySpending)}).`,
-                    'unusual',
-                    'normal'
                 );
             }
         }
@@ -6132,6 +6699,12 @@ function checkBudgetAlerts() {
 }
 
 function checkRecurringExpenses() {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(categories)) {
+        console.warn('⚠️ Variables no inicializadas en checkRecurringExpenses, saltando...');
+        return;
+    }
+    
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
@@ -6173,6 +6746,12 @@ function checkRecurringExpenses() {
 }
 
 function checkUpcomingReminders() {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(incomes)) {
+        console.warn('⚠️ Variables no inicializadas en checkUpcomingReminders, saltando...');
+        return;
+    }
+    
     // Verificar ingresos recurrentes
     incomes.forEach(income => {
         const nextIncome = getNextRecurrenceDate(
@@ -6206,6 +6785,12 @@ function setupRecurringReminders() {
 
 // Función para limpiar notificaciones antiguas
 function clearOldNotifications() {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(notifications)) {
+        console.warn('⚠️ Variables no inicializadas en clearOldNotifications, saltando...');
+        return;
+    }
+    
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
@@ -6224,6 +6809,12 @@ function clearOldNotifications() {
 
 // Función para eliminar una notificación específica
 function deleteNotification(notificationId) {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(notifications)) {
+        console.warn('⚠️ Variables no inicializadas en deleteNotification, saltando...');
+        return;
+    }
+    
     const id = typeof notificationId === 'string' ? parseFloat(notificationId) : notificationId;
     const originalCount = notifications.length;
     
@@ -6238,6 +6829,12 @@ function deleteNotification(notificationId) {
 
 // Función para limpiar todas las notificaciones
 function clearAllNotifications() {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(notifications)) {
+        console.warn('⚠️ Variables no inicializadas en clearAllNotifications, saltando...');
+        return;
+    }
+    
     if (notifications.length > 0) {
         console.log('Limpiando todas las notificaciones');
         notifications = [];
@@ -6248,6 +6845,12 @@ function clearAllNotifications() {
 
 // Función para marcar todas las notificaciones como leídas
 function markAllNotificationsAsRead() {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(notifications)) {
+        console.warn('⚠️ Variables no inicializadas en markAllNotificationsAsRead, saltando...');
+        return;
+    }
+    
     let hasChanges = false;
     notifications.forEach(notification => {
         if (!notification.read) {
@@ -6264,6 +6867,12 @@ function markAllNotificationsAsRead() {
 }
 
 function getAvailableMonths() {
+    // Verificar que las variables estén inicializadas
+    if (!Array.isArray(transactions)) {
+        console.warn('⚠️ Variables no inicializadas en getAvailableMonths, saltando...');
+        return [];
+    }
+    
     // Obtener todos los meses únicos de las transacciones
     const months = [...new Set(transactions.map(t => t.date.substring(0, 7)))];
     
@@ -6502,10 +7111,15 @@ function openTransactionModal(tipo) {
     
     // Mostrar/ocultar campos de transferencia
     const transferToAccountGroup = document.getElementById('transferToAccountGroup');
+    const transferToAccountSelect = document.getElementById('transferToAccount');
+    
     if (tipo === 'transferencia') {
         transferToAccountGroup.style.display = 'block';
+        transferToAccountSelect.required = true;
     } else {
         transferToAccountGroup.style.display = 'none';
+        transferToAccountSelect.required = false;
+        transferToAccountSelect.value = ''; // Limpiar el valor cuando se oculta
     }
     
     openModal('transactionModal');
@@ -6580,7 +7194,10 @@ async function handlePagoTarjetaSubmit(e) {
         closeModal('pagoTarjetaModal');
         
         // Mostrar notificación
-        showNotification('Pago de tarjeta realizado exitosamente', 'success');
+        // Notificación silenciosa - solo en consola para desarrollo
+        if (window.isDevelopment) {
+            console.log('✅ Pago de tarjeta realizado exitosamente');
+        }
         
         // Registrar en historial
         addToHistory(
@@ -6620,6 +7237,440 @@ function resetTransactionData() {
         updateUI(true);
         console.log('Datos de transacciones limpiados');
     }
+}
+
+// Función específica para limpiar transferencias duplicadas
+function cleanDuplicateTransferencias() {
+    console.log('🧹 Iniciando limpieza de transferencias duplicadas...');
+    
+    const initialCount = transactions.length;
+    const cleanTransferencias = [];
+    const transferenciaGroups = new Map();
+    
+    // Separar transferencias de otras transacciones
+    transactions.forEach(transaction => {
+        if (transaction.type === 'transferencia') {
+            // Crear una clave única para cada transferencia basada en múltiples propiedades
+            const key = `${Math.abs(transaction.amount)}_${transaction.accountId}_${transaction.transferToAccountId || transaction.transferFromAccountId}_${transaction.date}_${transaction.description}`;
+            
+            if (!transferenciaGroups.has(key)) {
+                transferenciaGroups.set(key, []);
+            }
+            transferenciaGroups.get(key).push(transaction);
+        } else {
+            cleanTransferencias.push(transaction);
+        }
+    });
+    
+    // Procesar grupos de transferencias
+    let duplicatesRemoved = 0;
+    transferenciaGroups.forEach((group, key) => {
+        if (group.length > 1) {
+            console.log(`🔄 Grupo de transferencias duplicadas encontrado: ${group.length} elementos`);
+            console.log('Transferencias en el grupo:', group.map(t => ({ id: t.id, description: t.description, amount: t.amount })));
+            duplicatesRemoved += group.length - 1;
+            // Mantener solo la primera transferencia del grupo
+            cleanTransferencias.push(group[0]);
+        } else {
+            cleanTransferencias.push(group[0]);
+        }
+    });
+    
+    // Limpieza específica para las transferencias de $30,000 que vemos en la imagen
+    const specificTransferencias = transactions.filter(t => 
+        t.type === 'transferencia' && 
+        Math.abs(t.amount) === 30000 && 
+        t.date === '2025-07-31'
+    );
+    
+    if (specificTransferencias.length > 2) {
+        console.log('🎯 Encontradas transferencias específicas de $30,000 duplicadas');
+        // Mantener solo las primeras 2 (una de salida y una de entrada)
+        const toKeep = specificTransferencias.slice(0, 2);
+        const toRemove = specificTransferencias.slice(2);
+        
+        console.log('Manteniendo:', toKeep.map(t => ({ id: t.id, description: t.description })));
+        console.log('Eliminando:', toRemove.map(t => ({ id: t.id, description: t.description })));
+        
+        // Eliminar las duplicadas específicas
+        transactions = transactions.filter(t => !toRemove.includes(t));
+        duplicatesRemoved += toRemove.length;
+    }
+    
+    // Actualizar transacciones
+    transactions = cleanTransferencias;
+    
+    if (duplicatesRemoved > 0) {
+        console.log(`✅ Se eliminaron ${duplicatesRemoved} transferencias duplicadas`);
+        saveData();
+        updateUI(true);
+        showNotification(`Se eliminaron ${duplicatesRemoved} transferencias duplicadas`, 'success');
+    } else {
+            console.log('✅ No se encontraron transferencias duplicadas');
+    showNotification('No se encontraron transferencias duplicadas', 'info');
+}
+
+// Función global para limpiar transferencias duplicadas manualmente
+window.cleanTransferencias = function() {
+    console.log('🧹 Limpieza manual de transferencias duplicadas...');
+    cleanDuplicateTransferencias();
+};
+
+// Función global para debuggear transacciones
+window.debugTransactions = function() {
+    console.log('🔍 Debug de transacciones:');
+    console.log('Total de transacciones:', transactions.length);
+    
+    const transferencias = transactions.filter(t => t.type === 'transferencia');
+    console.log('Transferencias:', transferencias.length);
+    
+    transferencias.forEach((t, index) => {
+        console.log(`${index + 1}. ID: ${t.id}, Descripción: ${t.description}, Monto: ${t.amount}, Fecha: ${t.date}`);
+    });
+};
+
+// Función global para limpiar transferencias específicas de $30,000
+window.cleanSpecificTransferencias = function() {
+    console.log('🎯 Limpiando transferencias específicas de $30,000...');
+    
+    const specificTransferencias = transactions.filter(t => 
+        t.type === 'transferencia' && 
+        Math.abs(t.amount) === 30000 && 
+        t.date === '2025-07-31'
+    );
+    
+    console.log('Transferencias específicas encontradas:', specificTransferencias.length);
+    specificTransferencias.forEach((t, index) => {
+        console.log(`${index + 1}. ID: ${t.id}, Descripción: ${t.description}, Monto: ${t.amount}`);
+    });
+    
+    if (specificTransferencias.length > 2) {
+        // Mantener solo las primeras 2 (una de salida y una de entrada)
+        const toKeep = specificTransferencias.slice(0, 2);
+        const toRemove = specificTransferencias.slice(2);
+        
+        console.log('Manteniendo:', toKeep.map(t => ({ id: t.id, description: t.description })));
+        console.log('Eliminando:', toRemove.map(t => ({ id: t.id, description: t.description })));
+        
+        // Eliminar las duplicadas específicas
+        transactions = transactions.filter(t => !toRemove.includes(t));
+        
+        console.log(`✅ Se eliminaron ${toRemove.length} transferencias duplicadas específicas`);
+        saveData();
+        updateUI(true);
+        showNotification(`Se eliminaron ${toRemove.length} transferencias duplicadas específicas`, 'success');
+    } else {
+        console.log('✅ No se encontraron transferencias duplicadas específicas para limpiar');
+    }
+};
+
+// Función global para probar el formulario de transacciones
+window.testTransactionForm = function() {
+    console.log('🧪 Probando formulario de transacciones...');
+    
+    const form = document.getElementById('transactionForm');
+    if (!form) {
+        console.error('❌ Formulario transactionForm no encontrado');
+        return;
+    }
+    
+    console.log('✅ Formulario encontrado:', form);
+    
+    // Verificar elementos del formulario
+    const elements = [
+        'transactionDescription',
+        'transactionAmount',
+        'transactionType',
+        'transactionCategory',
+        'transactionAccount',
+        'transactionDate'
+    ];
+    
+    elements.forEach(elementId => {
+        const element = document.getElementById(elementId);
+        if (element) {
+            console.log(`✅ ${elementId}:`, element.value);
+        } else {
+            console.error(`❌ ${elementId}: No encontrado`);
+        }
+    });
+    
+    // Verificar event listeners
+    console.log('🔍 Verificando event listeners...');
+    const events = getEventListeners ? getEventListeners(form) : 'No disponible';
+    console.log('Event listeners en form:', events);
+    
+    // Simular envío del formulario
+    console.log('🔄 Simulando envío del formulario...');
+    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+    form.dispatchEvent(submitEvent);
+};
+
+// Función global para verificar y restaurar sesión
+window.checkAndRestoreSession = function() {
+    console.log('🔍 Verificando estado de la sesión...');
+    
+    // Verificar si authService está disponible
+    if (!window.authService) {
+        console.error('❌ AuthService no está disponible');
+        return false;
+    }
+    
+    // Verificar si hay usuario autenticado
+    if (window.authService.isAuthenticated()) {
+        const user = window.authService.getCurrentUser();
+        console.log('✅ Usuario autenticado:', user.email);
+        return true;
+    }
+    
+    // En modo desarrollo, intentar restaurar
+    if (window.isDevelopment) {
+        console.log('🔧 Modo desarrollo: intentando restaurar sesión...');
+        
+        // Verificar datos guardados
+        const userData = localStorage.getItem('jm_budget_user_data');
+        if (userData) {
+            try {
+                const user = JSON.parse(userData);
+                if (user && user.email) {
+                    console.log('🔧 Restaurando desde datos guardados:', user.email);
+                    
+                    const restoredUser = {
+                        uid: user.uid || 'local_user',
+                        email: user.email,
+                        displayName: user.displayName || user.email,
+                        isLocalUser: true
+                    };
+                    
+                    window.authService.currentUser = restoredUser;
+                    window.authService.saveUserSession();
+                    
+                    window.dispatchEvent(new CustomEvent('userLoggedIn', { 
+                        detail: restoredUser 
+                    }));
+                    
+                    console.log('✅ Sesión restaurada exitosamente');
+                    return true;
+                }
+            } catch (error) {
+                console.error('❌ Error al parsear datos:', error);
+            }
+        }
+        
+        // Crear usuario de prueba
+        console.log('🔧 Creando usuario de prueba...');
+        const testUser = {
+            uid: 'local_test_user',
+            email: 'test@example.com',
+            displayName: 'Usuario de Prueba',
+            isLocalUser: true
+        };
+        
+        localStorage.setItem('jm_budget_user_data', JSON.stringify(testUser));
+        window.authService.currentUser = testUser;
+        window.authService.saveUserSession();
+        
+        window.dispatchEvent(new CustomEvent('userLoggedIn', { 
+            detail: testUser 
+        }));
+        
+        console.log('✅ Usuario de prueba creado');
+        return true;
+    }
+    
+    console.log('❌ No se pudo restaurar la sesión');
+    return false;
+};
+
+// Función global para debug de botones de expandir cuentas
+window.debugExpandButtons = function() {
+    console.log('🔍 Debug de botones de expandir cuentas...');
+    
+    // Verificar contenedor de cuentas
+    const container = document.getElementById('bankAccountsContainer');
+    if (!container) {
+        console.error('❌ Contenedor de cuentas no encontrado');
+        return;
+    }
+    
+    console.log('✅ Contenedor de cuentas encontrado');
+    
+    // Buscar botones de expandir
+    const expandButtons = container.querySelectorAll('.expand-account-btn');
+    console.log(`🔍 Encontrados ${expandButtons.length} botones de expandir`);
+    
+    expandButtons.forEach((btn, index) => {
+        const accountId = btn.dataset.accountId;
+        const icon = btn.querySelector('i');
+        const detailsPanel = document.getElementById(`details-${accountId}`);
+        
+        console.log(`Botón ${index + 1}:`, {
+            accountId: accountId,
+            icon: icon ? icon.className : 'No encontrado',
+            detailsPanel: detailsPanel ? 'Encontrado' : 'No encontrado',
+            panelDisplay: detailsPanel ? detailsPanel.style.display : 'N/A'
+        });
+    });
+    
+    // Verificar event delegation
+    console.log('🔍 Verificando event delegation...');
+    const eventListeners = container.onclick ? 'Configurado' : 'No configurado';
+    console.log('Event delegation:', eventListeners);
+    
+    // Probar click en el primer botón
+    if (expandButtons.length > 0) {
+        console.log('🧪 Probando click en el primer botón...');
+        const firstBtn = expandButtons[0];
+        const accountId = firstBtn.dataset.accountId;
+        console.log('Simulando click en cuenta:', accountId);
+        
+        // Simular click
+        const clickEvent = new Event('click', { bubbles: true });
+        firstBtn.dispatchEvent(clickEvent);
+    }
+};
+
+// Función global para crear cuenta de prueba
+window.createTestAccount = function() {
+    console.log('🔧 Creando cuenta de prueba...');
+    
+    const testAccount = {
+        id: Date.now() + Math.random(),
+        name: 'Cuenta de Prueba',
+        bank: 'Banco de Prueba',
+        type: 'checking',
+        balance: 50000,
+        currency: 'USD',
+        status: 'active',
+        color: '#007bff',
+        accountNumber: '1234567890',
+        createdAt: new Date().toISOString()
+    };
+    
+    // Agregar a la lista de cuentas
+    if (!window.bankAccounts) {
+        window.bankAccounts = [];
+    }
+    
+    window.bankAccounts.push(testAccount);
+    
+    // Guardar en localStorage
+    const storageKey = getStorageKey('bankAccounts');
+    localStorage.setItem(storageKey, JSON.stringify(window.bankAccounts));
+    
+    // Actualizar la interfaz
+    updateBankAccountsDisplay();
+    
+    console.log('✅ Cuenta de prueba creada:', testAccount);
+    return testAccount;
+};
+
+// Función global para crear cuenta de prueba
+window.createTestAccount = function() {
+    console.log('🔧 Creando cuenta bancaria de prueba...');
+    
+    const testAccount = {
+        id: Date.now() + Math.random(),
+        name: 'Cuenta Bancaria de Prueba',
+        bank: 'Banco de Prueba',
+        type: 'checking',
+        balance: 50000,
+        currency: 'USD',
+        status: 'active',
+        color: '#28a745',
+        accountNumber: '1234567890',
+        createdAt: new Date().toISOString()
+    };
+    
+    // Agregar a la lista de cuentas
+    if (!window.bankAccounts) {
+        window.bankAccounts = [];
+    }
+    
+    window.bankAccounts.push(testAccount);
+    
+    // Guardar en localStorage
+    const storageKey = getStorageKey('bankAccounts');
+    localStorage.setItem(storageKey, JSON.stringify(window.bankAccounts));
+    
+    // Actualizar la interfaz
+    updateBankAccountsDisplay();
+    
+    console.log('✅ Cuenta bancaria de prueba creada:', testAccount);
+    return testAccount;
+};
+
+// Función global para crear cuenta de crédito de prueba
+window.createTestCreditAccount = function() {
+    console.log('🔧 Creando cuenta de crédito de prueba...');
+    
+    const testCreditAccount = {
+        id: Date.now() + Math.random(),
+        name: 'Tarjeta de Crédito de Prueba',
+        bank: 'Banco de Prueba',
+        type: 'credit',
+        balance: -15000,
+        currency: 'USD',
+        status: 'active',
+        color: '#dc3545',
+        accountNumber: '9876543210',
+        creditLimit: 50000,
+        cutoffDate: '2025-08-15',
+        paymentDueDate: '2025-08-30',
+        minimumPayment: 5000,
+        createdAt: new Date().toISOString()
+    };
+    
+    // Agregar a la lista de cuentas
+    if (!window.bankAccounts) {
+        window.bankAccounts = [];
+    }
+    
+    window.bankAccounts.push(testCreditAccount);
+    
+    // Guardar en localStorage
+    const storageKey = getStorageKey('bankAccounts');
+    localStorage.setItem(storageKey, JSON.stringify(window.bankAccounts));
+    
+    // Actualizar la interfaz
+    updateBankAccountsDisplay();
+    
+    console.log('✅ Cuenta de crédito de prueba creada:', testCreditAccount);
+    return testCreditAccount;
+};
+
+// Función global para limpiar todas las cuentas
+window.clearAllAccounts = function() {
+    console.log('🧹 Limpiando todas las cuentas...');
+    
+    // Limpiar array de cuentas
+    window.bankAccounts = [];
+    
+    // Limpiar localStorage
+    const storageKey = getStorageKey('bankAccounts');
+    localStorage.removeItem(storageKey);
+    
+    // Actualizar la interfaz
+    updateBankAccountsDisplay();
+    
+    console.log('✅ Todas las cuentas eliminadas');
+};
+
+// Función global para mostrar información de cuentas
+window.showAccountsInfo = function() {
+    console.log('📊 Información de cuentas:');
+    console.log('bankAccounts:', window.bankAccounts);
+    console.log('Número de cuentas:', window.bankAccounts ? window.bankAccounts.length : 0);
+    
+    const storageKey = getStorageKey('bankAccounts');
+    const storedData = localStorage.getItem(storageKey);
+    console.log('Datos en localStorage:', storedData);
+    
+    const container = document.getElementById('bankAccountsContainer');
+    if (container) {
+        console.log('Contenido del contenedor:', container.innerHTML.substring(0, 200) + '...');
+    }
+};
 }
 
 // Funciones para configuración de servicios en la nube
@@ -7271,7 +8322,10 @@ async function syncToCloud() {
                 updateSyncStatus();
                 updateConnectionStatus();
                 
-                showNotification('Sincronización completada', 'success');
+                // Notificación silenciosa - solo en consola para desarrollo
+        if (window.isDevelopment) {
+            console.log('✅ Sincronización completada');
+        }
             } else {
                 throw new Error('Error en la sincronización');
             }
@@ -7328,7 +8382,10 @@ async function syncFromCloud() {
             localStorage.setItem('lastSyncTime', new Date().toISOString());
             updateSyncStatus();
             
-            showNotification('Datos sincronizados desde la nube', 'success');
+            // Notificación silenciosa - solo en consola para desarrollo
+        if (window.isDevelopment) {
+            console.log('✅ Datos sincronizados desde la nube');
+        }
         } else {
             showNotification('No hay datos en la nube', 'info');
         }
@@ -7694,6 +8751,12 @@ function findAccountById(accountId) {
 
 // Función para normalizar todos los IDs de cuentas existentes
 function normalizeAllAccountIds() {
+    // Verificar que bankAccounts esté inicializada
+    if (!Array.isArray(bankAccounts)) {
+        console.warn('⚠️ bankAccounts no inicializada en normalizeAllAccountIds, saltando...');
+        return false;
+    }
+    
     console.log('🔧 Normalizando IDs de todas las cuentas...');
     let changesMade = false;
     
@@ -7721,6 +8784,12 @@ function normalizeAllAccountIds() {
 
 // Función para calcular el balance total de todas las cuentas
 function calculateTotalBalance() {
+    // Verificar que bankAccounts esté inicializada
+    if (!Array.isArray(bankAccounts)) {
+        console.warn('⚠️ bankAccounts no inicializada en calculateTotalBalance, retornando 0...');
+        return 0;
+    }
+    
     return bankAccounts
         .filter(account => account.status === 'active')
         .reduce((total, account) => {
@@ -7736,6 +8805,12 @@ function calculateTotalBalance() {
 
 // Función para actualizar el balance de una cuenta
 function updateAccountBalance(accountId, amountChange, reason = '') {
+    // Verificar que bankAccounts esté inicializada
+    if (!Array.isArray(bankAccounts)) {
+        console.warn('⚠️ bankAccounts no inicializada en updateAccountBalance, saltando...');
+        return false;
+    }
+    
     const account = bankAccounts.find(acc => acc.id === accountId);
     if (!account) return false;
     
@@ -7743,17 +8818,61 @@ function updateAccountBalance(accountId, amountChange, reason = '') {
     
     // Para tarjetas de crédito, el balance pendiente se reduce con pagos
     if (account.type === 'credit') {
-        // Si es un pago (amountChange positivo), reduce el balance pendiente
-        // Si es un gasto (amountChange negativo), aumenta el balance pendiente
+        // Para tarjetas de crédito:
+        // - amountChange POSITIVO (pago) → reduce el balance pendiente (disminuye deuda)
+        // - amountChange NEGATIVO (gasto) → aumenta el balance pendiente (aumenta deuda)
         account.balance = oldBalance - amountChange;
+        
+        console.log('💳 Balance tarjeta de crédito actualizado:', {
+            cuenta: account.name,
+            balanceAnterior: oldBalance,
+            cambio: amountChange,
+            balanceNuevo: account.balance,
+            razon: reason
+        });
     } else {
         // Para cuentas bancarias normales, suma el cambio
         account.balance = oldBalance + amountChange;
+        
+        console.log('🏦 Balance cuenta bancaria actualizado:', {
+            cuenta: account.name,
+            balanceAnterior: oldBalance,
+            cambio: amountChange,
+            balanceNuevo: account.balance,
+            razon: reason
+        });
     }
     
     account.lastUpdated = new Date().toISOString();
     
-    // Registrar el cambio
+    // Crear un movimiento bancario en lugar de solo registrar el cambio
+    const bankMovement = {
+        id: Date.now() + Math.random(),
+        accountId: accountId,
+        type: amountChange > 0 ? 'credit' : 'debit',
+        amount: Math.abs(amountChange),
+        description: reason,
+        date: new Date().toISOString().split('T')[0],
+        timestamp: new Date().toISOString(),
+        oldBalance: oldBalance,
+        newBalance: account.balance,
+        category: 'Transferencia/Pago'
+    };
+    
+    // Inicializar movimientos si no existen
+    if (!account.movements) {
+        account.movements = [];
+    }
+    
+    // Agregar el movimiento
+    account.movements.push(bankMovement);
+    
+    // Mantener solo los últimos 100 movimientos para evitar sobrecarga
+    if (account.movements.length > 100) {
+        account.movements = account.movements.slice(-100);
+    }
+    
+    // Registrar el cambio para reconciliación
     const balanceChange = {
         id: Date.now(),
         accountId: accountId,
@@ -7776,12 +8895,10 @@ function updateAccountBalance(accountId, amountChange, reason = '') {
         `Balance pendiente: ${formatCurrency(oldBalance)} → ${formatCurrency(account.balance)}` :
         `Balance: ${formatCurrency(oldBalance)} → ${formatCurrency(account.balance)}`;
     
-    addNotification(
-        '💰 Balance Actualizado',
-        `${accountType} "${account.name}" - ${balanceText}`,
-        'bank',
-        'normal'
-    );
+    // Solo mostrar notificación en desarrollo
+    if (window.isDevelopment) {
+        console.log(`💰 Movimiento bancario registrado: ${account.name} - ${reason} - ${formatCurrency(amountChange)}`);
+    }
     
     return true;
 }
@@ -7948,6 +9065,12 @@ function getAccountName(accountId) {
 
 // Función para actualizar dropdowns de cuentas bancarias
 function updateAccountDropdowns() {
+    // Verificar que bankAccounts esté inicializada
+    if (!Array.isArray(bankAccounts)) {
+        console.warn('⚠️ bankAccounts no inicializada en updateAccountDropdowns, saltando...');
+        return;
+    }
+    
     const transactionAccount = document.getElementById('transactionAccount');
     const transferToAccount = document.getElementById('transferToAccount');
     
@@ -7978,6 +9101,12 @@ function updateAccountDropdowns() {
 
 // Función para actualizar dropdowns de pagos de tarjetas
 function updatePagoTarjetaDropdowns() {
+    // Verificar que bankAccounts esté inicializada
+    if (!Array.isArray(bankAccounts)) {
+        console.warn('⚠️ bankAccounts no inicializada en updatePagoTarjetaDropdowns, saltando...');
+        return;
+    }
+    
     const cuentaOrigen = document.getElementById('pagoTarjetaCuentaOrigen');
     const tarjetaDestino = document.getElementById('pagoTarjetaDestino');
     
@@ -8189,13 +9318,13 @@ function getAccountTransactions(accountId, filters = {}) {
     
     if (filters.dateFrom) {
         filteredTransactions = filteredTransactions.filter(t => 
-            new Date(t.date) >= new Date(filters.dateFrom)
+            createLocalDate(t.date) >= createLocalDate(filters.dateFrom)
         );
     }
     
     if (filters.dateTo) {
         filteredTransactions = filteredTransactions.filter(t => 
-            new Date(t.date) <= new Date(filters.dateTo)
+            createLocalDate(t.date) <= createLocalDate(filters.dateTo)
         );
     }
     
@@ -8211,7 +9340,7 @@ function getAccountTransactions(accountId, filters = {}) {
         );
     }
     
-    return filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return filteredTransactions.sort((a, b) => createLocalDate(b.date) - createLocalDate(a.date));
 }
 
 // Función para manejar el envío del formulario de cuenta bancaria
@@ -8259,7 +9388,10 @@ async function handleBankAccountSubmit(e) {
                     updatedAt: new Date().toISOString()
                 };
                 
-                showNotification('Cuenta bancaria actualizada correctamente', 'success');
+                // Notificación silenciosa - solo en consola para desarrollo
+        if (window.isDevelopment) {
+            console.log('✅ Cuenta bancaria actualizada correctamente');
+        }
             }
         } else {
             // Verificar si ya existe una cuenta con el mismo nombre
@@ -8277,7 +9409,10 @@ async function handleBankAccountSubmit(e) {
             const newAccount = createBankAccount(accountData);
             bankAccounts.push(newAccount);
             
-            showNotification('Cuenta bancaria creada correctamente', 'success');
+            // Notificación silenciosa - solo en consola para desarrollo
+        if (window.isDevelopment) {
+            console.log('✅ Cuenta bancaria creada correctamente');
+        }
         }
         
         // Guardar datos
@@ -8361,6 +9496,12 @@ async function deleteBankAccount(accountId) {
 
 // Función para limpiar cuentas duplicadas
 function cleanDuplicateAccounts() {
+    // Verificar que bankAccounts esté inicializada
+    if (!Array.isArray(bankAccounts)) {
+        console.warn('⚠️ bankAccounts no inicializada en cleanDuplicateAccounts, saltando...');
+        return 0;
+    }
+    
     console.log('🔍 Verificando cuentas duplicadas...');
     console.log('📋 Cuentas antes de limpiar:', bankAccounts.length);
     
@@ -8404,6 +9545,12 @@ function cleanDuplicateAccounts() {
 
 // Función para limpiar cuentas duplicadas existentes (más agresiva)
 function removeDuplicateAccounts() {
+    // Verificar que bankAccounts esté inicializada
+    if (!Array.isArray(bankAccounts)) {
+        console.warn('⚠️ bankAccounts no inicializada en removeDuplicateAccounts, saltando...');
+        return 0;
+    }
+    
     console.log('🧹 Limpiando cuentas duplicadas existentes...');
     
     const uniqueAccounts = [];
@@ -8437,8 +9584,22 @@ function removeDuplicateAccounts() {
 
 // Función para actualizar la visualización de cuentas bancarias
 function updateBankAccountsDisplay() {
+    // Verificar que bankAccounts esté inicializada
+    if (!Array.isArray(bankAccounts)) {
+        console.warn('⚠️ bankAccounts no inicializada en updateBankAccountsDisplay, saltando...');
+        return;
+    }
+    
+    console.log('🔄 Actualizando display de cuentas bancarias...');
+    console.log('📊 Cuentas bancarias disponibles:', bankAccounts.length);
+    
     const container = document.getElementById('bankAccountsContainer');
-    if (!container) return;
+    if (!container) {
+        console.error('❌ Contenedor de cuentas bancarias no encontrado');
+        return;
+    }
+    
+    console.log('✅ Contenedor encontrado, generando HTML...');
     
     if (bankAccounts.length === 0) {
         container.innerHTML = `
@@ -8630,6 +9791,26 @@ function updateBankAccountsDisplay() {
                                 </div>
                             </div>
                         ` : ''}
+                        
+                        ${account.movements && account.movements.length > 0 ? `
+                            <div class="bank-movements-full">
+                                <h5>Movimientos Bancarios</h5>
+                                <div class="movements-list">
+                                    ${account.movements.slice(-10).reverse().map(movement => `
+                                        <div class="movement-item">
+                                            <div class="movement-date">${formatDate(movement.date)}</div>
+                                            <div class="movement-description">${movement.description}</div>
+                                            <div class="movement-amount ${movement.type === 'credit' ? 'positive' : 'negative'}">
+                                                ${movement.type === 'credit' ? '+' : '-'}${formatCurrency(movement.amount)}
+                                            </div>
+                                            <div class="movement-balance">
+                                                Balance: ${formatCurrency(movement.newBalance)}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
             </div>
@@ -8673,6 +9854,7 @@ function updateBankAccountsDisplay() {
     });
     
     container.innerHTML = accountsHTML;
+    console.log('✅ HTML de cuentas bancarias generado y aplicado');
 }
 
 // Función para actualizar el resumen de cuentas
@@ -8856,45 +10038,76 @@ function importTransactionsForAccount(accountId) {
 
 // Función para configurar event delegation de botones de cuentas
 function setupBankAccountEventDelegation() {
+    console.log('🔧 Configurando event delegation para botones de cuentas...');
+    console.log('🔍 Buscando contenedor bankAccountsContainer...');
+    
     const container = document.getElementById('bankAccountsContainer');
-    if (!container) return;
+    console.log('🔍 Contenedor encontrado:', container ? 'SÍ' : 'NO');
+    
+    if (!container) {
+        console.error('❌ Contenedor de cuentas no encontrado');
+        console.error('❌ Elementos con ID que contienen "bank":', Array.from(document.querySelectorAll('[id*="bank"]')).map(el => el.id));
+        return;
+    }
+    
+    console.log('✅ Contenedor de cuentas encontrado');
     
     // Event delegation para botones de cuentas
     container.addEventListener('click', function(e) {
+        console.log('🖱️ Click detectado en contenedor de cuentas:', e.target);
+        
         const target = e.target.closest('button');
-        if (!target) return;
+        if (!target) {
+            console.log('❌ No se encontró botón en el click');
+            return;
+        }
+        
+        console.log('✅ Botón encontrado:', target.className);
         
         const accountId = target.dataset.accountId;
-        if (!accountId) return;
+        if (!accountId) {
+            console.error('❌ No se encontró accountId en el botón');
+            return;
+        }
+        
+        console.log('🔍 AccountId encontrado:', accountId);
         
         // Botón editar
         if (target.classList.contains('edit-account-btn')) {
+            console.log('✏️ Botón editar clickeado para cuenta:', accountId);
             e.preventDefault();
             editBankAccount(accountId);
         }
         
         // Botón ver transacciones
         else if (target.classList.contains('view-transactions-btn')) {
+            console.log('👁️ Botón ver transacciones clickeado para cuenta:', accountId);
             e.preventDefault();
             viewAccountTransactions(accountId);
         }
         
         // Botón importar transacciones
         else if (target.classList.contains('import-transactions-btn')) {
+            console.log('📥 Botón importar transacciones clickeado para cuenta:', accountId);
             e.preventDefault();
             importTransactionsForAccount(accountId);
         }
         
         // Botón eliminar
         else if (target.classList.contains('delete-account-btn')) {
+            console.log('🗑️ Botón eliminar clickeado para cuenta:', accountId);
             e.preventDefault();
             deleteBankAccount(accountId);
         }
         
         // Botón expandir/contraer detalles
         else if (target.classList.contains('expand-account-btn')) {
+            console.log('📈 Botón expandir clickeado para cuenta:', accountId);
             e.preventDefault();
             toggleAccountDetails(accountId);
+        }
+        else {
+            console.log('❓ Botón no reconocido:', target.className);
         }
     });
     
@@ -8903,22 +10116,60 @@ function setupBankAccountEventDelegation() {
 
 // Función para expandir/contraer detalles de cuenta
 function toggleAccountDetails(accountId) {
+    console.log('🔄 Toggleando detalles de cuenta:', accountId);
+    
     const detailsPanel = document.getElementById(`details-${accountId}`);
     const expandBtn = document.querySelector(`[data-account-id="${accountId}"].expand-account-btn i`);
     
-    if (!detailsPanel || !expandBtn) return;
+    console.log('🔍 Elementos encontrados:', {
+        detailsPanel: detailsPanel ? 'Sí' : 'No',
+        expandBtn: expandBtn ? 'Sí' : 'No',
+        detailsPanelId: `details-${accountId}`,
+        expandBtnSelector: `[data-account-id="${accountId}"].expand-account-btn i`
+    });
     
-    if (detailsPanel.style.display === 'none') {
+    // Debug: verificar todos los elementos con el ID
+    const allDetailsPanels = document.querySelectorAll('[id^="details-"]');
+    console.log('🔍 Todos los paneles de detalles encontrados:', Array.from(allDetailsPanels).map(el => el.id));
+    
+    // Debug: verificar todos los botones de expandir
+    const allExpandBtns = document.querySelectorAll('.expand-account-btn');
+    console.log('🔍 Todos los botones de expandir encontrados:', Array.from(allExpandBtns).map(el => el.getAttribute('data-account-id')));
+    
+    if (!detailsPanel) {
+        console.error('❌ Panel de detalles no encontrado para cuenta:', accountId);
+        console.error('❌ ID buscado:', `details-${accountId}`);
+        return;
+    }
+    
+    if (!expandBtn) {
+        console.error('❌ Botón de expandir no encontrado para cuenta:', accountId);
+        return;
+    }
+    
+    const isCurrentlyHidden = detailsPanel.style.display === 'none' || detailsPanel.style.display === '';
+    
+    console.log('📊 Estado actual del panel:', {
+        display: detailsPanel.style.display,
+        isCurrentlyHidden: isCurrentlyHidden,
+        className: detailsPanel.className
+    });
+    
+    if (isCurrentlyHidden) {
         // Expandir
+        console.log('📈 Expandindo detalles de cuenta:', accountId);
         detailsPanel.style.display = 'block';
         expandBtn.className = 'fas fa-chevron-up';
         detailsPanel.classList.add('expanded');
     } else {
         // Contraer
+        console.log('📉 Contrayendo detalles de cuenta:', accountId);
         detailsPanel.style.display = 'none';
         expandBtn.className = 'fas fa-chevron-down';
         detailsPanel.classList.remove('expanded');
     }
+    
+    console.log('✅ Toggle completado para cuenta:', accountId);
 }
 
 // ===== OPTIMIZACIONES Y MEJORAS DE RENDIMIENTO =====
@@ -8946,6 +10197,12 @@ function optimizePerformance() {
 
 // Función para avanzar fechas al siguiente mes automáticamente
 function advanceCreditCardDates() {
+    // Verificar que bankAccounts esté inicializada
+    if (!Array.isArray(bankAccounts)) {
+        console.warn('⚠️ bankAccounts no inicializada en advanceCreditCardDates, saltando...');
+        return;
+    }
+    
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
@@ -8990,6 +10247,12 @@ function advanceCreditCardDates() {
 
 // Función para verificar y actualizar fechas al cargar la aplicación
 function checkAndUpdateCreditCardDates() {
+    // Verificar que bankAccounts esté inicializada
+    if (!Array.isArray(bankAccounts)) {
+        console.warn('⚠️ bankAccounts no inicializada en checkAndUpdateCreditCardDates, saltando...');
+        return;
+    }
+    
     console.log('🔍 Verificando fechas de tarjetas de crédito...');
     advanceCreditCardDates();
 }
@@ -9275,6 +10538,40 @@ function repairCorruptedData() {
     
     // Verificar transacciones
     if (Array.isArray(transactions)) {
+        // Primero limpiar transferencias duplicadas
+        const cleanTransferencias = [];
+        const transferenciaGroups = new Map();
+        
+        transactions.forEach(transaction => {
+            if (transaction.type === 'transferencia') {
+                // Crear una clave única para cada transferencia basada en sus propiedades
+                const key = `${transaction.amount}_${transaction.accountId}_${transaction.transferToAccountId || transaction.transferFromAccountId}_${transaction.date}`;
+                
+                if (!transferenciaGroups.has(key)) {
+                    transferenciaGroups.set(key, []);
+                }
+                transferenciaGroups.get(key).push(transaction);
+            } else {
+                cleanTransferencias.push(transaction);
+            }
+        });
+        
+        // Para cada grupo de transferencias, mantener solo una
+        transferenciaGroups.forEach((group, key) => {
+            if (group.length > 1) {
+                console.log(`🔄 Encontradas ${group.length} transferencias duplicadas, manteniendo solo una`);
+                repaired = true;
+                // Mantener la primera transferencia del grupo
+                cleanTransferencias.push(group[0]);
+            } else {
+                cleanTransferencias.push(group[0]);
+            }
+        });
+        
+        // Reemplazar transacciones con las limpias
+        transactions = cleanTransferencias;
+        
+        // Continuar con la verificación normal
         transactions = transactions.filter(transaction => {
             if (!transaction || typeof transaction !== 'object') {
                 repaired = true;

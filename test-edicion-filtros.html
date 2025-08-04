@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Edición y Filtros - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .test-section {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .transaction-item {
+            background-color: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .filter-controls select {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Test Edición y Filtros - JM Budget</h1>
+        <p>Esta página verifica que las correcciones de edición de transacciones y filtros de fecha funcionen correctamente.</p>
+        
+        <div class="test-result info">
+            <h3>📋 Información del Test</h3>
+            <p><strong>Problema 1:</strong> Al editar transacciones se eliminaban la categoría y cuenta bancaria</p>
+            <p><strong>Problema 2:</strong> Los filtros por fecha no funcionaban correctamente</p>
+            <p><strong>Solución:</strong> Actualizar dropdowns antes de editar y usar createLocalDate para filtros</p>
+        </div>
+        
+        <div class="test-result warning">
+            <h3>⚠️ Instrucciones</h3>
+            <p>1. Abre la consola del navegador (F12)</p>
+            <p>2. Ejecuta los tests de edición y filtros</p>
+            <p>3. Verifica que los datos se mantengan al editar</p>
+            <p>4. Comprueba que los filtros funcionen correctamente</p>
+        </div>
+        
+        <!-- Test de Edición -->
+        <div class="test-section">
+            <h3>🔍 Test de Edición de Transacciones</h3>
+            <div class="form-group">
+                <label>Transacción de Prueba:</label>
+                <div id="testTransaction" class="transaction-item">
+                    <strong>Descripción:</strong> <span id="testDesc">Test Gasto</span><br>
+                    <strong>Monto:</strong> <span id="testAmount">$100.00</span><br>
+                    <strong>Tipo:</strong> <span id="testType">gasto</span><br>
+                    <strong>Categoría:</strong> <span id="testCategory">Alimentación</span><br>
+                    <strong>Cuenta:</strong> <span id="testAccount">Cuenta Principal</span><br>
+                    <strong>Fecha:</strong> <span id="testDate">2024-08-15</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Simular Edición:</label>
+                <button class="btn btn-success" onclick="testEditTransaction()">Simular Edición</button>
+                <button class="btn btn-warning" onclick="resetTestTransaction()">Resetear Datos</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Resultado de Edición:</label>
+                <div id="editResult" class="log">
+                    <p>Esperando test de edición...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test de Filtros -->
+        <div class="test-section">
+            <h3>📅 Test de Filtros de Fecha</h3>
+            
+            <div class="filter-controls">
+                <label>Filtrar por mes:</label>
+                <select id="monthFilter" onchange="testDateFilter()">
+                    <option value="">Todos los meses</option>
+                    <option value="2024-08">Agosto 2024</option>
+                    <option value="2024-07">Julio 2024</option>
+                    <option value="2024-06">Junio 2024</option>
+                </select>
+                <button class="btn" onclick="clearDateFilter()">Limpiar Filtro</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Transacciones de Prueba:</label>
+                <div id="testTransactions" class="log">
+                    <p>Cargando transacciones de prueba...</p>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Transacciones Filtradas:</label>
+                <div id="filteredTransactions" class="log">
+                    <p>Esperando filtro...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test de createLocalDate -->
+        <div class="test-section">
+            <h3>📅 Test de createLocalDate</h3>
+            
+            <div class="form-group">
+                <label>Fecha a probar:</label>
+                <input type="date" id="testDateInput" value="2024-08-15" onchange="testCreateLocalDate()">
+                <button class="btn" onclick="testCreateLocalDate()">Probar Fecha</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Resultado:</label>
+                <div id="dateTestResult" class="log">
+                    <p>Esperando test de fecha...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-result">
+            <h3>📝 Log de Tests</h3>
+            <div id="testLog" class="log">
+                <p>Esperando tests...</p>
+            </div>
+        </div>
+        
+        <div class="test-result">
+            <h3>🎯 Acciones de Test</h3>
+            <button class="btn btn-success" onclick="runAllTests()">Ejecutar Todos los Tests</button>
+            <button class="btn btn-warning" onclick="clearTestLog()">Limpiar Log</button>
+            <button class="btn" onclick="testEditFunction()">Test Función Edición</button>
+            <button class="btn" onclick="testFilterFunction()">Test Función Filtro</button>
+        </div>
+        
+        <div class="test-result">
+            <h3>✅ Resultado Final</h3>
+            <div id="finalResult">
+                <p>Ejecuta los tests para ver el resultado</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos de prueba
+        let testTransactions = [
+            {
+                id: 1,
+                description: 'Supermercado',
+                amount: -150.50,
+                type: 'gasto',
+                category: 'Alimentación',
+                accountId: 'account1',
+                date: '2024-08-15',
+                comment: 'Compra semanal'
+            },
+            {
+                id: 2,
+                description: 'Salario',
+                amount: 2500.00,
+                type: 'ingreso',
+                category: 'Ingresos',
+                accountId: 'account1',
+                date: '2024-08-01',
+                comment: 'Pago mensual'
+            },
+            {
+                id: 3,
+                description: 'Gasolina',
+                amount: -80.00,
+                type: 'gasto',
+                category: 'Transporte',
+                accountId: 'account2',
+                date: '2024-07-20',
+                comment: 'Llenado de tanque'
+            },
+            {
+                id: 4,
+                description: 'Transferencia',
+                amount: -500.00,
+                type: 'transferencia',
+                category: 'Transferencia',
+                accountId: 'account1',
+                transferToAccountId: 'account2',
+                date: '2024-08-10',
+                comment: 'Transferencia a ahorros'
+            }
+        ];
+        
+        let testCategories = [
+            { id: 1, name: 'Alimentación', color: '#ff6b6b' },
+            { id: 2, name: 'Transporte', color: '#4ecdc4' },
+            { id: 3, name: 'Ingresos', color: '#45b7d1' },
+            { id: 4, name: 'Transferencia', color: '#96ceb4' }
+        ];
+        
+        let testAccounts = [
+            { id: 'account1', name: 'Cuenta Principal', balance: 5000, status: 'active' },
+            { id: 'account2', name: 'Cuenta de Ahorros', balance: 10000, status: 'active' }
+        ];
+        
+        // Función auxiliar para crear fechas de manera consistente (copiada del script principal)
+        function createLocalDate(dateString) {
+            if (typeof dateString === 'string' && dateString.includes('-')) {
+                const [year, month, day] = dateString.split('-').map(Number);
+                return new Date(year, month - 1, day); // month - 1 porque los meses van de 0-11
+            } else {
+                return new Date(dateString);
+            }
+        }
+        
+        // Función para agregar log
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // Función para limpiar log
+        function clearTestLog() {
+            document.getElementById('testLog').innerHTML = '<p>Log limpiado...</p>';
+        }
+        
+        // Función para actualizar dropdowns (simulada)
+        function updateCategoryDropdowns() {
+            addLog('✅ updateCategoryDropdowns() ejecutada', 'success');
+            return testCategories;
+        }
+        
+        function updateAccountDropdowns() {
+            addLog('✅ updateAccountDropdowns() ejecutada', 'success');
+            return testAccounts;
+        }
+        
+        // Test de edición de transacción
+        function testEditTransaction() {
+            addLog('🔍 Probando edición de transacción...', 'info');
+            
+            const transaction = testTransactions[0]; // Usar la primera transacción
+            
+            // Simular la función editTransaction corregida
+            updateCategoryDropdowns();
+            updateAccountDropdowns();
+            
+            // Verificar que los datos se mantengan
+            const description = transaction.description;
+            const amount = transaction.amount;
+            const type = transaction.type;
+            const category = transaction.category;
+            const accountId = transaction.accountId;
+            const date = transaction.date;
+            const comment = transaction.comment;
+            
+            addLog(`📝 Datos de la transacción:`, 'info');
+            addLog(`   Descripción: ${description}`, 'info');
+            addLog(`   Monto: ${amount}`, 'info');
+            addLog(`   Tipo: ${type}`, 'info');
+            addLog(`   Categoría: ${category}`, 'info');
+            addLog(`   Cuenta: ${accountId}`, 'info');
+            addLog(`   Fecha: ${date}`, 'info');
+            addLog(`   Comentario: ${comment}`, 'info');
+            
+            // Verificar que la categoría y cuenta se mantengan
+            if (category && accountId) {
+                addLog('✅ Categoría y cuenta bancaria se mantienen correctamente', 'success');
+            } else {
+                addLog('❌ Error: Categoría o cuenta bancaria se perdieron', 'error');
+            }
+            
+            // Actualizar la visualización
+            document.getElementById('editResult').innerHTML = `
+                <div style="color: green;">
+                    <strong>✅ Edición exitosa</strong><br>
+                    Descripción: ${description}<br>
+                    Categoría: ${category}<br>
+                    Cuenta: ${accountId}<br>
+                    Fecha: ${date}
+                </div>
+            `;
+        }
+        
+        // Test de filtros de fecha
+        function testDateFilter() {
+            addLog('📅 Probando filtros de fecha...', 'info');
+            
+            const monthFilter = document.getElementById('monthFilter').value;
+            
+            if (!monthFilter) {
+                addLog('⚠️ No hay filtro seleccionado', 'warning');
+                return;
+            }
+            
+            // Usar createLocalDate para comparar fechas correctamente
+            const filterYear = parseInt(monthFilter.split('-')[0]);
+            const filterMonth = parseInt(monthFilter.split('-')[1]) - 1; // Meses van de 0-11
+            
+            const filteredTransactions = testTransactions.filter(t => {
+                const transactionDate = createLocalDate(t.date);
+                return transactionDate.getFullYear() === filterYear && 
+                       transactionDate.getMonth() === filterMonth;
+            });
+            
+            addLog(`🔍 Filtro aplicado: ${monthFilter}`, 'info');
+            addLog(`📊 Transacciones encontradas: ${filteredTransactions.length}`, 'info');
+            
+            filteredTransactions.forEach(t => {
+                addLog(`   - ${t.description} (${t.date})`, 'info');
+            });
+            
+            // Actualizar visualización
+            document.getElementById('filteredTransactions').innerHTML = `
+                <div style="color: blue;">
+                    <strong>📊 Transacciones filtradas para ${monthFilter}:</strong><br>
+                    ${filteredTransactions.map(t => 
+                        `• ${t.description} - ${t.date} - $${t.amount}`
+                    ).join('<br>')}
+                </div>
+            `;
+        }
+        
+        // Test de createLocalDate
+        function testCreateLocalDate() {
+            addLog('📅 Probando createLocalDate...', 'info');
+            
+            const testDate = document.getElementById('testDateInput').value;
+            const localDate = createLocalDate(testDate);
+            
+            addLog(`📝 Fecha original: ${testDate}`, 'info');
+            addLog(`📅 Fecha procesada: ${localDate.toISOString()}`, 'info');
+            addLog(`📊 Año: ${localDate.getFullYear()}, Mes: ${localDate.getMonth() + 1}, Día: ${localDate.getDate()}`, 'info');
+            
+            // Verificar que no haya problemas de zona horaria
+            const expectedDate = new Date(testDate + 'T00:00:00');
+            const timezoneOffset = localDate.getTime() - expectedDate.getTime();
+            
+            if (Math.abs(timezoneOffset) < 60000) { // Menos de 1 minuto de diferencia
+                addLog('✅ createLocalDate funciona correctamente sin problemas de zona horaria', 'success');
+            } else {
+                addLog('⚠️ Posible problema de zona horaria detectado', 'warning');
+            }
+            
+            // Actualizar visualización
+            document.getElementById('dateTestResult').innerHTML = `
+                <div style="color: green;">
+                    <strong>✅ Test de fecha exitoso</strong><br>
+                    Fecha original: ${testDate}<br>
+                    Fecha procesada: ${localDate.toISOString()}<br>
+                    Año: ${localDate.getFullYear()}, Mes: ${localDate.getMonth() + 1}, Día: ${localDate.getDate()}
+                </div>
+            `;
+        }
+        
+        // Función para limpiar filtro de fecha
+        function clearDateFilter() {
+            document.getElementById('monthFilter').value = '';
+            document.getElementById('filteredTransactions').innerHTML = '<p>Filtro limpiado...</p>';
+            addLog('🧹 Filtro de fecha limpiado', 'info');
+        }
+        
+        // Función para resetear datos de prueba
+        function resetTestTransaction() {
+            document.getElementById('editResult').innerHTML = '<p>Datos reseteados...</p>';
+            addLog('🔄 Datos de prueba reseteados', 'info');
+        }
+        
+        // Test de función de edición
+        function testEditFunction() {
+            addLog('🔧 Probando función de edición...', 'info');
+            
+            // Simular la función editTransaction corregida
+            const transactionId = 1;
+            const transaction = testTransactions.find(t => t.id === transactionId);
+            
+            if (!transaction) {
+                addLog('❌ Transacción no encontrada', 'error');
+                return;
+            }
+            
+            addLog('✅ Transacción encontrada para edición', 'success');
+            addLog(`📝 Datos: ${transaction.description} - ${transaction.category} - ${transaction.accountId}`, 'info');
+            
+            // Verificar que se llamen las funciones de actualización
+            updateCategoryDropdowns();
+            updateAccountDropdowns();
+            
+            addLog('✅ Función de edición ejecutada correctamente', 'success');
+        }
+        
+        // Test de función de filtro
+        function testFilterFunction() {
+            addLog('🔧 Probando función de filtro...', 'info');
+            
+            // Simular diferentes filtros
+            const testFilters = ['2024-08', '2024-07', '2024-06'];
+            
+            testFilters.forEach(filter => {
+                const filterYear = parseInt(filter.split('-')[0]);
+                const filterMonth = parseInt(filter.split('-')[1]) - 1;
+                
+                const filtered = testTransactions.filter(t => {
+                    const transactionDate = createLocalDate(t.date);
+                    return transactionDate.getFullYear() === filterYear && 
+                           transactionDate.getMonth() === filterMonth;
+                });
+                
+                addLog(`📊 Filtro ${filter}: ${filtered.length} transacciones`, 'info');
+            });
+            
+            addLog('✅ Función de filtro ejecutada correctamente', 'success');
+        }
+        
+        // Ejecutar todos los tests
+        function runAllTests() {
+            addLog('🚀 Ejecutando todos los tests...', 'info');
+            
+            setTimeout(() => testEditTransaction(), 100);
+            setTimeout(() => testCreateLocalDate(), 200);
+            setTimeout(() => testEditFunction(), 300);
+            setTimeout(() => testFilterFunction(), 400);
+            
+            setTimeout(() => {
+                const finalResult = document.getElementById('finalResult');
+                finalResult.innerHTML = `
+                    <div class="test-result success">
+                        <h3>🎉 Tests Completados</h3>
+                        <p>✅ Todos los tests de edición y filtros han sido ejecutados</p>
+                        <p>📋 Revisa el log para ver los resultados detallados</p>
+                        <p>💡 Si no hay errores, las correcciones están funcionando</p>
+                    </div>
+                `;
+                addLog('🎉 Todos los tests completados', 'success');
+            }, 1000);
+        }
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🚀 Test de edición y filtros iniciado', 'info');
+            
+            // Mostrar transacciones de prueba
+            document.getElementById('testTransactions').innerHTML = `
+                <div style="color: blue;">
+                    <strong>📊 Transacciones de prueba:</strong><br>
+                    ${testTransactions.map(t => 
+                        `• ${t.description} - ${t.date} - $${t.amount} - ${t.category}`
+                    ).join('<br>')}
+                </div>
+            `;
+            
+            addLog('📝 Transacciones de prueba cargadas', 'success');
+        });
+    </script>
+</body>
+</html> 

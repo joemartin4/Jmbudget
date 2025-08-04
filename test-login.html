@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .credentials {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: #2196F3;
+        }
+        .btn-secondary:hover {
+            background: #1976D2;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid #4CAF50;
+        }
+        .error {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid #f44336;
+        }
+        .info {
+            background: rgba(33, 150, 243, 0.3);
+            border: 1px solid #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Login - JM Budget</h1>
+        <p>Esta página te ayudará a acceder a la aplicación con credenciales de prueba.</p>
+        
+        <div class="credentials">
+            <h3>Credenciales de Prueba:</h3>
+            <p><strong>Email:</strong> test@example.com</p>
+            <p><strong>Contraseña:</strong> password123</p>
+        </div>
+        
+        <div id="status" class="status info">
+            Preparando autenticación...
+        </div>
+        
+        <button class="btn" onclick="autoLogin()">🔑 Login Automático</button>
+        <button class="btn btn-secondary" onclick="goToMain()">🏠 Ir a la Aplicación</button>
+        <button class="btn btn-secondary" onclick="createTestUser()">👤 Crear Usuario de Prueba</button>
+    </div>
+
+    <script>
+        // Cargar los servicios necesarios
+        const scripts = [
+            'config.js',
+            'utils.js',
+            'error-handler.js',
+            'auth-service.js'
+        ];
+
+        let loadedScripts = 0;
+        let authService = null;
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        async function loadServices() {
+            try {
+                for (const script of scripts) {
+                    await loadScript(script);
+                    loadedScripts++;
+                    updateStatus(`Cargando servicios... (${loadedScripts}/${scripts.length})`);
+                }
+                
+                // Esperar a que AuthService se inicialice
+                let attempts = 0;
+                while (!window.authService && attempts < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                if (window.authService) {
+                    authService = window.authService;
+                    updateStatus('✅ Servicios cargados correctamente', 'success');
+                } else {
+                    updateStatus('❌ Error: No se pudo cargar AuthService', 'error');
+                }
+            } catch (error) {
+                updateStatus(`❌ Error al cargar servicios: ${error.message}`, 'error');
+            }
+        }
+
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        async function createTestUser() {
+            try {
+                updateStatus('👤 Creando usuario de prueba...', 'info');
+                
+                if (!authService) {
+                    updateStatus('❌ AuthService no está disponible', 'error');
+                    return;
+                }
+
+                // Crear usuario de prueba
+                await authService.createTestUser();
+                updateStatus('✅ Usuario de prueba creado exitosamente', 'success');
+                
+            } catch (error) {
+                updateStatus(`❌ Error al crear usuario: ${error.message}`, 'error');
+            }
+        }
+
+        async function autoLogin() {
+            try {
+                updateStatus('🔑 Iniciando login automático...', 'info');
+                
+                if (!authService) {
+                    updateStatus('❌ AuthService no está disponible', 'error');
+                    return;
+                }
+
+                // Intentar login con credenciales de prueba
+                const result = await authService.login('test@example.com', 'password123');
+                
+                if (result.success) {
+                    updateStatus('✅ Login exitoso! Redirigiendo...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                } else {
+                    updateStatus(`❌ Error en login: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                updateStatus(`❌ Error en login: ${error.message}`, 'error');
+            }
+        }
+
+        function goToMain() {
+            window.location.href = 'index.html';
+        }
+
+        // Cargar servicios al iniciar
+        loadServices();
+    </script>
+</body>
+</html> 

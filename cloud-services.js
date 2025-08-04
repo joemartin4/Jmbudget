@@ -183,6 +183,12 @@ class CloudServices {
 
     // Métodos de sincronización
     async syncToCloud(data, userId) {
+        // En modo desarrollo, simular éxito sin hacer nada
+        if (window.isDevelopment) {
+            console.log('🏠 Modo desarrollo - Simulando sincronización exitosa');
+            return true;
+        }
+        
         if (!this.currentService) {
             console.warn('No hay servicio en la nube configurado');
             return false;
@@ -208,6 +214,12 @@ class CloudServices {
     }
 
     async syncFromCloud(userId) {
+        // En modo desarrollo, simular que no hay datos
+        if (window.isDevelopment) {
+            console.log('🏠 Modo desarrollo - Simulando que no hay datos en la nube');
+            return null;
+        }
+        
         if (!this.currentService) {
             console.warn('No hay servicio en la nube configurado');
             return null;
@@ -235,6 +247,12 @@ class CloudServices {
     // Firebase Methods
     async syncToFirebase(data, userId) {
         try {
+            // Verificar si Firebase está disponible
+            if (!this.services.firebase.db || typeof this.services.firebase.db.collection !== 'function') {
+                console.warn('Firebase Firestore no está disponible');
+                return false;
+            }
+            
             const docRef = this.services.firebase.db.collection('users').doc(userId);
             await docRef.set({
                 data: data,
@@ -252,6 +270,12 @@ class CloudServices {
 
     async syncFromFirebase(userId) {
         try {
+            // Verificar si Firebase está disponible
+            if (!this.services.firebase.db || typeof this.services.firebase.db.collection !== 'function') {
+                console.warn('Firebase Firestore no está disponible');
+                return null;
+            }
+            
             const docRef = this.services.firebase.db.collection('users').doc(userId);
             const doc = await docRef.get();
 
@@ -520,6 +544,13 @@ class CloudServices {
 
     async testConnection() {
         console.log('🔍 Iniciando testConnection...');
+        
+        // En modo desarrollo, no ejecutar tests de Firebase
+        if (window.isDevelopment) {
+            console.log('🏠 Modo desarrollo detectado - Saltando test de conexión');
+            return { success: true, message: 'Modo desarrollo - No se requiere conexión' };
+        }
+        
         console.log('Estado actual:', {
             currentService: this.currentService,
             services: this.services

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Errores Solucionados - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ Test Errores Solucionados - JM Budget</h1>
+        <p>Esta herramienta verifica que los errores de consola se han solucionado.</p>
+        
+        <div class="warning">
+            <h3>🔧 Errores Corregidos</h3>
+            <p><strong>Error 1:</strong> <code>ReferenceError: Can't find variable: createTestAccount</code></p>
+            <p><strong>Solución:</strong> Agregada verificación de existencia antes de llamar las funciones</p>
+            <p><strong>Error 2:</strong> <code>Error: No existe una cuenta con este email</code></p>
+            <p><strong>Solución:</strong> Este es un error de autenticación normal, no un bug</p>
+        </div>
+        
+        <div class="log" id="log">
+            <p>Iniciando verificación...</p>
+        </div>
+        
+        <div>
+            <button class="btn btn-success" onclick="verificarErroresSolucionados()">✅ Verificar Errores Solucionados</button>
+            <button class="btn btn-warning" onclick="probarFunciones()">🔧 Probar Funciones</button>
+            <button class="btn" onclick="cargarAplicacion()">🚀 Cargar Aplicación</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        function showResult(content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = type;
+            resultDiv.innerHTML = content;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        // Verificar que los errores se han solucionado
+        function verificarErroresSolucionados() {
+            addLog('🔍 Verificando que los errores se han solucionado...', 'warning');
+            clearResults();
+            
+            try {
+                // 1. Verificar que las funciones están disponibles
+                addLog('🔧 Verificando funciones disponibles...', 'info');
+                const functionsToCheck = [
+                    'createLocalDate',
+                    'filterTransactions',
+                    'updateMonthlySummary',
+                    'createTestAccount',
+                    'createTestCreditAccount'
+                ];
+                
+                let functionInfo = '<h3>🔧 Estado de las Funciones</h3>';
+                let allAvailable = true;
+                
+                functionsToCheck.forEach(funcName => {
+                    const isAvailable = typeof window[funcName] === 'function';
+                    if (!isAvailable) allAvailable = false;
+                    
+                    functionInfo += `
+                        <div style="margin: 5px 0;">
+                            <strong>${funcName}:</strong> ${isAvailable ? '✅ Disponible' : '❌ No disponible'}
+                        </div>
+                    `;
+                    addLog(`🔧 ${funcName}: ${isAvailable ? 'Disponible' : 'No disponible'}`, isAvailable ? 'success' : 'error');
+                });
+                
+                // 2. Verificar que no hay errores de ReferenceError
+                addLog('🚨 Verificando errores de ReferenceError...', 'info');
+                let referenceErrorInfo = '<h3>🚨 Verificación de Errores</h3>';
+                
+                // Simular la llamada que causaba el error
+                try {
+                    if (typeof window.createTestAccount === 'function') {
+                        addLog('✅ createTestAccount está disponible y se puede llamar', 'success');
+                        referenceErrorInfo += '<div style="color: green;">✅ createTestAccount está disponible y se puede llamar</div>';
+                    } else {
+                        addLog('❌ createTestAccount no está disponible', 'error');
+                        referenceErrorInfo += '<div style="color: red;">❌ createTestAccount no está disponible</div>';
+                    }
+                } catch (error) {
+                    addLog(`❌ Error al verificar createTestAccount: ${error.message}`, 'error');
+                    referenceErrorInfo += `<div style="color: red;">❌ Error: ${error.message}</div>`;
+                }
+                
+                // 3. Verificar variables globales
+                addLog('📊 Verificando variables globales...', 'info');
+                const variablesToCheck = [
+                    'transactions',
+                    'categories',
+                    'bankAccounts',
+                    'notifications'
+                ];
+                
+                let variableInfo = '<h3>📊 Verificación de Variables</h3>';
+                variablesToCheck.forEach(varName => {
+                    const isAvailable = typeof window[varName] !== 'undefined';
+                    const isArray = Array.isArray(window[varName]);
+                    variableInfo += `
+                        <div style="margin: 5px 0;">
+                            <strong>${varName}:</strong> ${isAvailable ? '✅ Disponible' : '❌ No disponible'} 
+                            ${isAvailable && isArray ? '(Array)' : isAvailable ? '(No Array)' : ''}
+                        </div>
+                    `;
+                    addLog(`📊 ${varName}: ${isAvailable ? 'Disponible' : 'No disponible'} ${isAvailable && isArray ? '(Array)' : ''}`, isAvailable ? 'success' : 'error');
+                });
+                
+                if (allAvailable) {
+                    functionInfo += '<div class="success">🎉 ¡Todas las funciones están disponibles!</div>';
+                    addLog('🎉 ¡Todas las funciones están disponibles!', 'success');
+                } else {
+                    functionInfo += '<div class="error">❌ Algunas funciones no están disponibles</div>';
+                    addLog('❌ Algunas funciones no están disponibles', 'error');
+                }
+                
+                showResult(functionInfo + referenceErrorInfo + variableInfo, 'info');
+                
+            } catch (error) {
+                addLog(`❌ Error durante la verificación: ${error.message}`, 'error');
+                showResult(`
+                    <h3>❌ Error en la Verificación</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+        
+        // Probar funciones específicas
+        function probarFunciones() {
+            addLog('🧪 Probando funciones específicas...', 'warning');
+            clearResults();
+            
+            try {
+                // Probar createLocalDate
+                if (typeof window.createLocalDate === 'function') {
+                    const testDate = window.createLocalDate('2025-08-02');
+                    addLog(`✅ createLocalDate funciona: ${testDate}`, 'success');
+                } else {
+                    addLog('❌ createLocalDate no está disponible', 'error');
+                }
+                
+                // Probar filterTransactions
+                if (typeof window.filterTransactions === 'function') {
+                    addLog('✅ filterTransactions está disponible', 'success');
+                } else {
+                    addLog('❌ filterTransactions no está disponible', 'error');
+                }
+                
+                // Probar createTestAccount (solo verificar que existe)
+                if (typeof window.createTestAccount === 'function') {
+                    addLog('✅ createTestAccount está disponible', 'success');
+                } else {
+                    addLog('❌ createTestAccount no está disponible', 'error');
+                }
+                
+                showResult(`
+                    <h3>🧪 Resultado de Pruebas</h3>
+                    <p>Las funciones han sido verificadas. Si todas están disponibles, los errores se han solucionado.</p>
+                `, 'success');
+                
+            } catch (error) {
+                addLog(`❌ Error durante las pruebas: ${error.message}`, 'error');
+                showResult(`
+                    <h3>❌ Error en las Pruebas</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+        
+        // Cargar la aplicación principal
+        function cargarAplicacion() {
+            addLog('🚀 Cargando aplicación principal...', 'warning');
+            clearResults();
+            
+            const appUrl = 'http://localhost:8000/?v=2.0.4&test=errores_solucionados';
+            
+            showResult(`
+                <h3>🚀 Cargando Aplicación</h3>
+                <p><strong>URL:</strong> ${appUrl}</p>
+                <p>La aplicación se abrirá en una nueva pestaña.</p>
+                <p><strong>Después de cargar:</strong></p>
+                <ol>
+                    <li>Verificar que no hay errores en la consola (F12)</li>
+                    <li>Probar los filtros de fecha en la sección "Transacciones"</li>
+                    <li>Verificar que funcionan correctamente</li>
+                </ol>
+            `, 'success');
+            
+            setTimeout(() => {
+                window.open(appUrl, '_blank');
+            }, 1000);
+        }
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🚀 Herramienta de verificación de errores iniciada', 'success');
+            addLog('📊 URL actual: ' + window.location.href, 'info');
+            
+            // Ejecutar verificación automática
+            setTimeout(() => {
+                verificarErroresSolucionados();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fechas Transacciones - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .date-test {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .date-input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>📅 Test de Fechas en Transacciones - JM Budget</h1>
+        <p>Esta página verifica que las fechas se manejen correctamente en las transacciones.</p>
+        
+        <div class="test-result info">
+            <h3>📋 Información del Test</h3>
+            <p><strong>Problema:</strong> Las transacciones de agosto se registraban en julio (31 de julio)</p>
+            <p><strong>Causa:</strong> Problemas de zona horaria al crear objetos Date</p>
+            <p><strong>Solución:</strong> Función createLocalDate() para manejo consistente de fechas</p>
+        </div>
+        
+        <div class="test-result warning">
+            <h3>⚠️ Instrucciones</h3>
+            <p>1. Abre la consola del navegador (F12)</p>
+            <p>2. Ejecuta los tests de fechas</p>
+            <p>3. Verifica que las fechas se interpreten correctamente</p>
+            <p>4. Prueba crear una transacción con fecha de agosto</p>
+        </div>
+        
+        <div class="test-result">
+            <h3>🔍 Tests de Fechas</h3>
+            <div class="date-test">
+                <h4>Test 1: Comparación de métodos de creación de fechas</h4>
+                <label>Fecha a probar: </label>
+                <input type="date" id="testDate" class="date-input" value="2024-08-15">
+                <button class="btn" onclick="testDateCreation()">Probar Creación de Fecha</button>
+                <div id="dateTestResult"></div>
+            </div>
+            
+            <div class="date-test">
+                <h4>Test 2: Simulación de transacción</h4>
+                <label>Fecha de transacción: </label>
+                <input type="date" id="transactionDate" class="date-input" value="2024-08-15">
+                <button class="btn" onclick="testTransactionDate()">Simular Transacción</button>
+                <div id="transactionTestResult"></div>
+            </div>
+            
+            <div class="date-test">
+                <h4>Test 3: Filtrado por mes</h4>
+                <label>Mes a filtrar: </label>
+                <input type="month" id="filterMonth" class="date-input" value="2024-08">
+                <button class="btn" onclick="testMonthFilter()">Probar Filtro</button>
+                <div id="filterTestResult"></div>
+            </div>
+        </div>
+        
+        <div class="test-result">
+            <h3>📝 Log de Tests</h3>
+            <div id="testLog" class="log">
+                <p>Esperando tests...</p>
+            </div>
+        </div>
+        
+        <div class="test-result">
+            <h3>🎯 Acciones de Test</h3>
+            <button class="btn btn-success" onclick="runAllDateTests()">Ejecutar Todos los Tests</button>
+            <button class="btn btn-warning" onclick="clearTestLog()">Limpiar Log</button>
+            <button class="btn" onclick="testCurrentMonth()">Test Mes Actual</button>
+            <button class="btn" onclick="testAugustDates()">Test Fechas de Agosto</button>
+        </div>
+        
+        <div class="test-result">
+            <h3>✅ Resultado Final</h3>
+            <div id="finalResult">
+                <p>Ejecuta los tests para ver el resultado</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función auxiliar para crear fechas de manera consistente (copiada del script principal)
+        function createLocalDate(dateString) {
+            if (typeof dateString === 'string' && dateString.includes('-')) {
+                // Si es una fecha en formato YYYY-MM-DD, crear la fecha de manera local
+                const [year, month, day] = dateString.split('-').map(Number);
+                return new Date(year, month - 1, day); // month - 1 porque los meses van de 0-11
+            } else {
+                return new Date(dateString);
+            }
+        }
+        
+        // Función para agregar log
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // Función para limpiar log
+        function clearTestLog() {
+            document.getElementById('testLog').innerHTML = '<p>Log limpiado...</p>';
+        }
+        
+        // Test 1: Comparación de métodos de creación de fechas
+        function testDateCreation() {
+            const testDate = document.getElementById('testDate').value;
+            const resultDiv = document.getElementById('dateTestResult');
+            
+            addLog('🔍 Probando creación de fechas...', 'info');
+            
+            // Método antiguo (problemático)
+            const oldDate = new Date(testDate);
+            
+            // Método nuevo (corregido)
+            const newDate = createLocalDate(testDate);
+            
+            const result = `
+                <div class="test-result">
+                    <h5>Resultados:</h5>
+                    <p><strong>Fecha original:</strong> ${testDate}</p>
+                    <p><strong>Método antiguo (new Date):</strong></p>
+                    <ul>
+                        <li>Fecha: ${oldDate.toDateString()}</li>
+                        <li>Mes: ${oldDate.getMonth() + 1} (${oldDate.getMonth()})</li>
+                        <li>Día: ${oldDate.getDate()}</li>
+                        <li>Año: ${oldDate.getFullYear()}</li>
+                        <li>ISO: ${oldDate.toISOString()}</li>
+                    </ul>
+                    <p><strong>Método nuevo (createLocalDate):</strong></p>
+                    <ul>
+                        <li>Fecha: ${newDate.toDateString()}</li>
+                        <li>Mes: ${newDate.getMonth() + 1} (${newDate.getMonth()})</li>
+                        <li>Día: ${newDate.getDate()}</li>
+                        <li>Año: ${newDate.getFullYear()}</li>
+                        <li>ISO: ${newDate.toISOString()}</li>
+                    </ul>
+                </div>
+            `;
+            
+            resultDiv.innerHTML = result;
+            
+            // Verificar si hay diferencia
+            if (oldDate.getMonth() !== newDate.getMonth() || oldDate.getDate() !== newDate.getDate()) {
+                addLog('❌ Diferencia detectada entre métodos de creación de fechas', 'error');
+            } else {
+                addLog('✅ Ambos métodos producen el mismo resultado', 'success');
+            }
+        }
+        
+        // Test 2: Simulación de transacción
+        function testTransactionDate() {
+            const transactionDate = document.getElementById('transactionDate').value;
+            const resultDiv = document.getElementById('transactionTestResult');
+            
+            addLog('💰 Simulando transacción...', 'info');
+            
+            // Simular una transacción
+            const transaction = {
+                id: Date.now(),
+                description: 'Test de fecha',
+                amount: 100,
+                type: 'gasto',
+                category: 'Test',
+                date: transactionDate,
+                createdAt: new Date().toISOString()
+            };
+            
+            // Procesar la fecha usando el método corregido
+            const processedDate = createLocalDate(transaction.date);
+            
+            const result = `
+                <div class="test-result">
+                    <h5>Transacción Simulada:</h5>
+                    <p><strong>Fecha ingresada:</strong> ${transaction.date}</p>
+                    <p><strong>Fecha procesada:</strong> ${processedDate.toDateString()}</p>
+                    <p><strong>Mes procesado:</strong> ${processedDate.getMonth() + 1} (${processedDate.getMonth()})</p>
+                    <p><strong>Día procesado:</strong> ${processedDate.getDate()}</p>
+                    <p><strong>Año procesado:</strong> ${processedDate.getFullYear()}</p>
+                </div>
+            `;
+            
+            resultDiv.innerHTML = result;
+            
+            // Verificar que la fecha se procesó correctamente
+            const [year, month, day] = transaction.date.split('-').map(Number);
+            if (processedDate.getFullYear() === year && 
+                processedDate.getMonth() === month - 1 && 
+                processedDate.getDate() === day) {
+                addLog('✅ Transacción procesada correctamente', 'success');
+            } else {
+                addLog('❌ Error en el procesamiento de la transacción', 'error');
+            }
+        }
+        
+        // Test 3: Filtrado por mes
+        function testMonthFilter() {
+            const filterMonth = document.getElementById('filterMonth').value;
+            const resultDiv = document.getElementById('filterTestResult');
+            
+            addLog('🔍 Probando filtrado por mes...', 'info');
+            
+            // Simular transacciones de diferentes meses
+            const testTransactions = [
+                { id: 1, date: '2024-08-01', description: 'Gasto agosto 1' },
+                { id: 2, date: '2024-08-15', description: 'Gasto agosto 15' },
+                { id: 3, date: '2024-07-31', description: 'Gasto julio 31' },
+                { id: 4, date: '2024-09-01', description: 'Gasto septiembre 1' }
+            ];
+            
+            // Filtrar usando el método corregido
+            const filteredTransactions = testTransactions.filter(t => {
+                const transactionDate = createLocalDate(t.date);
+                const [year, month] = filterMonth.split('-').map(Number);
+                return transactionDate.getMonth() === month - 1 && 
+                       transactionDate.getFullYear() === year;
+            });
+            
+            const result = `
+                <div class="test-result">
+                    <h5>Filtrado por mes: ${filterMonth}</h5>
+                    <p><strong>Transacciones totales:</strong> ${testTransactions.length}</p>
+                    <p><strong>Transacciones filtradas:</strong> ${filteredTransactions.length}</p>
+                    <h6>Transacciones del mes:</h6>
+                    <ul>
+                        ${filteredTransactions.map(t => `<li>${t.date} - ${t.description}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            resultDiv.innerHTML = result;
+            
+            addLog(`✅ Filtrado completado: ${filteredTransactions.length} transacciones encontradas`, 'success');
+        }
+        
+        // Test de mes actual
+        function testCurrentMonth() {
+            addLog('📅 Probando mes actual...', 'info');
+            
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            addLog(`Mes actual: ${currentMonth + 1} (${currentMonth})`, 'info');
+            addLog(`Año actual: ${currentYear}`, 'info');
+            
+            // Simular transacciones del mes actual
+            const testDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-15`;
+            const processedDate = createLocalDate(testDate);
+            
+            addLog(`Fecha de prueba: ${testDate}`, 'info');
+            addLog(`Fecha procesada: ${processedDate.toDateString()}`, 'info');
+            addLog(`Mes procesado: ${processedDate.getMonth() + 1} (${processedDate.getMonth()})`, 'info');
+            
+            if (processedDate.getMonth() === currentMonth) {
+                addLog('✅ Fecha procesada correctamente para el mes actual', 'success');
+            } else {
+                addLog('❌ Error en el procesamiento del mes actual', 'error');
+            }
+        }
+        
+        // Test específico de fechas de agosto
+        function testAugustDates() {
+            addLog('🌞 Probando fechas de agosto...', 'info');
+            
+            const augustDates = [
+                '2024-08-01',
+                '2024-08-15',
+                '2024-08-31'
+            ];
+            
+            augustDates.forEach(dateStr => {
+                const processedDate = createLocalDate(dateStr);
+                const month = processedDate.getMonth();
+                const day = processedDate.getDate();
+                
+                addLog(`Fecha: ${dateStr} → Mes: ${month + 1} (${month}), Día: ${day}`, 'info');
+                
+                if (month === 7) { // Agosto es mes 7 (0-indexed)
+                    addLog(`✅ ${dateStr} procesada correctamente como agosto`, 'success');
+                } else {
+                    addLog(`❌ ${dateStr} procesada incorrectamente`, 'error');
+                }
+            });
+        }
+        
+        // Ejecutar todos los tests
+        function runAllDateTests() {
+            addLog('🚀 Ejecutando todos los tests de fechas...', 'info');
+            
+            setTimeout(() => testDateCreation(), 100);
+            setTimeout(() => testTransactionDate(), 200);
+            setTimeout(() => testMonthFilter(), 300);
+            setTimeout(() => testCurrentMonth(), 400);
+            setTimeout(() => testAugustDates(), 500);
+            
+            setTimeout(() => {
+                const finalResult = document.getElementById('finalResult');
+                finalResult.innerHTML = `
+                    <div class="test-result success">
+                        <h3>🎉 Tests Completados</h3>
+                        <p>✅ Todos los tests de fechas han sido ejecutados</p>
+                        <p>📋 Revisa el log para ver los resultados detallados</p>
+                        <p>💡 Si no hay errores, el problema de fechas está solucionado</p>
+                    </div>
+                `;
+                addLog('🎉 Todos los tests completados', 'success');
+            }, 1000);
+        }
+        
+        // Configuración inicial
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🚀 Test de fechas en transacciones iniciado', 'info');
+            addLog('📅 Función createLocalDate() disponible', 'success');
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forzar Actualización - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Forzar Actualización Completa - JM Budget</h1>
+        <p>Esta herramienta fuerza la actualización completa del cache y verifica que se cargue la versión correcta del script.</p>
+        
+        <div class="warning">
+            <h3>⚠️ Problema Detectado</h3>
+            <p>Los filtros de fecha siguen sin funcionar correctamente. Esto indica que el navegador está usando una versión cacheada del script.</p>
+        </div>
+        
+        <div class="log" id="log">
+            <p>Iniciando verificación...</p>
+        </div>
+        
+        <div>
+            <button class="btn btn-danger" onclick="forceCompleteUpdate()">🔄 Forzar Actualización Completa</button>
+            <button class="btn btn-warning" onclick="clearAllCaches()">🗑️ Limpiar Todos los Caches</button>
+            <button class="btn btn-success" onclick="verifyScriptVersion()">✅ Verificar Versión del Script</button>
+            <button class="btn" onclick="testFilters()">🧪 Probar Filtros</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        function showResult(content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = type;
+            resultDiv.innerHTML = content;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        // Función para forzar actualización completa
+        async function forceCompleteUpdate() {
+            addLog('🚀 Iniciando actualización completa...', 'warning');
+            clearResults();
+            
+            try {
+                // 1. Limpiar cache del navegador
+                addLog('🗑️ Limpiando cache del navegador...', 'info');
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    addLog(`📊 Encontrados ${cacheNames.length} caches`, 'info');
+                    
+                    for (const cacheName of cacheNames) {
+                        addLog(`🗑️ Eliminando cache: ${cacheName}`, 'info');
+                        await caches.delete(cacheName);
+                    }
+                    addLog('✅ Cache del navegador limpiado', 'success');
+                }
+                
+                // 2. Desregistrar Service Workers
+                addLog('🔧 Desregistrando Service Workers...', 'info');
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    addLog(`📊 Encontrados ${registrations.length} Service Workers`, 'info');
+                    
+                    for (const registration of registrations) {
+                        addLog(`🔧 Desregistrando: ${registration.scope}`, 'info');
+                        await registration.unregister();
+                    }
+                    addLog('✅ Service Workers desregistrados', 'success');
+                }
+                
+                // 3. Limpiar localStorage si es necesario
+                addLog('💾 Verificando localStorage...', 'info');
+                const keysToKeep = ['userData', 'categories', 'transactions', 'bankAccounts'];
+                const allKeys = Object.keys(localStorage);
+                const keysToRemove = allKeys.filter(key => !keysToKeep.includes(key));
+                
+                if (keysToRemove.length > 0) {
+                    addLog(`🗑️ Limpiando ${keysToRemove.length} claves de localStorage`, 'info');
+                    keysToRemove.forEach(key => localStorage.removeItem(key));
+                }
+                
+                // 4. Forzar recarga con parámetros de cache bust
+                addLog('🔄 Forzando recarga con cache bust...', 'warning');
+                const timestamp = new Date().getTime();
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('v', timestamp);
+                currentUrl.searchParams.set('cache_bust', 'true');
+                
+                showResult(`
+                    <h3>🔄 Actualización Completa Realizada</h3>
+                    <p><strong>Timestamp:</strong> ${timestamp}</p>
+                    <p><strong>URL de recarga:</strong> ${currentUrl.toString()}</p>
+                    <p>La página se recargará automáticamente en 3 segundos...</p>
+                `, 'success');
+                
+                addLog('⏰ Esperando 3 segundos antes de recargar...', 'info');
+                setTimeout(() => {
+                    window.location.href = currentUrl.toString();
+                }, 3000);
+                
+            } catch (error) {
+                addLog(`❌ Error durante la actualización: ${error.message}`, 'error');
+                showResult(`
+                    <h3>❌ Error en la Actualización</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Intenta recargar manualmente con Ctrl+Shift+R</p>
+                `, 'error');
+            }
+        }
+        
+        // Función para limpiar todos los caches
+        async function clearAllCaches() {
+            addLog('🗑️ Limpiando todos los caches...', 'warning');
+            clearResults();
+            
+            try {
+                // Cache API
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    for (const cacheName of cacheNames) {
+                        await caches.delete(cacheName);
+                        addLog(`🗑️ Cache eliminado: ${cacheName}`, 'info');
+                    }
+                }
+                
+                // IndexedDB
+                if ('indexedDB' in window) {
+                    const databases = await indexedDB.databases();
+                    for (const db of databases) {
+                        indexedDB.deleteDatabase(db.name);
+                        addLog(`🗑️ IndexedDB eliminado: ${db.name}`, 'info');
+                    }
+                }
+                
+                // Session Storage
+                sessionStorage.clear();
+                addLog('🗑️ SessionStorage limpiado', 'info');
+                
+                showResult(`
+                    <h3>✅ Caches Limpiados</h3>
+                    <p>Todos los caches han sido eliminados exitosamente.</p>
+                    <p>Recarga la página para aplicar los cambios.</p>
+                `, 'success');
+                
+            } catch (error) {
+                addLog(`❌ Error limpiando caches: ${error.message}`, 'error');
+                showResult(`
+                    <h3>❌ Error Limpiando Caches</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+        
+        // Función para verificar versión del script
+        function verifyScriptVersion() {
+            addLog('🔍 Verificando versión del script...', 'info');
+            clearResults();
+            
+            const scripts = document.querySelectorAll('script[src*="script.js"]');
+            let scriptInfo = '<h3>📄 Scripts Encontrados</h3>';
+            
+            scripts.forEach((script, index) => {
+                const src = script.src;
+                const hasVersion = src.includes('?v=');
+                const version = hasVersion ? src.split('?v=')[1] : 'Sin versión';
+                
+                scriptInfo += `
+                    <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <strong>Script ${index + 1}:</strong><br>
+                        <strong>URL:</strong> ${src}<br>
+                        <strong>Versión:</strong> ${version}<br>
+                        <strong>Estado:</strong> ${hasVersion ? '✅ Con versión' : '❌ Sin versión'}
+                    </div>
+                `;
+                
+                addLog(`📄 Script ${index + 1}: ${src}`, 'info');
+            });
+            
+            // Verificar si las funciones corregidas están disponibles
+            const functionsToCheck = [
+                'createLocalDate',
+                'filterTransactions',
+                'updateMonthlySummary'
+            ];
+            
+            scriptInfo += '<h3>🔧 Verificación de Funciones</h3>';
+            functionsToCheck.forEach(funcName => {
+                const isAvailable = typeof window[funcName] === 'function';
+                scriptInfo += `
+                    <div style="margin: 5px 0;">
+                        <strong>${funcName}:</strong> ${isAvailable ? '✅ Disponible' : '❌ No disponible'}
+                    </div>
+                `;
+                addLog(`🔧 ${funcName}: ${isAvailable ? 'Disponible' : 'No disponible'}`, isAvailable ? 'success' : 'error');
+            });
+            
+            showResult(scriptInfo, 'info');
+        }
+        
+        // Función para probar filtros
+        function testFilters() {
+            addLog('🧪 Probando filtros...', 'info');
+            clearResults();
+            
+            // Datos de prueba
+            const testTransactions = [
+                { description: 'Test Agosto', date: '2025-08-02', amount: -100 },
+                { description: 'Test Julio', date: '2025-07-15', amount: -200 },
+                { description: 'Test Junio', date: '2025-06-20', amount: -300 }
+            ];
+            
+            // Función createLocalDate (copiada del script principal)
+            function createLocalDate(dateString) {
+                if (typeof dateString === 'string' && dateString.includes('-')) {
+                    const [year, month, day] = dateString.split('-').map(Number);
+                    return new Date(year, month - 1, day);
+                } else {
+                    return new Date(dateString);
+                }
+            }
+            
+            let testResults = '<h3>🧪 Test de Filtros</h3>';
+            
+            // Probar filtros
+            const testFilters = ['2025-08', '2025-07', '2025-06'];
+            
+            testFilters.forEach(filter => {
+                const filterYear = parseInt(filter.split('-')[0]);
+                const filterMonth = parseInt(filter.split('-')[1]) - 1;
+                
+                const filtered = testTransactions.filter(t => {
+                    const transactionDate = createLocalDate(t.date);
+                    return transactionDate.getFullYear() === filterYear && 
+                           transactionDate.getMonth() === filterMonth;
+                });
+                
+                testResults += `
+                    <div style="margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <strong>Filtro ${filter}:</strong> ${filtered.length} transacciones<br>
+                        <strong>Transacciones:</strong> ${filtered.map(t => t.description).join(', ') || 'Ninguna'}
+                    </div>
+                `;
+                
+                addLog(`🧪 Filtro ${filter}: ${filtered.length} transacciones`, 'info');
+            });
+            
+            showResult(testResults, 'info');
+        }
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🚀 Herramienta de actualización iniciada', 'success');
+            addLog('📊 URL actual: ' + window.location.href, 'info');
+            addLog('🔍 Verificando scripts cargados...', 'info');
+            
+            // Verificar automáticamente la versión del script
+            setTimeout(() => {
+                verifyScriptVersion();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 
