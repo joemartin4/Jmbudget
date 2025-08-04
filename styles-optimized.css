@@ -1301,4 +1301,185 @@ body {
         align-items: flex-start;
         gap: var(--spacing-xs);
     }
+}
+
+/* ===== ESTILOS PARA TABLAS DE TRANSACCIONES ===== */
+
+.transaction-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.transaction-table thead {
+    background: var(--primary-color);
+    color: var(--text-inverse);
+}
+
+.transaction-table th {
+    padding: var(--spacing-md);
+    text-align: left;
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.transaction-table tbody tr {
+    border-bottom: 1px solid var(--border-light);
+    transition: background-color var(--transition-fast);
+}
+
+.transaction-table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+.transaction-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.transaction-table td {
+    padding: var(--spacing-md);
+    vertical-align: top;
+}
+
+.transaction-date {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    width: 100px;
+}
+
+.transaction-detail {
+    min-width: 200px;
+}
+
+.transaction-detail strong {
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    display: block;
+    margin-bottom: var(--spacing-xs);
+}
+
+.transaction-detail small {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+}
+
+.transaction-detail .transaction-comment {
+    color: var(--info-color);
+    font-style: italic;
+}
+
+.transaction-amount {
+    font-weight: 600;
+    font-size: var(--font-size-base);
+    text-align: right;
+    white-space: nowrap;
+    width: 120px;
+}
+
+.transaction-amount.income {
+    color: var(--success-color);
+}
+
+.transaction-amount.expense {
+    color: var(--danger-color);
+}
+
+.transaction-actions {
+    text-align: center;
+    width: 80px;
+}
+
+.transaction-actions .btn-icon {
+    margin: 0 var(--spacing-xs);
+    padding: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+}
+
+/* Responsive para tablas */
+@media (max-width: 768px) {
+    .transaction-table {
+        font-size: var(--font-size-sm);
+    }
+    
+    .transaction-table th,
+    .transaction-table td {
+        padding: var(--spacing-sm);
+    }
+    
+    .transaction-date {
+        width: 80px;
+    }
+    
+    .transaction-amount {
+        width: 100px;
+    }
+    
+    .transaction-actions {
+        width: 60px;
+    }
+    
+    .transaction-actions .btn-icon {
+        margin: 0 2px;
+        padding: 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .transaction-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .transaction-table thead,
+    .transaction-table tbody,
+    .transaction-table tr,
+    .transaction-table th,
+    .transaction-table td {
+        display: block;
+    }
+    
+    .transaction-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+    
+    .transaction-table tr {
+        border: 1px solid var(--border-color);
+        margin-bottom: var(--spacing-sm);
+        border-radius: var(--border-radius-md);
+        background: var(--bg-card);
+    }
+    
+    .transaction-table td {
+        border: none;
+        position: relative;
+        padding-left: 50%;
+        text-align: left;
+    }
+    
+    .transaction-table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: var(--spacing-sm);
+        width: 45%;
+        padding-right: var(--spacing-sm);
+        white-space: nowrap;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+    
+    .transaction-date:before { content: "Fecha: "; }
+    .transaction-detail:before { content: "Detalle: "; }
+    .transaction-amount:before { content: "Monto: "; }
+    .transaction-actions:before { content: "Acciones: "; }
 } 

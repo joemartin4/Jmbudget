@@ -3971,45 +3971,44 @@ function updateGastosIngresosDisplay(transactionsToShow = null) {
     console.log('Transferencias encontradas:', transferencias.length);
     console.log('Pagos de tarjetas encontrados:', pagosTarjetas.length);
     
-    // Mostrar gastos
-    if (gastos.length === 0) {
-        gastosContainer.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No hay gastos registrados.</p>';
-    } else {
-        gastos.forEach(transaction => {
-            const transactionItem = createTransactionItem(transaction);
-            gastosContainer.appendChild(transactionItem);
+    // Función para crear tabla de transacciones
+    function createTransactionTable(transactions, container) {
+        if (transactions.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No hay transacciones registradas.</p>';
+            return;
+        }
+        
+        const table = document.createElement('table');
+        table.className = 'transaction-table';
+        
+        // Crear encabezado de tabla
+        const thead = document.createElement('thead');
+        thead.innerHTML = `
+            <tr>
+                <th>Fecha</th>
+                <th>Detalle</th>
+                <th>Monto</th>
+                <th>Acciones</th>
+            </tr>
+        `;
+        table.appendChild(thead);
+        
+        // Crear cuerpo de tabla
+        const tbody = document.createElement('tbody');
+        transactions.forEach(transaction => {
+            const row = createTransactionTableRow(transaction);
+            tbody.appendChild(row);
         });
+        table.appendChild(tbody);
+        
+        container.appendChild(table);
     }
     
-    // Mostrar ingresos
-    if (ingresos.length === 0) {
-        ingresosContainer.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No hay ingresos registrados.</p>';
-    } else {
-        ingresos.forEach(transaction => {
-            const transactionItem = createTransactionItem(transaction);
-            ingresosContainer.appendChild(transactionItem);
-        });
-    }
-    
-    // Mostrar transferencias
-    if (transferencias.length === 0) {
-        transferenciasContainer.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No hay transferencias registradas.</p>';
-    } else {
-        transferencias.forEach(transaction => {
-            const transactionItem = createTransactionItem(transaction);
-            transferenciasContainer.appendChild(transactionItem);
-        });
-    }
-    
-    // Mostrar pagos de tarjetas
-    if (pagosTarjetas.length === 0) {
-        pagosTarjetasContainer.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No hay pagos de tarjetas registrados.</p>';
-    } else {
-        pagosTarjetas.forEach(transaction => {
-            const transactionItem = createTransactionItem(transaction);
-            pagosTarjetasContainer.appendChild(transactionItem);
-        });
-    }
+    // Crear tablas para cada tipo de transacción
+    createTransactionTable(gastos, gastosContainer);
+    createTransactionTable(ingresos, ingresosContainer);
+    createTransactionTable(transferencias, transferenciasContainer);
+    createTransactionTable(pagosTarjetas, pagosTarjetasContainer);
     
     console.log('Visualización de transacciones actualizada');
 }
@@ -4114,6 +4113,108 @@ function createTransactionItem(transaction) {
         deleteTransaction(transactionId);
     });
     return transactionItem;
+}
+
+function createTransactionTableRow(transaction) {
+    const row = document.createElement('tr');
+    row.className = 'transaction-row';
+    const date = createLocalDate(transaction.date).toLocaleDateString('es-ES');
+    
+    // Corregir la lógica del signo para transferencias
+    let amountClass, amountPrefix;
+    if (transaction.type === 'transferencia') {
+        // Para transferencias, usar el signo basado en el monto real
+        amountClass = transaction.amount >= 0 ? 'income' : 'expense';
+        amountPrefix = transaction.amount >= 0 ? '+' : '-';
+    } else {
+        // Para transacciones normales, usar la lógica original
+        amountClass = transaction.type === 'ingreso' ? 'income' : 'expense';
+        amountPrefix = transaction.type === 'ingreso' ? '+' : '-';
+    }
+    
+    // Información de cuenta bancaria
+    let accountInfo = '';
+    if (transaction.accountId) {
+        const accountName = getAccountName(transaction.accountId);
+        accountInfo = `<br><small><i class="fas fa-university"></i> ${accountName}</small>`;
+    }
+    
+    // Información de transferencia
+    let transferInfo = '';
+    if (transaction.type === 'transferencia') {
+        if (transaction.transferToAccountId) {
+            const toAccountName = getAccountName(transaction.transferToAccountId);
+            transferInfo = `<br><small><i class="fas fa-exchange-alt"></i> → ${toAccountName}</small>`;
+        } else if (transaction.transferFromAccountId) {
+            const fromAccountName = getAccountName(transaction.transferFromAccountId);
+            transferInfo = `<br><small><i class="fas fa-exchange-alt"></i> ← ${fromAccountName}</small>`;
+        }
+    }
+    
+    // Información de pago de tarjeta
+    let pagoTarjetaInfo = '';
+    if (transaction.type === 'pago-tarjeta') {
+        if (transaction.tarjetaDestinoId) {
+            const tarjetaName = getAccountName(transaction.tarjetaDestinoId);
+            pagoTarjetaInfo = `<br><small><i class="fas fa-credit-card"></i> → ${tarjetaName}</small>`;
+        } else if (transaction.cuentaOrigenId) {
+            const cuentaName = getAccountName(transaction.cuentaOrigenId);
+            pagoTarjetaInfo = `<br><small><i class="fas fa-credit-card"></i> ← ${cuentaName}</small>`;
+        }
+    }
+    
+    // Información de conversión de moneda
+    let currencyInfo = '';
+    if (transaction.originalCurrency && transaction.originalCurrency !== 'DOP' && transaction.originalAmount) {
+        currencyInfo = `<br><small><i class="fas fa-exchange-alt"></i> ${formatCurrency(transaction.originalAmount, transaction.originalCurrency)} → ${formatCurrency(transaction.amount)}</small>`;
+    }
+    
+    // Comentario si existe
+    let commentInfo = '';
+    if (transaction.comment) {
+        commentInfo = `<br><small class="transaction-comment">💬 ${transaction.comment}</small>`;
+    }
+    
+    row.innerHTML = `
+        <td class="transaction-date">${date}</td>
+        <td class="transaction-detail">
+            <strong>${transaction.description}</strong>
+            <br><small>${transaction.category}</small>
+            ${accountInfo}
+            ${transferInfo}
+            ${pagoTarjetaInfo}
+            ${currencyInfo}
+            ${commentInfo}
+        </td>
+        <td class="transaction-amount ${amountClass}">
+            ${amountPrefix}${formatCurrency(Math.abs(transaction.amount))}
+        </td>
+        <td class="transaction-actions">
+            <button class="btn-icon edit-transaction" data-id="${transaction.id}" title="Editar transacción">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-icon delete-transaction" data-id="${transaction.id}" title="Eliminar transacción">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    `;
+    
+    // Event listeners para editar/eliminar
+    row.querySelector('.edit-transaction').addEventListener('click', (e) => {
+        const rawId = e.currentTarget.dataset.id;
+        const transactionId = Number(rawId);
+        console.log('🔄 Intentando editar transacción:', { rawId, transactionId, type: typeof transactionId });
+        editTransaction(transactionId);
+    });
+    
+    row.querySelector('.delete-transaction').addEventListener('click', (e) => {
+        const rawId = e.currentTarget.dataset.id;
+        const transactionId = Number(rawId);
+        console.log('🗑️ Intentando eliminar transacción:', { rawId, transactionId, type: typeof transactionId });
+        deleteTransaction(transactionId);
+    });
+    
+    return row;
 }
 
 // Cache para transacciones filtradas
