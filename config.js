@@ -1,9 +1,9 @@
-// Configuración centralizada de JM Budget
+// Configuración centralizada de JM Budget - Versión Optimizada para Usuario Final
 window.JMBudgetConfig = {
     // Configuración de la aplicación
     app: {
         name: 'JM Budget',
-        version: '2.0.0',
+        version: '2.0.4',
         description: 'Gestión de Presupuesto Familiar',
         defaultCurrency: 'DOP',
         supportedCurrencies: ['DOP', 'USD', 'EUR', 'MXN', 'COP', 'ARS', 'CLP', 'PEN'],
@@ -19,57 +19,66 @@ window.JMBudgetConfig = {
         }
     },
 
-    // Configuración de desarrollo
+    // Configuración de desarrollo (automática)
     development: {
         enabled: window.location.hostname === 'localhost' || 
                 window.location.hostname === '127.0.0.1' ||
                 window.location.hostname.includes('localhost'),
-        debugLogs: true,
+        debugLogs: false, // Deshabilitado para usuario final
         autoRefresh: false
     },
 
-    // Configuración de almacenamiento
+    // Configuración de almacenamiento optimizada
     storage: {
         prefix: 'jmBudget_',
         encryption: true,
         compression: true,
-        maxCacheSize: 50 * 1024 * 1024 // 50MB
+        maxCacheSize: 50 * 1024 * 1024, // 50MB
+        autoCleanup: true, // Limpieza automática de datos antiguos
+        backupInterval: 24 * 60 * 60 * 1000 // Backup automático cada 24 horas
     },
 
-    // Configuración de sincronización
+    // Configuración de sincronización mejorada
     sync: {
         autoSync: true,
         syncInterval: 5 * 60 * 1000, // 5 minutos
         conflictResolution: 'smart-merge',
         maxRetries: 3,
-        timeout: 30000
+        timeout: 30000,
+        offlineMode: true // Funciona sin conexión
     },
 
-    // Configuración de notificaciones
+    // Configuración de notificaciones optimizada
     notifications: {
         enabled: true,
         position: 'top-right',
         duration: 5000,
-        maxNotifications: 5
+        maxNotifications: 5,
+        soundEnabled: false, // Deshabilitado por defecto
+        budgetAlerts: true,
+        recurringReminders: true
     },
 
-    // Configuración de temas
+    // Configuración de temas mejorada
     themes: {
-        default: 'light',
+        default: 'auto', // Auto-detecta preferencia del sistema
         autoDetect: true,
-        transition: true
+        transition: true,
+        highContrast: false
     },
 
-    // Configuración de rendimiento
+    // Configuración de rendimiento optimizada
     performance: {
         debounceDelay: 300,
         throttleDelay: 100,
         maxChartDataPoints: 100,
         lazyLoading: true,
-        virtualScrolling: true
+        virtualScrolling: true,
+        imageOptimization: true,
+        cacheStrategy: 'aggressive'
     },
 
-    // Configuración de validación
+    // Configuración de validación mejorada
     validation: {
         email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
         password: {
@@ -78,10 +87,14 @@ window.JMBudgetConfig = {
             requireLowercase: true,
             requireNumbers: true,
             requireSpecialChars: false
+        },
+        amount: {
+            maxDecimals: 2,
+            allowNegative: true
         }
     },
 
-    // Configuración de categorías por defecto
+    // Configuración de categorías por defecto optimizada
     defaultCategories: {
         'Alimentación y Bebidas': {
             color: '#FF6B6B',
@@ -101,128 +114,153 @@ window.JMBudgetConfig = {
         'Salud': {
             color: '#96CEB4',
             icon: 'fas fa-heartbeat',
-            subcategories: ['Médicos', 'Medicamentos', 'Seguro médico', 'Gimnasio']
-        },
-        'Entretenimiento': {
-            color: '#FFEAA7',
-            icon: 'fas fa-gamepad',
-            subcategories: ['Cine', 'Eventos', 'Hobbies', 'Deportes']
+            subcategories: ['Médico', 'Farmacia', 'Seguro médico', 'Gimnasio']
         },
         'Educación': {
-            color: '#DDA0DD',
+            color: '#FFEAA7',
             icon: 'fas fa-graduation-cap',
             subcategories: ['Matrícula', 'Libros', 'Cursos', 'Material escolar']
         },
+        'Entretenimiento': {
+            color: '#DDA0DD',
+            icon: 'fas fa-film',
+            subcategories: ['Cine', 'Conciertos', 'Videojuegos', 'Hobbies']
+        },
         'Ropa y Accesorios': {
-            color: '#FFB6C1',
+            color: '#98D8C8',
             icon: 'fas fa-tshirt',
             subcategories: ['Ropa', 'Zapatos', 'Accesorios', 'Cosméticos']
         },
-        'Tecnología': {
-            color: '#87CEEB',
-            icon: 'fas fa-laptop',
-            subcategories: ['Electrónicos', 'Software', 'Internet', 'Reparaciones']
-        },
-        'Ahorros e Inversiones': {
-            color: '#98FB98',
-            icon: 'fas fa-piggy-bank',
-            subcategories: ['Ahorros', 'Inversiones', 'Fondos de emergencia']
+        'Servicios Financieros': {
+            color: '#F7DC6F',
+            icon: 'fas fa-university',
+            subcategories: ['Comisiones bancarias', 'Seguros', 'Inversiones', 'Préstamos']
         },
         'Otros': {
-            color: '#D3D3D3',
+            color: '#BDC3C7',
             icon: 'fas fa-ellipsis-h',
-            subcategories: ['Gastos varios', 'Regalos', 'Donaciones']
+            subcategories: ['Gastos varios', 'Regalos', 'Donaciones', 'Emergencias']
         }
     },
 
-    // Configuración de tipos de cuenta bancaria
-    accountTypes: {
-        checking: {
-            name: 'Cuenta Corriente',
-            icon: 'fas fa-university',
-            color: '#007aff'
-        },
-        savings: {
-            name: 'Cuenta de Ahorros',
-            icon: 'fas fa-piggy-bank',
-            color: '#34c759'
-        },
-        credit: {
-            name: 'Tarjeta de Crédito',
-            icon: 'fas fa-credit-card',
-            color: '#ff9500'
-        },
-        investment: {
-            name: 'Cuenta de Inversión',
-            icon: 'fas fa-chart-line',
-            color: '#5856d6'
-        }
+    // Configuración de seguridad
+    security: {
+        sessionTimeout: 24 * 60 * 60 * 1000, // 24 horas
+        maxLoginAttempts: 5,
+        passwordExpiry: 90 * 24 * 60 * 60 * 1000, // 90 días
+        dataEncryption: true,
+        secureStorage: true
     },
 
-    // Configuración de estados de cuenta
-    accountStatus: {
-        active: {
-            name: 'Activa',
-            color: '#28a745'
-        },
-        inactive: {
-            name: 'Inactiva',
-            color: '#6c757d'
-        },
-        suspended: {
-            name: 'Suspendida',
-            color: '#ffc107'
-        },
-        closed: {
-            name: 'Cerrada',
-            color: '#dc3545'
-        }
+    // Configuración de accesibilidad
+    accessibility: {
+        highContrast: false,
+        largeText: false,
+        screenReader: true,
+        keyboardNavigation: true,
+        focusIndicators: true
+    },
+
+    // Configuración de exportación
+    export: {
+        formats: ['csv', 'json', 'pdf'],
+        includeCharts: true,
+        includeMetadata: true,
+        compression: true
+    },
+
+    // Configuración de importación
+    import: {
+        maxFileSize: 10 * 1024 * 1024, // 10MB
+        supportedFormats: ['csv', 'json', 'xlsx'],
+        autoValidation: true,
+        backupBeforeImport: true
+    },
+
+    // Configuración de reportes
+    reports: {
+        defaultPeriod: 'current-month',
+        chartTypes: ['pie', 'bar', 'line', 'doughnut'],
+        autoGenerate: true,
+        includeTrends: true
+    },
+
+    // Configuración de metas financieras
+    goals: {
+        maxGoals: 10,
+        reminderFrequency: 'weekly',
+        progressTracking: true,
+        milestoneAlerts: true
+    },
+
+    // Configuración de cuentas bancarias
+    accounts: {
+        maxAccounts: 20,
+        autoReconciliation: true,
+        transactionMatching: true,
+        balanceAlerts: true
     }
 };
 
-// Configuración global
-window.isDevelopment = JMBudgetConfig.development.enabled;
-window.DEFAULT_CURRENCY = JMBudgetConfig.app.defaultCurrency;
-window.EXCHANGE_RATES = JMBudgetConfig.app.exchangeRates;
-
-// Configuración de Chart.js
-window.chartConfig = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: {
-            position: 'bottom',
-            labels: {
-                usePointStyle: true,
-                padding: 20,
-                font: {
-                    size: 12
-                }
-            }
-        },
-        tooltip: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            titleColor: '#fff',
-            bodyColor: '#fff',
-            borderColor: '#007aff',
-            borderWidth: 1,
-            cornerRadius: 8,
-            displayColors: true
+// Función para obtener configuración según el entorno
+function getConfig(key) {
+    const keys = key.split('.');
+    let value = window.JMBudgetConfig;
+    
+    for (const k of keys) {
+        if (value && typeof value === 'object' && k in value) {
+            value = value[k];
+        } else {
+            return null;
         }
     }
-};
+    
+    return value;
+}
 
-// Configuración de colores para gráficos
-window.chartColors = {
-    primary: '#007aff',
-    secondary: '#34c759',
-    warning: '#ff9500',
-    danger: '#ff3b30',
-    info: '#5856d6',
-    light: '#8e8e93',
-    dark: '#1c1c1e',
-    success: '#28a745',
-    muted: '#6c757d'
-};
+// Función para actualizar configuración
+function updateConfig(key, value) {
+    const keys = key.split('.');
+    let config = window.JMBudgetConfig;
+    
+    for (let i = 0; i < keys.length - 1; i++) {
+        if (!(keys[i] in config)) {
+            config[keys[i]] = {};
+        }
+        config = config[keys[i]];
+    }
+    
+    config[keys[keys.length - 1]] = value;
+    
+    // Guardar en localStorage
+    localStorage.setItem('jmBudget_config', JSON.stringify(window.JMBudgetConfig));
+}
 
-console.log('✅ Configuración de JM Budget cargada correctamente'); 
+// Función para cargar configuración personalizada
+function loadCustomConfig() {
+    const savedConfig = localStorage.getItem('jmBudget_config');
+    if (savedConfig) {
+        try {
+            const customConfig = JSON.parse(savedConfig);
+            Object.assign(window.JMBudgetConfig, customConfig);
+        } catch (error) {
+            console.warn('Error al cargar configuración personalizada:', error);
+        }
+    }
+}
+
+// Función para resetear configuración
+function resetConfig() {
+    localStorage.removeItem('jmBudget_config');
+    window.location.reload();
+}
+
+// Cargar configuración personalizada al iniciar
+loadCustomConfig();
+
+// Exportar funciones para uso global
+window.getConfig = getConfig;
+window.updateConfig = updateConfig;
+window.resetConfig = resetConfig;
+
+console.log('✅ Configuración JM Budget cargada - Versión', window.JMBudgetConfig.app.version); 

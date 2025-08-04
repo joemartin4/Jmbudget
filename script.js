@@ -2320,54 +2320,60 @@ function setupEventListeners() {
         resetCategoriesBtn.addEventListener('click', resetToDefaultCategories);
     }
     
-    // Botones de depuración (solo para desarrollo)
-    const debugTransactionsBtn = document.getElementById('debugTransactionsBtn');
-    const resetTransactionsBtn = document.getElementById('resetTransactionsBtn');
-    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    // Herramientas de desarrollo (solo visibles en modo desarrollo)
+    const isDevelopment = window.location.hostname === 'localhost' || 
+                         window.location.hostname === '127.0.0.1' ||
+                         window.location.hostname.includes('localhost');
     
-    if (debugTransactionsBtn) {
-        debugTransactionsBtn.addEventListener('click', debugTransactions);
-    }
-    
-    if (resetTransactionsBtn) {
-        resetTransactionsBtn.addEventListener('click', resetTransactionData);
-    }
-    
-    if (clearCacheBtn) {
-        clearCacheBtn.addEventListener('click', () => {
-            if (window.clearAppCache) {
-                window.clearAppCache();
-            } else {
-                console.log('Función clearAppCache no disponible');
-                // Fallback: recargar la página
-                window.location.reload();
-            }
-        });
-    }
-    
-    // Botón para arreglar cuentas duplicadas
-    const fixDuplicateAccountsBtn = document.getElementById('fixDuplicateAccountsBtn');
-    if (fixDuplicateAccountsBtn) {
-        fixDuplicateAccountsBtn.addEventListener('click', () => {
-            const beforeCount = bankAccounts.length;
-            const removedCount = removeDuplicateAccounts();
-            
-            if (removedCount > 0) {
-                updateBankAccountsDisplay();
-                updateAccountSummary();
-                showNotification(`${removedCount} cuentas duplicadas eliminadas`, 'success');
-            } else {
-                showNotification('No se encontraron cuentas duplicadas', 'info');
-            }
-        });
-    }
-    
-    // Botón para limpiar transferencias duplicadas
-    const fixDuplicateTransferenciasBtn = document.getElementById('fixDuplicateTransferenciasBtn');
-    if (fixDuplicateTransferenciasBtn) {
-        fixDuplicateTransferenciasBtn.addEventListener('click', () => {
-            cleanDuplicateTransferencias();
-        });
+    if (isDevelopment) {
+        // Mostrar herramientas de desarrollo
+        const developmentTools = document.querySelector('.development-tools');
+        if (developmentTools) {
+            developmentTools.style.display = 'block';
+        }
+        
+        // Configurar botones de desarrollo
+        const debugTransactionsBtn = document.getElementById('debugTransactionsBtn');
+        const resetTransactionsBtn = document.getElementById('resetTransactionsBtn');
+        const clearCacheBtn = document.getElementById('clearCacheBtn');
+        const fixDuplicateAccountsBtn = document.getElementById('fixDuplicateAccountsBtn');
+        const fixDuplicateTransferenciasBtn = document.getElementById('fixDuplicateTransferenciasBtn');
+        
+        if (debugTransactionsBtn) {
+            debugTransactionsBtn.addEventListener('click', debugTransactions);
+        }
+        
+        if (resetTransactionsBtn) {
+            resetTransactionsBtn.addEventListener('click', resetTransactionData);
+        }
+        
+        if (clearCacheBtn) {
+            clearCacheBtn.addEventListener('click', () => {
+                if (window.clearAppCache) {
+                    window.clearAppCache();
+                } else {
+                    console.log('Función clearAppCache no disponible');
+                    window.location.reload();
+                }
+            });
+        }
+        
+        if (fixDuplicateAccountsBtn) {
+            fixDuplicateAccountsBtn.addEventListener('click', () => {
+                const removedCount = removeDuplicateAccounts();
+                if (removedCount > 0) {
+                    updateBankAccountsDisplay();
+                    updateAccountSummary();
+                    showNotification(`${removedCount} cuentas duplicadas eliminadas`, 'success');
+                } else {
+                    showNotification('No se encontraron cuentas duplicadas', 'info');
+                }
+            });
+        }
+        
+        if (fixDuplicateTransferenciasBtn) {
+            fixDuplicateTransferenciasBtn.addEventListener('click', cleanDuplicateTransferencias);
+        }
     }
     
     // Nota: El botón de sincronización en la nube fue movido al menú agrupado
@@ -2477,23 +2483,7 @@ function setupEventListeners() {
         });
     }
     
-    // Botón para mostrar/ocultar herramientas avanzadas
-    const showAdvancedToolsBtn = document.getElementById('showAdvancedToolsBtn');
-    const advancedToolsGroup = document.getElementById('advancedToolsGroup');
-    
-    if (showAdvancedToolsBtn && advancedToolsGroup) {
-        showAdvancedToolsBtn.addEventListener('click', () => {
-            const isVisible = advancedToolsGroup.style.display !== 'none';
-            
-            if (isVisible) {
-                advancedToolsGroup.style.display = 'none';
-                showAdvancedToolsBtn.innerHTML = '<i class="fas fa-cog"></i><span>Mostrar Herramientas Avanzadas</span>';
-            } else {
-                advancedToolsGroup.style.display = 'block';
-                showAdvancedToolsBtn.innerHTML = '<i class="fas fa-times"></i><span>Ocultar Herramientas Avanzadas</span>';
-            }
-        });
-    }
+
     
     // Menú desplegable
     const menuBtn = document.getElementById('menuBtn');
