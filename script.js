@@ -10692,3 +10692,329 @@ function initializeOptimizations() {
     
     console.log('✅ Optimizaciones inicializadas');
 }
+
+// Funciones para el perfil de usuario
+function openUserProfile() {
+    loadUserProfileData();
+    openModal('userProfileModal');
+}
+
+function switchProfileTab(tabName) {
+    // Ocultar todas las pestañas
+    const tabContents = document.querySelectorAll('.profile-tab-content');
+    tabContents.forEach(content => content.classList.remove('active'));
+    
+    // Desactivar todos los botones de pestaña
+    const tabButtons = document.querySelectorAll('.profile-tab-btn');
+    tabButtons.forEach(btn => btn.classList.remove('active'));
+    
+    // Mostrar la pestaña seleccionada
+    const selectedTab = document.getElementById(`profile-${tabName}-tab`);
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+    
+    // Activar el botón correspondiente
+    const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
+    if (selectedButton) {
+        selectedButton.classList.add('active');
+    }
+    
+    // Cargar datos específicos de la pestaña
+    if (tabName === 'about') {
+        loadSystemInfo();
+        loadDataInfo();
+    }
+}
+
+function loadUserProfileData() {
+    const userData = JSON.parse(localStorage.getItem('userProfile')) || {};
+    const currentUser = localStorage.getItem('currentUser') || 'Usuario';
+    
+    // Cargar información personal
+    document.getElementById('userFirstName').value = userData.firstName || '';
+    document.getElementById('userLastName').value = userData.lastName || '';
+    document.getElementById('userEmail').value = currentUser;
+    document.getElementById('userPhone').value = userData.phone || '';
+    document.getElementById('userCurrency').value = userData.currency || 'DOP';
+    document.getElementById('userTimezone').value = userData.timezone || 'America/Santo_Domingo';
+    
+    // Cargar preferencias
+    document.getElementById('userTheme').value = userData.theme || 'auto';
+    document.getElementById('userLanguage').value = userData.language || 'es';
+    document.getElementById('emailNotifications').checked = userData.emailNotifications !== false;
+    document.getElementById('pushNotifications').checked = userData.pushNotifications !== false;
+    document.getElementById('budgetAlerts').checked = userData.budgetAlerts !== false;
+    document.getElementById('goalReminders').checked = userData.goalReminders !== false;
+    document.getElementById('dataAnalytics').checked = userData.dataAnalytics !== false;
+    document.getElementById('autoBackup').checked = userData.autoBackup !== false;
+    
+    // Cargar opciones de seguridad
+    document.getElementById('sessionTimeout').checked = userData.sessionTimeout !== false;
+    document.getElementById('enableTwoFactor').checked = userData.twoFactor || false;
+    
+    // Configurar validación de contraseña
+    setupPasswordValidation();
+}
+
+function setupPasswordValidation() {
+    const newPasswordInput = document.getElementById('newPassword');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const strengthFill = document.getElementById('strengthFill');
+    const strengthText = document.getElementById('strengthText');
+    
+    if (newPasswordInput && strengthFill && strengthText) {
+        newPasswordInput.addEventListener('input', function() {
+            const password = this.value;
+            const strength = calculatePasswordStrength(password);
+            updatePasswordStrength(strengthFill, strengthText, strength);
+        });
+    }
+    
+    if (confirmPasswordInput && newPasswordInput) {
+        confirmPasswordInput.addEventListener('input', function() {
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = this.value;
+            
+            if (newPassword && confirmPassword) {
+                if (newPassword === confirmPassword) {
+                    this.style.borderColor = 'var(--success-color)';
+                } else {
+                    this.style.borderColor = 'var(--danger-color)';
+                }
+            } else {
+                this.style.borderColor = 'var(--border-color)';
+            }
+        });
+    }
+}
+
+function updatePasswordStrength(strengthFill, strengthText, strength) {
+    strengthFill.className = 'strength-fill';
+    strengthFill.classList.add(strength.level);
+    
+    switch (strength.level) {
+        case 'weak':
+            strengthText.textContent = 'Débil';
+            strengthText.style.color = 'var(--danger-color)';
+            break;
+        case 'fair':
+            strengthText.textContent = 'Regular';
+            strengthText.style.color = 'var(--warning-color)';
+            break;
+        case 'good':
+            strengthText.textContent = 'Buena';
+            strengthText.style.color = 'var(--info-color)';
+            break;
+        case 'strong':
+            strengthText.textContent = 'Fuerte';
+            strengthText.style.color = 'var(--success-color)';
+            break;
+    }
+}
+
+function loadSystemInfo() {
+    // Información del navegador
+    const userAgent = navigator.userAgent;
+    let browserName = 'Navegador desconocido';
+    let osName = 'Sistema operativo desconocido';
+    
+    // Detectar navegador
+    if (userAgent.includes('Chrome')) browserName = 'Google Chrome';
+    else if (userAgent.includes('Firefox')) browserName = 'Mozilla Firefox';
+    else if (userAgent.includes('Safari')) browserName = 'Safari';
+    else if (userAgent.includes('Edge')) browserName = 'Microsoft Edge';
+    else if (userAgent.includes('Opera')) browserName = 'Opera';
+    
+    // Detectar sistema operativo
+    if (userAgent.includes('Windows')) osName = 'Windows';
+    else if (userAgent.includes('Mac')) osName = 'macOS';
+    else if (userAgent.includes('Linux')) osName = 'Linux';
+    else if (userAgent.includes('Android')) osName = 'Android';
+    else if (userAgent.includes('iOS')) osName = 'iOS';
+    
+    const browserInfoEl = document.getElementById('browserInfo');
+    const osInfoEl = document.getElementById('osInfo');
+    const screenInfoEl = document.getElementById('screenInfo');
+    const connectionInfoEl = document.getElementById('connectionInfo');
+    const appVersionEl = document.getElementById('appVersion');
+    
+    if (browserInfoEl) browserInfoEl.textContent = browserName;
+    if (osInfoEl) osInfoEl.textContent = osName;
+    if (screenInfoEl) screenInfoEl.textContent = `${screen.width}x${screen.height}`;
+    
+    // Información de conexión
+    if (navigator.connection && connectionInfoEl) {
+        const connection = navigator.connection;
+        const type = connection.effectiveType || connection.type || 'Desconocida';
+        connectionInfoEl.textContent = `${type} (${connection.downlink} Mbps)`;
+    } else if (connectionInfoEl) {
+        connectionInfoEl.textContent = 'No disponible';
+    }
+    
+    // Versión de la aplicación
+    if (appVersionEl) {
+        appVersionEl.textContent = window.JMBudgetConfig?.app?.version || '2.0.4';
+    }
+}
+
+function loadDataInfo() {
+    // Contar elementos de datos
+    const transactionsCount = transactions.length;
+    const categoriesCount = Object.keys(categories).length;
+    const accountsCount = bankAccounts.length;
+    const goalsCount = goals.length;
+    
+    const transactionsCountEl = document.getElementById('transactionsCount');
+    const categoriesCountEl = document.getElementById('categoriesCount');
+    const accountsCountEl = document.getElementById('accountsCount');
+    const goalsCountEl = document.getElementById('goalsCount');
+    
+    if (transactionsCountEl) transactionsCountEl.textContent = transactionsCount;
+    if (categoriesCountEl) categoriesCountEl.textContent = categoriesCount;
+    if (accountsCountEl) accountsCountEl.textContent = accountsCount;
+    if (goalsCountEl) goalsCountEl.textContent = goalsCount;
+}
+
+async function saveUserProfile() {
+    try {
+        // Recopilar datos del formulario
+        const userData = {
+            firstName: document.getElementById('userFirstName').value.trim(),
+            lastName: document.getElementById('userLastName').value.trim(),
+            phone: document.getElementById('userPhone').value.trim(),
+            currency: document.getElementById('userCurrency').value,
+            timezone: document.getElementById('userTimezone').value,
+            theme: document.getElementById('userTheme').value,
+            language: document.getElementById('userLanguage').value,
+            emailNotifications: document.getElementById('emailNotifications').checked,
+            pushNotifications: document.getElementById('pushNotifications').checked,
+            budgetAlerts: document.getElementById('budgetAlerts').checked,
+            goalReminders: document.getElementById('goalReminders').checked,
+            dataAnalytics: document.getElementById('dataAnalytics').checked,
+            autoBackup: document.getElementById('autoBackup').checked,
+            sessionTimeout: document.getElementById('sessionTimeout').checked,
+            twoFactor: document.getElementById('enableTwoFactor').checked
+        };
+        
+        // Validar cambio de contraseña
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        if (newPassword || confirmPassword) {
+            if (!currentPassword) {
+                showNotification('Debes ingresar tu contraseña actual', 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showNotification('Las contraseñas no coinciden', 'error');
+                return;
+            }
+            
+            if (newPassword.length < 8) {
+                showNotification('La nueva contraseña debe tener al menos 8 caracteres', 'error');
+                return;
+            }
+            
+            // Aquí se cambiaría la contraseña en Firebase si está configurado
+            if (window.firebase && window.firebase.auth) {
+                try {
+                    const user = window.firebase.auth().currentUser;
+                    if (user) {
+                        const credential = window.firebase.auth.EmailAuthProvider.credential(
+                            user.email, 
+                            currentPassword
+                        );
+                        await user.reauthenticateWithCredential(credential);
+                        await user.updatePassword(newPassword);
+                        showNotification('Contraseña actualizada correctamente', 'success');
+                    }
+                } catch (error) {
+                    showNotification('Error al cambiar la contraseña: ' + error.message, 'error');
+                    return;
+                }
+            } else {
+                // Modo local - actualizar en localStorage
+                const localUsers = JSON.parse(localStorage.getItem('localUsers') || '{}');
+                const currentUser = localStorage.getItem('currentUser');
+                
+                if (localUsers[currentUser] && localUsers[currentUser].password === currentPassword) {
+                    localUsers[currentUser].password = newPassword;
+                    localStorage.setItem('localUsers', JSON.stringify(localUsers));
+                    showNotification('Contraseña actualizada correctamente', 'success');
+                } else {
+                    showNotification('Contraseña actual incorrecta', 'error');
+                    return;
+                }
+            }
+        }
+        
+        // Guardar datos del perfil
+        localStorage.setItem('userProfile', JSON.stringify(userData));
+        
+        // Aplicar cambios inmediatos
+        applyUserPreferences(userData);
+        
+        // Actualizar nombre del usuario en la interfaz
+        const fullName = userData.firstName && userData.lastName 
+            ? `${userData.firstName} ${userData.lastName}`
+            : userData.firstName || userData.lastName || localStorage.getItem('currentUser');
+        
+        if (fullName) {
+            const currentUserEl = document.getElementById('currentUser');
+            if (currentUserEl) {
+                currentUserEl.textContent = fullName;
+            }
+        }
+        
+        showNotification('Perfil actualizado correctamente', 'success');
+        closeModal('userProfileModal');
+        
+    } catch (error) {
+        console.error('Error al guardar perfil:', error);
+        showNotification('Error al guardar el perfil', 'error');
+    }
+}
+
+function applyUserPreferences(userData) {
+    // Aplicar tema
+    if (userData.theme && userData.theme !== 'auto') {
+        document.documentElement.setAttribute('data-theme', userData.theme);
+        localStorage.setItem('theme', userData.theme);
+    }
+    
+    // Aplicar moneda principal
+    if (userData.currency) {
+        window.DEFAULT_CURRENCY = userData.currency;
+        localStorage.setItem('defaultCurrency', userData.currency);
+    }
+    
+    // Aplicar zona horaria
+    if (userData.timezone) {
+        localStorage.setItem('userTimezone', userData.timezone);
+    }
+    
+    // Actualizar configuración de notificaciones
+    if (typeof userData.budgetAlerts !== 'undefined') {
+        window.JMBudgetConfig.notifications.budgetAlerts = userData.budgetAlerts;
+    }
+    
+    if (typeof userData.goalReminders !== 'undefined') {
+        window.JMBudgetConfig.goals.milestoneAlerts = userData.goalReminders;
+    }
+    
+    // Actualizar configuración de backup
+    if (typeof userData.autoBackup !== 'undefined') {
+        window.JMBudgetConfig.storage.backupInterval = userData.autoBackup ? 24 * 60 * 60 * 1000 : 0;
+    }
+    
+    // Guardar configuración actualizada
+    localStorage.setItem('jmBudget_config', JSON.stringify(window.JMBudgetConfig));
+    
+    // Recargar la interfaz si es necesario
+    if (userData.theme || userData.currency) {
+        updateUI(true);
+    }
+}

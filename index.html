@@ -179,7 +179,7 @@
                     <h1>JM Budget</h1>
                 </div>
                 <div class="user-info">
-                    <span id="currentUser"></span>
+                    <span id="currentUser" class="user-name-clickable" onclick="openUserProfile()" title="Ver perfil de usuario"></span>
                     <div class="sync-status-container">
                         <span id="syncStatus" class="sync-status pending">⏳ Pendiente</span>
                         <button id="forceSyncBtn" class="btn-sync" title="Sincronizar ahora">
@@ -1658,6 +1658,289 @@
                 <button class="btn-secondary" onclick="restoreDefaultSyncConfig()">Restaurar</button>
                 <button class="btn-secondary" onclick="closeModal('syncConfigModal')">Cancelar</button>
                 <button class="btn-primary" onclick="saveSyncConfig()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Perfil de Usuario -->
+    <div id="userProfileModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-circle"></i> Perfil de Usuario</h3>
+                <button class="close-btn" onclick="closeModal('userProfileModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-tabs">
+                    <button class="profile-tab-btn active" data-tab="info" onclick="switchProfileTab('info')">
+                        <i class="fas fa-user"></i> Información Personal
+                    </button>
+                    <button class="profile-tab-btn" data-tab="security" onclick="switchProfileTab('security')">
+                        <i class="fas fa-shield-alt"></i> Seguridad
+                    </button>
+                    <button class="profile-tab-btn" data-tab="preferences" onclick="switchProfileTab('preferences')">
+                        <i class="fas fa-cog"></i> Preferencias
+                    </button>
+                    <button class="profile-tab-btn" data-tab="about" onclick="switchProfileTab('about')">
+                        <i class="fas fa-info-circle"></i> Acerca de
+                    </button>
+                </div>
+
+                <!-- Tab: Información Personal -->
+                <div id="profile-info-tab" class="profile-tab-content active">
+                    <form id="userInfoForm">
+                        <div class="form-group">
+                            <label for="userFirstName">Nombre:</label>
+                            <input type="text" id="userFirstName" placeholder="Tu nombre">
+                        </div>
+                        <div class="form-group">
+                            <label for="userLastName">Apellido:</label>
+                            <input type="text" id="userLastName" placeholder="Tu apellido">
+                        </div>
+                        <div class="form-group">
+                            <label for="userEmail">Email:</label>
+                            <input type="email" id="userEmail" readonly>
+                            <small>El email no se puede modificar</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="userPhone">Teléfono:</label>
+                            <input type="tel" id="userPhone" placeholder="Tu número de teléfono">
+                        </div>
+                        <div class="form-group">
+                            <label for="userCurrency">Moneda Principal:</label>
+                            <select id="userCurrency">
+                                <option value="DOP">Peso Dominicano (DOP)</option>
+                                <option value="USD">Dólar Estadounidense (USD)</option>
+                                <option value="EUR">Euro (EUR)</option>
+                                <option value="MXN">Peso Mexicano (MXN)</option>
+                                <option value="COP">Peso Colombiano (COP)</option>
+                                <option value="ARS">Peso Argentino (ARS)</option>
+                                <option value="CLP">Peso Chileno (CLP)</option>
+                                <option value="PEN">Sol Peruano (PEN)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="userTimezone">Zona Horaria:</label>
+                            <select id="userTimezone">
+                                <option value="America/Santo_Domingo">Santo Domingo (GMT-4)</option>
+                                <option value="America/New_York">Nueva York (GMT-5)</option>
+                                <option value="America/Mexico_City">Ciudad de México (GMT-6)</option>
+                                <option value="America/Bogota">Bogotá (GMT-5)</option>
+                                <option value="America/Argentina/Buenos_Aires">Buenos Aires (GMT-3)</option>
+                                <option value="America/Santiago">Santiago (GMT-3)</option>
+                                <option value="America/Lima">Lima (GMT-5)</option>
+                                <option value="Europe/Madrid">Madrid (GMT+1)</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tab: Seguridad -->
+                <div id="profile-security-tab" class="profile-tab-content">
+                    <form id="userSecurityForm">
+                        <div class="form-group">
+                            <label for="currentPassword">Contraseña Actual:</label>
+                            <input type="password" id="currentPassword" placeholder="Tu contraseña actual">
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">Nueva Contraseña:</label>
+                            <input type="password" id="newPassword" placeholder="Nueva contraseña">
+                            <div class="password-strength" id="passwordStrength">
+                                <div class="strength-bar">
+                                    <div class="strength-fill" id="strengthFill"></div>
+                                </div>
+                                <span class="strength-text" id="strengthText">Fuerza de la contraseña</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirmar Nueva Contraseña:</label>
+                            <input type="password" id="confirmPassword" placeholder="Confirmar nueva contraseña">
+                        </div>
+                        <div class="security-options">
+                            <h4>Opciones de Seguridad</h4>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="enableTwoFactor">
+                                    <span class="checkmark"></span>
+                                    Habilitar autenticación de dos factores (próximamente)
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="sessionTimeout">
+                                    <span class="checkmark"></span>
+                                    Cerrar sesión automáticamente después de 24 horas
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tab: Preferencias -->
+                <div id="profile-preferences-tab" class="profile-tab-content">
+                    <div class="preferences-section">
+                        <h4>Apariencia</h4>
+                        <div class="form-group">
+                            <label for="userTheme">Tema:</label>
+                            <select id="userTheme">
+                                <option value="auto">Automático (seguir sistema)</option>
+                                <option value="light">Claro</option>
+                                <option value="dark">Oscuro</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="userLanguage">Idioma:</label>
+                            <select id="userLanguage">
+                                <option value="es">Español</option>
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="preferences-section">
+                        <h4>Notificaciones</h4>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="emailNotifications">
+                                <span class="checkmark"></span>
+                                Recibir notificaciones por email
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="pushNotifications">
+                                <span class="checkmark"></span>
+                                Notificaciones push en el navegador
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="budgetAlerts">
+                                <span class="checkmark"></span>
+                                Alertas cuando se exceda el presupuesto
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="goalReminders">
+                                <span class="checkmark"></span>
+                                Recordatorios de metas financieras
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="preferences-section">
+                        <h4>Privacidad</h4>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="dataAnalytics">
+                                <span class="checkmark"></span>
+                                Permitir análisis de uso para mejorar la aplicación
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="autoBackup">
+                                <span class="checkmark"></span>
+                                Backup automático de datos
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Acerca de -->
+                <div id="profile-about-tab" class="profile-tab-content">
+                    <div class="about-section">
+                        <div class="app-info">
+                            <h4><i class="fas fa-info-circle"></i> Información de la Aplicación</h4>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Versión:</span>
+                                    <span class="info-value" id="appVersion">2.0.4</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Desarrollador:</span>
+                                    <span class="info-value">Joel Martinez</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Email:</span>
+                                    <span class="info-value">joemart4@gmail.com</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">GitHub:</span>
+                                    <span class="info-value">
+                                        <a href="https://github.com/joemartin4/Jmbudget" target="_blank">joemartin4/Jmbudget</a>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="system-info">
+                            <h4><i class="fas fa-cog"></i> Información del Sistema</h4>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Navegador:</span>
+                                    <span class="info-value" id="browserInfo"></span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Sistema Operativo:</span>
+                                    <span class="info-value" id="osInfo"></span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Resolución:</span>
+                                    <span class="info-value" id="screenInfo"></span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Conexión:</span>
+                                    <span class="info-value" id="connectionInfo"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="data-info">
+                            <h4><i class="fas fa-database"></i> Información de Datos</h4>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Transacciones:</span>
+                                    <span class="info-value" id="transactionsCount">0</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Categorías:</span>
+                                    <span class="info-value" id="categoriesCount">0</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Cuentas:</span>
+                                    <span class="info-value" id="accountsCount">0</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Metas:</span>
+                                    <span class="info-value" id="goalsCount">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="links-section">
+                            <h4><i class="fas fa-link"></i> Enlaces Útiles</h4>
+                            <div class="links-grid">
+                                <a href="GUIA_USUARIO_FINAL.md" target="_blank" class="link-item">
+                                    <i class="fas fa-book"></i> Guía del Usuario
+                                </a>
+                                <a href="solucion-errores.html" target="_blank" class="link-item">
+                                    <i class="fas fa-tools"></i> Solución de Errores
+                                </a>
+                                <a href="test-login.html" target="_blank" class="link-item">
+                                    <i class="fas fa-key"></i> Test Login
+                                </a>
+                                <a href="https://github.com/joemartin4/Jmbudget/issues" target="_blank" class="link-item">
+                                    <i class="fas fa-bug"></i> Reportar Problema
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('userProfileModal')">Cancelar</button>
+                <button class="btn-primary" onclick="saveUserProfile()">Guardar Cambios</button>
             </div>
         </div>
     </div>
