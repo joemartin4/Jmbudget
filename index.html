@@ -44,26 +44,76 @@
         }, 1000);
     </script>
     
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
-    <script src="chart-config.js"></script>
+    <!-- Chart.js con fallback -->
+    <script>
+        // Cargar Chart.js con manejo de errores
+        function loadChartJS() {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js';
+            script.onload = () => {
+                console.log('✅ Chart.js cargado exitosamente');
+                // Cargar configuración después de Chart.js
+                const configScript = document.createElement('script');
+                configScript.src = 'chart-config.js';
+                document.head.appendChild(configScript);
+            };
+            script.onerror = () => {
+                console.warn('⚠️ Error al cargar Chart.js desde CDN principal, intentando alternativo...');
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js';
+                fallbackScript.onload = () => {
+                    console.log('✅ Chart.js cargado desde CDN alternativo');
+                    const configScript = document.createElement('script');
+                    configScript.src = 'chart-config.js';
+                    document.head.appendChild(configScript);
+                };
+                fallbackScript.onerror = () => {
+                    console.error('❌ No se pudo cargar Chart.js desde ningún CDN');
+                };
+                document.head.appendChild(fallbackScript);
+            };
+            document.head.appendChild(script);
+        }
+        loadChartJS();
+    </script>
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase SDK con fallback -->
+    <script>
+        // Cargar Firebase SDK con manejo de errores
+        function loadFirebaseSDK() {
+            const firebaseScripts = [
+                'https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js',
+                'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js',
+                'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js'
+            ];
+            
+            let loadedCount = 0;
+            
+            firebaseScripts.forEach((src, index) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    loadedCount++;
+                    console.log(`✅ Firebase SDK ${index + 1} cargado`);
+                    if (loadedCount === firebaseScripts.length) {
+                        console.log('✅ Todos los Firebase SDKs cargados');
+                    }
+                };
+                script.onerror = () => {
+                    console.warn(`⚠️ Error al cargar Firebase SDK ${index + 1}: ${src}`);
+                    loadedCount++;
+                    if (loadedCount === firebaseScripts.length) {
+                        console.log('⚠️ Algunos Firebase SDKs no se cargaron, continuando...');
+                    }
+                };
+                document.head.appendChild(script);
+            });
+        }
+        loadFirebaseSDK();
+    </script>
     
-    <!-- Configuración global de Firebase -->
+    <!-- Configuración de Firebase Centralizada -->
     <script src="firebase-config.js"></script>
-    
-    <!-- Configuración de Firebase para Desarrollo -->
-    <script src="firebase-dev-config.js"></script>
-    
-    <!-- Configuración de Firebase para Usuario Personal -->
-    <script src="firebase-user-config.js"></script>
-    
-    <!-- Configuración de Firebase Centralizada (RECOMENDADO) -->
-    <script src="firebase-central-config.js"></script>
     
     <!-- Inicialización de Firebase -->
     <script src="firebase-init.js"></script>
