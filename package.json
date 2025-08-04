@@ -1,57 +1,108 @@
 {
   "name": "jm-budget",
-  "version": "1.0.0",
-  "description": "Aplicación web para gestión de presupuesto familiar con categorías, transacciones y reportes detallados",
-  "main": "index.html",
-  "scripts": {
-    "start": "python -m http.server 8000",
-    "dev": "python -m http.server 8000",
-    "serve": "npx http-server -p 8000 -c-1",
-    "build": "echo 'No build step required - static files only'",
-    "deploy": "echo 'Deploy to your preferred hosting service'",
-    "test": "echo 'No tests configured yet'",
-    "lint": "echo 'No linting configured yet'"
-  },
+  "version": "2.0.20",
+  "description": "Aplicación de gestión de presupuesto familiar",
+  "main": "electron/main.js",
+  "homepage": "https://joemartin4.github.io/Jmbudget/",
+  "author": "Joel Martin",
+  "license": "MIT",
   "keywords": [
     "budget",
     "finance",
-    "family",
     "expenses",
     "income",
-    "categories",
-    "reports",
-    "charts",
-    "pwa",
-    "web-app"
+    "tracking",
+    "electron",
+    "desktop"
   ],
-  "author": "JM Budget Team",
-  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux",
+    "dist": "npm run build",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.6.4"
+  },
+  "build": {
+    "appId": "com.joemartin.jmbudget",
+    "productName": "JM Budget",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/**/*",
+      "!dist/**/*",
+      "!electron/**/*",
+      "!package-lock.json"
+    ],
+    "mac": {
+      "category": "public.app-category.finance",
+      "icon": "assets/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "dmg": {
+      "title": "JM Budget Installer",
+      "icon": "assets/icon.icns",
+      "background": "assets/dmg-background.png",
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    }
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/jm-budget.git"
+    "url": "https://github.com/joemartin4/Jmbudget.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/jm-budget/issues"
-  },
-  "homepage": "https://yourusername.github.io/jm-budget",
-  "devDependencies": {
-    "http-server": "^14.1.1"
-  },
-  "engines": {
-    "node": ">=14.0.0"
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not dead"
-  ],
-  "pwa": {
-    "name": "JM Budget",
-    "short_name": "JM Budget",
-    "description": "Gestión de Presupuesto Familiar",
-    "start_url": "./index.html",
-    "display": "standalone",
-    "background_color": "#f8f9fa",
-    "theme_color": "#007aff"
+    "url": "https://github.com/joemartin4/Jmbudget/issues"
   }
 } 
