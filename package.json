@@ -39,12 +39,12 @@
       "**/*",
       "!node_modules/**/*",
       "!dist/**/*",
-      "!electron/**/*",
       "!package-lock.json"
     ],
     "mac": {
       "category": "public.app-category.finance",
       "icon": "assets/icon.icns",
+      "identity": null,
       "target": [
         {
           "target": "dmg",

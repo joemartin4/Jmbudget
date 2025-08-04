@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🆘 Recuperación de Datos - JM Budget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .recovery-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .emergency-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #e74c3c;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .step-number {
+            background: #3498db;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .step-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .step-description {
+            color: #7f8c8d;
+            line-height: 1.6;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+
+        .button:hover {
+            background: #2980b9;
+        }
+
+        .button.danger {
+            background: #e74c3c;
+        }
+
+        .button.danger:hover {
+            background: #c0392b;
+        }
+
+        .button.success {
+            background: #27ae60;
+        }
+
+        .button.success:hover {
+            background: #229954;
+        }
+
+        .data-status {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #bdc3c7;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-icon {
+            font-size: 20px;
+        }
+
+        .status-icon.success {
+            color: #27ae60;
+        }
+
+        .status-icon.warning {
+            color: #f39c12;
+        }
+
+        .status-icon.error {
+            color: #e74c3c;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .backup-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .backup-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .backup-item:hover {
+            background: #f8f9fa;
+        }
+
+        .backup-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="recovery-container">
+        <div class="emergency-icon">🆘</div>
+        <h1>Recuperación de Datos</h1>
+        <p class="subtitle">Si perdiste tus datos al abrir la aplicación de Electron, sigue estos pasos para recuperarlos</p>
+
+        <div class="warning">
+            <strong>⚠️ Importante:</strong> No cierres esta página hasta completar la recuperación
+        </div>
+
+        <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-title">Verificar Datos Disponibles</div>
+            <div class="step-description">
+                Primero vamos a verificar si hay datos guardados en tu navegador
+            </div>
+            <button class="button" onclick="checkAvailableData()">🔍 Verificar Datos</button>
+        </div>
+
+        <div id="dataStatus" class="data-status hidden">
+            <h3>Estado de los Datos:</h3>
+            <div id="statusContent"></div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-title">Crear Backup desde la Web</div>
+            <div class="step-description">
+                Si hay datos disponibles, crea un backup desde la aplicación web
+            </div>
+            <a href="https://joemartin4.github.io/Jmbudget/" target="_blank" class="button">🌐 Abrir Aplicación Web</a>
+        </div>
+
+        <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-title">Restaurar en la App de Escritorio</div>
+            <div class="step-description">
+                Una vez descargado el backup, restáuralo en la aplicación de Electron
+            </div>
+            <button class="button success" onclick="openElectronApp()">🖥️ Abrir App de Escritorio</button>
+        </div>
+
+        <div id="backupSection" class="hidden">
+            <h3>Backups Disponibles:</h3>
+            <div id="backupList" class="backup-list"></div>
+            <button class="button success" onclick="restoreSelectedBackup()">🔄 Restaurar Backup Seleccionado</button>
+        </div>
+
+        <div class="step">
+            <div class="step-number">4</div>
+            <div class="step-title">Verificar Recuperación</div>
+            <div class="step-description">
+                Confirma que todos tus datos se han restaurado correctamente
+            </div>
+            <button class="button" onclick="verifyRecovery()">✅ Verificar Recuperación</button>
+        </div>
+
+        <div id="recoveryStatus" class="hidden"></div>
+
+        <div class="warning">
+            <strong>💡 Consejo:</strong> Después de recuperar tus datos, haz un backup regular para evitar futuras pérdidas
+        </div>
+
+        <div style="margin-top: 30px;">
+            <a href="index.html" class="button">🏠 Volver a la Aplicación</a>
+            <button class="button danger" onclick="resetApplication()">🔄 Reiniciar Aplicación</button>
+        </div>
+    </div>
+
+    <script>
+        // Verificar datos disponibles
+        function checkAvailableData() {
+            const statusContent = document.getElementById('statusContent');
+            const dataStatus = document.getElementById('dataStatus');
+            
+            statusContent.innerHTML = '';
+            
+            // Verificar localStorage
+            const localStorageData = checkLocalStorage();
+            addStatusItem('localStorage', 'Datos en Navegador', localStorageData ? 'success' : 'error', 
+                localStorageData ? 'Datos encontrados' : 'No hay datos');
+
+            // Verificar sessionStorage
+            const sessionStorageData = checkSessionStorage();
+            addStatusItem('sessionStorage', 'Datos de Sesión', sessionStorageData ? 'success' : 'warning', 
+                sessionStorageData ? 'Datos encontrados' : 'No hay datos de sesión');
+
+            // Verificar IndexedDB
+            checkIndexedDB().then(indexedDBData => {
+                addStatusItem('indexedDB', 'Base de Datos Local', indexedDBData ? 'success' : 'warning', 
+                    indexedDBData ? 'Datos encontrados' : 'No hay datos en IndexedDB');
+            });
+
+            // Verificar si estamos en Electron
+            if (window.electronAPI) {
+                addStatusItem('electron', 'Aplicación de Escritorio', 'success', 'Electron detectado');
+                checkElectronBackups();
+            } else {
+                addStatusItem('electron', 'Aplicación de Escritorio', 'warning', 'No estás en Electron');
+            }
+
+            dataStatus.classList.remove('hidden');
+        }
+
+        function addStatusItem(id, title, status, message) {
+            const statusContent = document.getElementById('statusContent');
+            const icon = status === 'success' ? '✅' : status === 'warning' ? '⚠️' : '❌';
+            
+            const item = document.createElement('div');
+            item.className = 'status-item';
+            item.innerHTML = `
+                <span>${title}</span>
+                <span class="status-icon ${status}">${icon} ${message}</span>
+            `;
+            statusContent.appendChild(item);
+        }
+
+        function checkLocalStorage() {
+            try {
+                const keys = Object.keys(localStorage);
+                const jmBudgetKeys = keys.filter(key => 
+                    key.includes('jm-budget') || 
+                    key.includes('transactions') || 
+                    key.includes('categories') ||
+                    key.includes('accounts') ||
+                    key.includes('user')
+                );
+                return jmBudgetKeys.length > 0;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function checkSessionStorage() {
+            try {
+                const keys = Object.keys(sessionStorage);
+                const jmBudgetKeys = keys.filter(key => 
+                    key.includes('jm-budget') || 
+                    key.includes('transactions') || 
+                    key.includes('categories') ||
+                    key.includes('accounts') ||
+                    key.includes('user')
+                );
+                return jmBudgetKeys.length > 0;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function checkIndexedDB() {
+            return new Promise((resolve) => {
+                if (!('indexedDB' in window)) {
+                    resolve(false);
+                    return;
+                }
+
+                const request = indexedDB.open('jm-budget', 1);
+                request.onsuccess = () => {
+                    const db = request.result;
+                    const transaction = db.transaction(['transactions', 'categories', 'accounts'], 'readonly');
+                    let hasData = false;
+                    
+                    transaction.oncomplete = () => {
+                        resolve(hasData);
+                    };
+
+                    ['transactions', 'categories', 'accounts'].forEach(storeName => {
+                        const store = transaction.objectStore(storeName);
+                        const countRequest = store.count();
+                        countRequest.onsuccess = () => {
+                            if (countRequest.result > 0) {
+                                hasData = true;
+                            }
+                        };
+                    });
+                };
+                request.onerror = () => resolve(false);
+            });
+        }
+
+        async function checkElectronBackups() {
+            if (!window.electronAPI) return;
+
+            try {
+                const backups = await window.electronAPI.storage.getBackups();
+                if (backups && backups.length > 0) {
+                    showBackupList(backups);
+                }
+            } catch (e) {
+                console.error('Error al obtener backups de Electron:', e);
+            }
+        }
+
+        function showBackupList(backups) {
+            const backupSection = document.getElementById('backupSection');
+            const backupList = document.getElementById('backupList');
+            
+            backupList.innerHTML = '';
+            backups.forEach(backup => {
+                const item = document.createElement('div');
+                item.className = 'backup-item';
+                item.onclick = () => selectBackup(backup);
+                item.innerHTML = `
+                    <strong>${backup.name}</strong><br>
+                    <small>${new Date(backup.date).toLocaleString()} - ${(backup.size / 1024).toFixed(1)} KB</small>
+                `;
+                backupList.appendChild(item);
+            });
+            
+            backupSection.classList.remove('hidden');
+        }
+
+        function selectBackup(backup) {
+            // Remover selección anterior
+            document.querySelectorAll('.backup-item').forEach(item => {
+                item.style.background = '';
+            });
+            
+            // Seleccionar nuevo backup
+            event.target.closest('.backup-item').style.background = '#e3f2fd';
+            window.selectedBackup = backup;
+        }
+
+        async function restoreSelectedBackup() {
+            if (!window.selectedBackup) {
+                alert('Por favor selecciona un backup primero');
+                return;
+            }
+
+            if (!window.electronAPI) {
+                alert('Esta función solo está disponible en la aplicación de escritorio');
+                return;
+            }
+
+            try {
+                const success = await window.electronAPI.storage.restoreBackup(window.selectedBackup.path);
+                if (success) {
+                    showRecoveryStatus('✅ Backup restaurado exitosamente', 'success');
+                } else {
+                    showRecoveryStatus('❌ Error al restaurar backup', 'error');
+                }
+            } catch (e) {
+                showRecoveryStatus('❌ Error al restaurar backup: ' + e.message, 'error');
+            }
+        }
+
+        function openElectronApp() {
+            if (window.electronAPI) {
+                // Ya estamos en Electron
+                alert('Ya estás en la aplicación de escritorio');
+            } else {
+                // Abrir la aplicación de Electron
+                window.open('jm-budget://', '_blank');
+            }
+        }
+
+        function verifyRecovery() {
+            // Verificar si los datos se han restaurado
+            const hasData = checkLocalStorage() || checkSessionStorage();
+            if (hasData) {
+                showRecoveryStatus('✅ Recuperación exitosa - Tus datos han sido restaurados', 'success');
+            } else {
+                showRecoveryStatus('❌ No se encontraron datos restaurados', 'error');
+            }
+        }
+
+        function showRecoveryStatus(message, type) {
+            const recoveryStatus = document.getElementById('recoveryStatus');
+            recoveryStatus.className = type === 'success' ? 'success' : 'warning';
+            recoveryStatus.innerHTML = message;
+            recoveryStatus.classList.remove('hidden');
+        }
+
+        function resetApplication() {
+            if (confirm('¿Estás seguro de que quieres reiniciar la aplicación? Esto limpiará todos los datos actuales.')) {
+                if (window.electronAPI) {
+                    window.electronAPI.storage.clear();
+                } else {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                }
+                location.reload();
+            }
+        }
+
+        // Verificar datos al cargar la página
+        window.addEventListener('load', () => {
+            console.log('🆘 Página de recuperación cargada');
+            if (window.electronAPI) {
+                console.log('✅ Electron detectado');
+            } else {
+                console.log('🌐 Ejecutando en navegador web');
+            }
+        });
+    </script>
+</body>
+</html> 
