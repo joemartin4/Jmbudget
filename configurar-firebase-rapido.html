@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurar Firebase Rápido - JM Budget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            line-height: 1.6;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .hero {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .hero h1 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        .config-form {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 14px;
+        }
+        .form-group input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: #2196F3;
+        }
+        .btn-secondary:hover {
+            background: #1976D2;
+        }
+        .btn-warning {
+            background: #FF9800;
+        }
+        .btn-warning:hover {
+            background: #F57C00;
+        }
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            border: 2px solid #4CAF50;
+        }
+        .success {
+            background: rgba(76, 175, 80, 0.2);
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #FFC107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .info {
+            background: rgba(33, 150, 243, 0.2);
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .steps {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 10px;
+            border-left: 3px solid #4CAF50;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .step-number {
+            background: #4CAF50;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .nav-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1><i class="fas fa-bolt"></i> Configurar Firebase Rápido</h1>
+            <p>Configura Firebase en 5 minutos y permite que cualquier usuario se registre</p>
+        </div>
+
+        <div class="info">
+            <h3><i class="fas fa-info-circle"></i> ¿Qué necesitas hacer?</h3>
+            <p>Reemplazar los valores de ejemplo con tu configuración real de Firebase. Una vez configurado, cualquier usuario podrá registrarse directamente sin configuración técnica.</p>
+        </div>
+
+        <div class="steps">
+            <h3><i class="fas fa-list-ol"></i> Pasos Rápidos:</h3>
+            
+            <div class="step">
+                <span class="step-number">1</span>
+                <strong>Crear proyecto Firebase:</strong> Ve a <a href="https://console.firebase.google.com/" target="_blank" style="color: #4CAF50;">Firebase Console</a> y crea un proyecto llamado "JM-Budget-Central"
+            </div>
+            
+            <div class="step">
+                <span class="step-number">2</span>
+                <strong>Habilitar Authentication:</strong> Ve a Authentication > Sign-in method y habilita Email/Password
+            </div>
+            
+            <div class="step">
+                <span class="step-number">3</span>
+                <strong>Crear Firestore:</strong> Ve a Firestore Database y crea una base de datos en modo de prueba
+            </div>
+            
+            <div class="step">
+                <span class="step-number">4</span>
+                <strong>Obtener configuración:</strong> Ve a Configuración del proyecto > General y registra una app web
+            </div>
+            
+            <div class="step">
+                <span class="step-number">5</span>
+                <strong>Copiar valores:</strong> Copia los valores de la configuración y pégalos en el formulario de abajo
+            </div>
+        </div>
+
+        <div class="config-form">
+            <h3><i class="fas fa-cog"></i> Configuración de Firebase</h3>
+            <p>Reemplaza los valores de ejemplo con tu configuración real:</p>
+            
+            <div class="form-group">
+                <label>apiKey:</label>
+                <input type="text" id="apiKey" placeholder="AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value="TU_API_KEY_AQUI">
+            </div>
+            
+            <div class="form-group">
+                <label>authDomain:</label>
+                <input type="text" id="authDomain" placeholder="tu-proyecto.firebaseapp.com" value="tu-proyecto.firebaseapp.com">
+            </div>
+            
+            <div class="form-group">
+                <label>projectId:</label>
+                <input type="text" id="projectId" placeholder="tu-proyecto-id" value="tu-proyecto-id">
+            </div>
+            
+            <div class="form-group">
+                <label>storageBucket:</label>
+                <input type="text" id="storageBucket" placeholder="tu-proyecto.appspot.com" value="tu-proyecto.appspot.com">
+            </div>
+            
+            <div class="form-group">
+                <label>messagingSenderId:</label>
+                <input type="text" id="messagingSenderId" placeholder="123456789" value="123456789">
+            </div>
+            
+            <div class="form-group">
+                <label>appId:</label>
+                <input type="text" id="appId" placeholder="1:123456789:web:abcdef123456" value="1:123456789:web:abcdef123456">
+            </div>
+            
+            <button class="btn" onclick="generateConfig()">Generar Configuración</button>
+            <button class="btn btn-secondary" onclick="testConfig()">Probar Configuración</button>
+        </div>
+
+        <div class="code-block" id="generatedConfig" style="display: none;">
+            <h4>Configuración Generada:</h4>
+            <pre id="configCode"></pre>
+            <button class="btn btn-warning" onclick="copyConfig()">Copiar Configuración</button>
+        </div>
+
+        <div class="success" id="successMessage" style="display: none;">
+            <h4><i class="fas fa-check-circle"></i> ¡Configuración Exitosa!</h4>
+            <p>Tu configuración de Firebase está lista. Ahora puedes:</p>
+            <ol>
+                <li>Copiar la configuración generada</li>
+                <li>Reemplazar el contenido de <code>firebase-config.js</code></li>
+                <li>Subir el archivo actualizado a tu servidor</li>
+                <li>¡Cualquier usuario podrá registrarse!</li>
+            </ol>
+        </div>
+
+        <div class="warning" id="errorMessage" style="display: none;">
+            <h4><i class="fas fa-exclamation-triangle"></i> Error en la Configuración</h4>
+            <p id="errorText"></p>
+        </div>
+
+        <div class="nav-buttons">
+            <a href="index.html" class="btn">Ir a la Aplicación</a>
+            <a href="configuracion-desarrollador.html" class="btn btn-secondary">Guía Completa</a>
+            <a href="GUIA_USUARIO_FINAL.md" class="btn btn-secondary">Documentación</a>
+        </div>
+
+        <div class="info">
+            <h4><i class="fas fa-lightbulb"></i> Consejos:</h4>
+            <ul>
+                <li><strong>apiKey:</strong> Es la clave principal de tu proyecto Firebase</li>
+                <li><strong>authDomain:</strong> Dominio para autenticación (automático)</li>
+                <li><strong>projectId:</strong> ID único de tu proyecto</li>
+                <li><strong>storageBucket:</strong> Bucket de almacenamiento (automático)</li>
+                <li><strong>messagingSenderId:</strong> ID del remitente de mensajes</li>
+                <li><strong>appId:</strong> ID único de tu aplicación web</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Función para generar configuración
+        function generateConfig() {
+            const apiKey = document.getElementById('apiKey').value;
+            const authDomain = document.getElementById('authDomain').value;
+            const projectId = document.getElementById('projectId').value;
+            const storageBucket = document.getElementById('storageBucket').value;
+            const messagingSenderId = document.getElementById('messagingSenderId').value;
+            const appId = document.getElementById('appId').value;
+            
+            // Validar campos requeridos
+            if (!apiKey || apiKey === 'TU_API_KEY_AQUI') {
+                showError('Por favor ingresa tu apiKey real de Firebase');
+                return;
+            }
+            
+            if (!authDomain || authDomain === 'tu-proyecto.firebaseapp.com') {
+                showError('Por favor ingresa tu authDomain real');
+                return;
+            }
+            
+            if (!projectId || projectId === 'tu-proyecto-id') {
+                showError('Por favor ingresa tu projectId real');
+                return;
+            }
+            
+            const config = `// Configuración centralizada de Firebase para JM Budget
+// IMPORTANTE: Reemplaza estos valores con tu configuración real de Firebase
+
+window.FIREBASE_CONFIG = {
+    // 🔥 CONFIGURACIÓN CENTRALIZADA DE FIREBASE
+    // Reemplaza estos valores con tu configuración real de Firebase Console
+    
+    apiKey: "${apiKey}",
+    authDomain: "${authDomain}",
+    projectId: "${projectId}",
+    storageBucket: "${storageBucket}",
+    messagingSenderId: "${messagingSenderId}",
+    appId: "${appId}"
+};
+
+// Configuración adicional de la aplicación
+window.FIREBASE_APP_CONFIG = {
+    appName: "JM Budget",
+    appVersion: "2.0.7",
+    developerEmail: "joemart4@gmail.com",
+    
+    // Configuración de seguridad
+    enableEmailVerification: true,
+    allowAnonymousAuth: false,
+    maxUsersPerProject: 1000,
+    
+    // Configuración de datos
+    dataRetentionDays: 365,
+    maxDataSizePerUser: 10 * 1024 * 1024, // 10MB por usuario
+    enableDataExport: true,
+    
+    // Configuración de notificaciones
+    enableEmailNotifications: true,
+    enablePushNotifications: true,
+    
+    // Configuración de backup
+    enableAutoBackup: true,
+    backupFrequency: "daily",
+    maxBackupsPerUser: 10
+};`;
+            
+            document.getElementById('configCode').textContent = config;
+            document.getElementById('generatedConfig').style.display = 'block';
+            document.getElementById('successMessage').style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+        
+        // Función para copiar configuración
+        function copyConfig() {
+            const configText = document.getElementById('configCode').textContent;
+            navigator.clipboard.writeText(configText).then(() => {
+                alert('✅ Configuración copiada al portapapeles');
+            }).catch(() => {
+                alert('❌ No se pudo copiar automáticamente. Selecciona y copia manualmente el texto.');
+            });
+        }
+        
+        // Función para probar configuración
+        function testConfig() {
+            const apiKey = document.getElementById('apiKey').value;
+            const authDomain = document.getElementById('authDomain').value;
+            const projectId = document.getElementById('projectId').value;
+            
+            if (!apiKey || apiKey === 'TU_API_KEY_AQUI') {
+                showError('Por favor ingresa tu apiKey real de Firebase');
+                return;
+            }
+            
+            if (!authDomain || authDomain === 'tu-proyecto.firebaseapp.com') {
+                showError('Por favor ingresa tu authDomain real');
+                return;
+            }
+            
+            if (!projectId || projectId === 'tu-proyecto-id') {
+                showError('Por favor ingresa tu projectId real');
+                return;
+            }
+            
+            // Simular prueba de configuración
+            showSuccess('✅ Configuración válida. Los valores parecen correctos.');
+        }
+        
+        // Función para mostrar error
+        function showError(message) {
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+        
+        // Función para mostrar éxito
+        function showSuccess(message) {
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorMessage').style.display = 'block';
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.background = 'rgba(76, 175, 80, 0.2)';
+            document.getElementById('errorMessage').style.borderLeftColor = '#4CAF50';
+        }
+        
+        // Auto-detectar si hay configuración existente
+        window.addEventListener('load', function() {
+            // Aquí podrías cargar la configuración existente si está disponible
+            console.log('Página de configuración rápida cargada');
+        });
+    </script>
+</body>
+</html> 

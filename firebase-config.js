@@ -6,47 +6,51 @@
 // Configuración de Firebase para JM Budget
 // IMPORTANTE: Esta es una configuración de ejemplo. Para producción, necesitas crear tu propio proyecto Firebase.
 
+// Configuración centralizada de Firebase para JM Budget
+// IMPORTANTE: Reemplaza estos valores con tu configuración real de Firebase
+
 window.FIREBASE_CONFIG = {
-    // 🔧 CONFIGURACIÓN DE DESARROLLO (LOCAL)
-    // Esta configuración funciona solo en localhost
-    development: {
-        apiKey: "AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        authDomain: "tu-proyecto.firebaseapp.com",
-        projectId: "tu-proyecto",
-        storageBucket: "tu-proyecto.appspot.com",
-        messagingSenderId: "123456789",
-        appId: "1:123456789:web:abcdef123456"
-    },
+    // 🔥 CONFIGURACIÓN CENTRALIZADA DE FIREBASE
+    // Reemplaza estos valores con tu configuración real de Firebase Console
     
-    // 🌐 CONFIGURACIÓN DE PRODUCCIÓN (GITHUB PAGES)
-    // Para usar en GitHub Pages, necesitas:
-    // 1. Crear un proyecto en Firebase Console
-    // 2. Habilitar Authentication y Firestore
-    // 3. Configurar las reglas de seguridad
-    // 4. Reemplazar esta configuración con la tuya
-    production: {
-        apiKey: "TU_API_KEY_AQUI",
-        authDomain: "TU_PROJECT_ID.firebaseapp.com",
-        projectId: "TU_PROJECT_ID",
-        storageBucket: "TU_PROJECT_ID.appspot.com",
-        messagingSenderId: "TU_SENDER_ID",
-        appId: "TU_APP_ID"
-    }
+    apiKey: "TU_API_KEY_AQUI",
+    authDomain: "tu-proyecto.firebaseapp.com",
+    projectId: "tu-proyecto-id",
+    storageBucket: "tu-proyecto.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:abcdef123456"
 };
 
-// Función para obtener la configuración según el entorno
-function getFirebaseConfig() {
-    const isDevelopment = window.location.hostname === 'localhost' || 
-                         window.location.hostname === '127.0.0.1' ||
-                         window.location.hostname.includes('localhost');
+// Configuración adicional de la aplicación
+window.FIREBASE_APP_CONFIG = {
+    appName: "JM Budget",
+    appVersion: "2.0.7",
+    developerEmail: "joemart4@gmail.com",
     
-    if (isDevelopment) {
-        console.log('🔧 Usando configuración de desarrollo');
-        return window.FIREBASE_CONFIG.development;
-    } else {
-        console.log('🌐 Usando configuración de producción');
-        return window.FIREBASE_CONFIG.production;
-    }
+    // Configuración de seguridad
+    enableEmailVerification: true,
+    allowAnonymousAuth: false,
+    maxUsersPerProject: 1000,
+    
+    // Configuración de datos
+    dataRetentionDays: 365,
+    maxDataSizePerUser: 10 * 1024 * 1024, // 10MB por usuario
+    enableDataExport: true,
+    
+    // Configuración de notificaciones
+    enableEmailNotifications: true,
+    enablePushNotifications: true,
+    
+    // Configuración de backup
+    enableAutoBackup: true,
+    backupFrequency: "daily",
+    maxBackupsPerUser: 10
+};
+
+// Función para obtener la configuración centralizada
+function getFirebaseConfig() {
+    console.log('🌐 Usando configuración centralizada de Firebase');
+    return window.FIREBASE_CONFIG;
 }
 
 // Función para configurar Firebase manualmente
