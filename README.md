@@ -1,8 +1,11 @@
 # 📱 JM Budget App - Aplicación de Presupuesto Familiar
 
+## 👨‍💻 **Desarrollador**
+**Joel Martinez** - [joemart4@gmail.com](mailto:joemart4@gmail.com)
+
 ## 🎯 **Descripción**
 
-JM Budget es una aplicación web moderna y responsive para el control de presupuesto familiar. Optimizada para uso móvil con sincronización en la nube, permite a familias gestionar sus finanzas de manera colaborativa.
+JM Budget es una aplicación web moderna y responsive para el control de presupuesto familiar desarrollada por Joel Martinez. Optimizada para uso móvil con sincronización en la nube, permite a familias gestionar sus finanzas de manera colaborativa y segura.
 
 ## ✨ **Características Principales**
 
@@ -38,6 +41,28 @@ JM Budget es una aplicación web moderna y responsive para el control de presupu
 
 ### **🌐 Versión Web (Recomendado)**
 **URL Principal:** https://joemartin4.github.io/Jmbudget/
+
+### **🔧 Desarrollo Local**
+Para desarrollo y pruebas locales:
+
+1. **Clonar el repositorio:**
+   ```bash
+   git clone https://github.com/joemartin4/Jmbudget.git
+   cd Jmbudget
+   ```
+
+2. **Iniciar servidor local:**
+   ```bash
+   python3 -m http.server 8000
+   ```
+
+3. **Acceder a la aplicación:**
+   - **Aplicación principal:** http://localhost:8000
+   - **Página de test-login:** http://localhost:8000/test-login.html
+
+4. **Credenciales de prueba (modo local):**
+   - **Email:** test@example.com
+   - **Contraseña:** password123
 
 ### **📱 Instalación como App**
 1. Abrir la URL en el navegador móvil
@@ -164,6 +189,23 @@ python3 -m http.server 8000 --bind 0.0.0.0
 - 💾 **Backup automático**
 - 📱 **Acceso desde cualquier dispositivo**
 
+## 🔄 **Últimas Actualizaciones**
+
+### **v2.0.3 - Agosto 2025**
+- ✅ **Agregada página test-login.html** para facilitar acceso en desarrollo
+- ✅ **Mejorado sistema de autenticación local** con usuario de prueba automático
+- ✅ **Agregados múltiples servicios** (auth-service, cloud-sync-manager, etc.)
+- ✅ **Optimización de rendimiento** con estilos optimizados
+- ✅ **Documentación completa** con guías de solución de problemas
+- ✅ **Sistema de sincronización mejorado** con múltiples proveedores de nube
+
+### **Características Destacadas:**
+- 🔐 **Autenticación local** para desarrollo sin Firebase
+- 🧪 **Página de pruebas** para debugging y desarrollo
+- 📚 **Documentación extensa** con soluciones a problemas comunes
+- ⚡ **Rendimiento optimizado** para dispositivos móviles
+- 🔄 **Sincronización robusta** con múltiples opciones de respaldo
+
 ## 🚨 **Solución de Problemas**
 
 ### **Si no se conecta:**
@@ -189,6 +231,7 @@ python3 -m http.server 8000 --bind 0.0.0.0
 - 🔧 **deploy-mobile.sh:** Script de ayuda
 
 ### **Contacto:**
+- **Desarrollador:** Joel Martinez - [joemart4@gmail.com](mailto:joemart4@gmail.com)
 - **GitHub Issues:** Para reportar bugs
 - **Documentación:** Lee los archivos .md
 - **Comunidad:** Stack Overflow
