@@ -4277,6 +4277,7 @@ function filterTransactions() {
         const filterMonth = parseInt(monthFilter.split('-')[1]) - 1; // Meses van de 0-11
         
         console.log(`🔍 Filtrando por año: ${filterYear}, mes: ${filterMonth} (${filterMonth + 1})`);
+        console.log(`🔍 Filtro esperado: ${filterYear}-${String(filterMonth + 1).padStart(2, '0')}`);
         
         const beforeFilter = filtered.length;
         filtered = filtered.filter(t => {
@@ -4289,6 +4290,7 @@ function filterTransactions() {
             // Log detallado para debug
             if (beforeFilter <= 10) { // Solo log para pocas transacciones
                 console.log(`📅 Transacción ${t.date} -> Año: ${transactionYear}, Mes: ${transactionMonth} (${transactionMonth + 1}) - Coincide: ${matches}`);
+                console.log(`   Fecha original: ${t.date}, Fecha procesada: ${transactionDate.toISOString()}`);
             }
             
             return matches;
@@ -4315,6 +4317,40 @@ function filterTransactions() {
     console.log(`🎯 Transacciones filtradas finales: ${filtered.length}`);
     
     updateGastosIngresosDisplay(filtered);
+}
+
+// Función de prueba para debuggear el filtro de fechas
+function testDateFilter() {
+    console.log('🧪 === PRUEBA DE FILTRO DE FECHAS ===');
+    
+    const monthFilter = document.getElementById('monthFilter').value;
+    if (!monthFilter) {
+        console.log('❌ No hay filtro de mes seleccionado');
+        return;
+    }
+    
+    const filterYear = parseInt(monthFilter.split('-')[0]);
+    const filterMonth = parseInt(monthFilter.split('-')[1]) - 1;
+    
+    console.log(`🔍 Filtro seleccionado: ${monthFilter}`);
+    console.log(`🔍 Año: ${filterYear}, Mes: ${filterMonth} (${filterMonth + 1})`);
+    
+    // Probar con algunas transacciones
+    const testTransactions = transactions.slice(0, 5);
+    console.log('📋 Transacciones de prueba:', testTransactions.map(t => t.date));
+    
+    testTransactions.forEach(t => {
+        const transactionDate = createLocalDate(t.date);
+        const transactionYear = transactionDate.getFullYear();
+        const transactionMonth = transactionDate.getMonth();
+        
+        const matches = transactionYear === filterYear && transactionMonth === filterMonth;
+        
+        console.log(`📅 ${t.date} -> Año: ${transactionYear}, Mes: ${transactionMonth} (${transactionMonth + 1}) - Coincide: ${matches}`);
+        console.log(`   Fecha original: ${t.date}`);
+        console.log(`   Fecha procesada: ${transactionDate.toISOString()}`);
+        console.log(`   Comparación: ${transactionYear} === ${filterYear} && ${transactionMonth} === ${filterMonth}`);
+    });
 }
 
 function updateReports() {
