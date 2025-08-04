@@ -12,24 +12,20 @@ if (typeof window.isDevelopment === 'undefined') {
                           window.location.hostname.includes('localhost');
 }
 
-if (window.isDevelopment) {
-    console.log('🔧 Modo desarrollo detectado - Firebase deshabilitado para evitar errores');
+console.log('🔥 Inicializando Firebase...');
+
+// Verificar que Firebase esté cargado
+if (typeof firebase === 'undefined') {
+    console.error('❌ Firebase no está cargado. Verifica que los scripts de Firebase estén incluidos.');
     window.firebaseInitialized = false;
     window.firebaseDisabled = true;
-    // No hacer return aquí, solo marcar como deshabilitado
 } else {
-    console.log('🔥 Inicializando Firebase...');
-    
-    // Verificar que Firebase esté cargado
-    if (typeof firebase === 'undefined') {
-        console.error('❌ Firebase no está cargado. Verifica que los scripts de Firebase estén incluidos.');
-    } else {
-        console.log('✅ Firebase SDK cargado correctamente');
-    }
+    console.log('✅ Firebase SDK cargado correctamente');
     
     // Verificar que la configuración esté disponible
     if (typeof window.FIREBASE_CONFIG === 'undefined') {
         console.error('❌ Configuración de Firebase no encontrada');
+        window.firebaseInitialized = false;
     } else {
         console.log('✅ Configuración de Firebase disponible:', window.FIREBASE_CONFIG);
     }
@@ -40,9 +36,17 @@ if (window.isDevelopment) {
 // Función para inicializar Firebase
 function initializeFirebase() {
     try {
-        // Verificar si Firebase está deshabilitado
-        if (window.firebaseDisabled) {
-            console.log('🔧 Firebase deshabilitado en modo desarrollo');
+        // Verificar que Firebase esté disponible
+        if (typeof firebase === 'undefined') {
+            console.error('❌ Firebase no está disponible');
+            window.firebaseInitialized = false;
+            return;
+        }
+        
+        // Verificar que la configuración esté disponible
+        if (typeof window.FIREBASE_CONFIG === 'undefined') {
+            console.error('❌ Configuración de Firebase no encontrada');
+            window.firebaseInitialized = false;
             return;
         }
         
@@ -56,17 +60,21 @@ function initializeFirebase() {
         }
         
         // Verificar que Auth esté disponible
-        if (firebase.auth) {
+        if (typeof firebase.auth === 'function') {
             console.log('✅ Firebase Auth disponible');
         } else {
             console.error('❌ Firebase Auth no está disponible');
+            window.firebaseInitialized = false;
+            return;
         }
         
         // Verificar que Firestore esté disponible
-        if (firebase.firestore) {
+        if (typeof firebase.firestore === 'function') {
             console.log('✅ Firebase Firestore disponible');
         } else {
             console.error('❌ Firebase Firestore no está disponible');
+            window.firebaseInitialized = false;
+            return;
         }
         
         // Marcar como inicializado
@@ -79,28 +87,24 @@ function initializeFirebase() {
     }
 }
 
-// Solo intentar inicializar si no estamos en modo desarrollo
-if (!window.firebaseDisabled) {
-    if (typeof firebase !== 'undefined' && typeof window.FIREBASE_CONFIG !== 'undefined') {
-        console.log('🔥 Firebase y configuración disponibles, inicializando...');
-        initializeFirebase();
-    } else {
-        console.log('⏳ Esperando a que Firebase esté completamente cargado...');
+// Intentar inicializar Firebase
+if (typeof firebase !== 'undefined' && typeof window.FIREBASE_CONFIG !== 'undefined') {
+    console.log('🔥 Firebase y configuración disponibles, inicializando...');
+    initializeFirebase();
+} else {
+    console.log('⏳ Esperando a que Firebase esté completamente cargado...');
+    
+    // Esperar a que Firebase esté disponible
+    let attempts = 0;
+    const maxAttempts = 100; // 10 segundos máximo
+    
+    const checkFirebase = setInterval(() => {
+        attempts++;
         
-        // Esperar a que Firebase esté disponible
-        let attempts = 0;
-        const maxAttempts = 100; // 10 segundos máximo
-        
-        const checkFirebase = setInterval(() => {
-            attempts++;
-            
-            if (window.firebaseDisabled) {
-                console.log('🔧 Firebase deshabilitado en modo desarrollo');
-                clearInterval(checkFirebase);
-            } else if (typeof firebase !== 'undefined' && typeof window.FIREBASE_CONFIG !== 'undefined') {
-                console.log('🔥 Firebase detectado, inicializando...');
-                clearInterval(checkFirebase);
-                initializeFirebase();
+        if (typeof firebase !== 'undefined' && typeof window.FIREBASE_CONFIG !== 'undefined') {
+            console.log('🔥 Firebase detectado, inicializando...');
+            clearInterval(checkFirebase);
+            initializeFirebase();
         } else if (attempts >= maxAttempts) {
             console.error('❌ Firebase no se cargó en el tiempo esperado');
             clearInterval(checkFirebase);
@@ -109,7 +113,6 @@ if (!window.firebaseDisabled) {
             console.log(`⏳ Esperando Firebase... (${attempts}/${maxAttempts})`);
         }
     }, 100);
-}
 }
 
 // Exportar la función para uso externo
