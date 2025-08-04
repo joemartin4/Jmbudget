@@ -319,17 +319,50 @@ class SyncService {
     }
 
     async resolveConflicts(localData, serverData) {
-        // Estrategia de resolución de conflictos
-        switch (this.conflictResolution) {
-            case 'server-wins':
-                return this.serverWinsStrategy(localData, serverData);
-            case 'client-wins':
-                return this.clientWinsStrategy(localData, serverData);
-            case 'manual':
-                return this.manualConflictResolution(localData, serverData);
-            default:
-                return this.smartMergeStrategy(localData, serverData);
+        try {
+            // Validar datos de entrada
+            if (!localData || !serverData) {
+                console.warn('⚠️ Datos de entrada inválidos para resolución de conflictos');
+                return localData || serverData || {};
+            }
+            
+            // Estrategia de resolución de conflictos
+            switch (this.conflictResolution) {
+                case 'server-wins':
+                    return this.serverWinsStrategy(localData, serverData);
+                case 'client-wins':
+                    return this.clientWinsStrategy(localData, serverData);
+                case 'manual':
+                    return await this.manualConflictResolution(localData, serverData);
+                default:
+                    return this.smartMergeStrategy(localData, serverData);
+            }
+        } catch (error) {
+            console.error('❌ Error en resolución de conflictos:', error);
+            // Fallback: usar merge inteligente
+            return this.smartMergeStrategy(localData, serverData);
         }
+    }
+
+    // Estrategia: El servidor siempre gana
+    serverWinsStrategy(localData, serverData) {
+        console.log('🔄 Aplicando estrategia: servidor gana');
+        return { ...serverData };
+    }
+
+    // Estrategia: El cliente siempre gana
+    clientWinsStrategy(localData, serverData) {
+        console.log('🔄 Aplicando estrategia: cliente gana');
+        return { ...localData };
+    }
+
+    // Estrategia: Resolución manual de conflictos
+    async manualConflictResolution(localData, serverData) {
+        console.log('🔄 Aplicando estrategia: resolución manual');
+        
+        // Por ahora, usar merge inteligente como fallback
+        // En el futuro, esto podría mostrar un modal al usuario
+        return this.smartMergeStrategy(localData, serverData);
     }
 
     smartMergeStrategy(localData, serverData) {
@@ -535,13 +568,28 @@ class SyncService {
     }
 
     handleSyncError(error) {
+        // Filtrar errores no críticos
+        if (error && error.message && error.message.includes('gapi')) {
+            console.warn('⚠️ Error de Google API (no crítico):', error.message);
+            return;
+        }
+        
         console.error('❌ Error de sincronización:', error);
         this.retryAttempts++;
         
+        // Limitar reintentos para evitar loops infinitos
         if (this.retryAttempts < this.maxRetryAttempts) {
             console.log(`🔄 Reintentando sincronización (${this.retryAttempts}/${this.maxRetryAttempts})`);
-            setTimeout(() => this.syncNow(), 5000 * this.retryAttempts);
+            setTimeout(() => {
+                try {
+                    this.syncNow();
+                } catch (retryError) {
+                    console.error('❌ Error en reintento:', retryError);
+                    this.handleSyncError(retryError);
+                }
+            }, 5000 * this.retryAttempts);
         } else {
+            console.error('❌ Máximo de reintentos alcanzado');
             this.updateSyncStatus('error');
             this.retryAttempts = 0;
         }
